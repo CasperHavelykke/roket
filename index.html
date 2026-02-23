@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Røket — Meet people nearby</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="description" content="Røket lets you discover and chat with people nearby. Available on Android.">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #F5F5F5;
+    --text: #222;
+    --text-secondary: #666;
+    --card-bg: #fff;
+    --card-shadow: rgba(0,0,0,0.06);
+    --footer-text: #999;
+    --divider: #E0E0E0;
+  }
+  .dark {
+    --bg: #121212;
+    --text: #E0E0E0;
+    --text-secondary: #999;
+    --card-bg: #1E1E1E;
+    --card-shadow: rgba(0,0,0,0.3);
+    --footer-text: #555;
+    --divider: #333;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    transition: background 0.3s, color 0.3s;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .hero {
+    background: linear-gradient(135deg, #4361EE, #E63946);
+    padding: 60px 20px 50px;
+    text-align: center;
+    position: relative;
+  }
+  .hero-controls {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .hero-controls button {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background 0.2s;
+  }
+  .hero-controls button:hover { background: rgba(255,255,255,0.35); }
+  .hero-controls button.active {
+    background: rgba(255,255,255,0.35);
+  }
+  .logo {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+  }
+  .hero h1 {
+    color: #fff;
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+  .hero p {
+    color: rgba(255,255,255,0.9);
+    font-size: 18px;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  .content {
+    flex: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+    width: 100%;
+  }
+  .features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  @media (max-width: 500px) {
+    .features { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 34px; }
+  }
+  .feature {
+    background: var(--card-bg);
+    border-radius: 14px;
+    padding: 24px 20px;
+    box-shadow: 0 1px 4px var(--card-shadow);
+    transition: background 0.3s;
+  }
+  .feature-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  .feature h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .feature p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 20px;
+  }
+  .cta {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .cta-badge {
+    display: inline-block;
+    background: linear-gradient(90deg, #4361EE, #E63946);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 14px 36px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .cta-badge:hover { opacity: 0.9; }
+  .cta-note {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  .links {
+    text-align: center;
+    padding: 20px 0;
+    border-top: 1px solid var(--divider);
+  }
+  .links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    margin: 0 12px;
+    transition: color 0.2s;
+  }
+  .links a:hover { color: var(--text); }
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--footer-text);
+    font-size: 12px;
+  }
+  footer a {
+    color: var(--footer-text);
+    text-decoration: none;
+  }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-controls">
+    <button id="btn-lang" onclick="toggleLang()">Dansk</button>
+    <button id="btn-theme" onclick="toggleTheme()">🌙</button>
+  </div>
+  <div class="logo">
+    <svg viewBox="0 0 826 784" xmlns="http://www.w3.org/2000/svg" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+      <g transform="matrix(1,0,0,1,-78.2886,-120)">
+        <path d="M350.675,798.737C292.426,817.031 248.857,860.259 221.928,894.524C215.926,902.287 205.857,905.698 196.373,903.184C186.888,900.67 179.831,892.72 178.461,883.003C143.418,644.102 286.124,560.521 309.765,548.42L309.764,546.713C309.764,318.469 421.289,185.904 478.539,132.889C497.233,115.704 525.976,115.704 544.67,132.889C601.92,185.904 713.445,318.469 713.445,546.713L713.445,548.019C734.462,558.558 880.998,641.265 845.539,883.003C844.169,892.72 837.112,900.67 827.627,903.184C818.143,905.698 808.074,902.287 802.072,894.524C775.037,860.126 731.234,816.694 672.635,798.521C632.768,884.452 569.747,903.155 511.605,903.155C453.519,903.155 390.564,884.488 350.675,798.737ZM512,310.994C559.316,310.994 597.73,349.408 597.73,396.724C597.73,444.04 559.316,482.454 512,482.454C464.684,482.454 426.27,444.04 426.27,396.724C426.27,349.408 464.684,310.994 512,310.994Z" style="fill:white;"/>
+        <g transform="matrix(4.30813,0,0,4.30813,-3217.44,-519.964)">
+          <path d="M791.89,175.342C791.89,190.182 779.841,202.23 765.001,202.23C779.841,202.23 791.89,214.278 791.89,229.119C791.89,214.278 803.938,202.23 818.778,202.23C803.938,202.23 791.89,190.182 791.89,175.342Z" style="fill:white;"/>
+        </g>
+        <g transform="matrix(4.30052,0,0,4.30052,-2617.17,-634.06)">
+          <path d="M791.89,175.342C791.89,190.182 779.841,202.23 765.001,202.23C779.841,202.23 791.89,214.278 791.89,229.119C791.89,214.278 803.938,202.23 818.778,202.23C803.938,202.23 791.89,190.182 791.89,175.342Z" style="fill:white;"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+  <h1>Røket</h1>
+  <p id="hero-text">Discover and chat with people nearby</p>
+</div>
+
+<div class="content">
+  <div class="features" id="features">
+    <div class="feature">
+      <div class="feature-icon">📍</div>
+      <h3 id="f1-title">Nearby grid</h3>
+      <p id="f1-text">See who's around you in real time on an interactive grid</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">💬</div>
+      <h3 id="f2-title">Instant messaging</h3>
+      <p id="f2-text">Send messages and photos directly to people nearby</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔒</div>
+      <h3 id="f3-title">Privacy first</h3>
+      <p id="f3-text">Your data stays secure. No background tracking, no data selling</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🛡️</div>
+      <h3 id="f4-title">Safe community</h3>
+      <p id="f4-text">Content moderation, reporting tools, and strict community guidelines</p>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a class="cta-badge" href="https://play.google.com/store/apps/details?id=com.roket" id="cta-link">
+      <span id="cta-text">Get it on Google Play</span>
+    </a>
+    <p class="cta-note" id="cta-note">Free to download. 18+ only.</p>
+  </div>
+
+  <div class="links">
+    <a href="legal.html" id="link-privacy">Privacy Policy</a>
+    <a href="legal.html" id="link-terms" onclick="localStorage.setItem('legal-page','terms')">Terms & Conditions</a>
+    <a href="legal.html" id="link-delete" onclick="localStorage.setItem('legal-page','delete')">Delete Account</a>
+    <a href="#" class="eml" data-u="support" data-d="roketapp.eu" id="link-contact">Contact</a>
+  </div>
+</div>
+
+<footer>
+  <p>Røket &copy; 2026 &middot; Casper Larsen &middot; <a class="eml" data-u="casper.roket" data-d="proton.me"></a></p>
+</footer>
+
+<script>
+  var lang = 'en';
+  var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  var texts = {
+    en: {
+      hero: 'Discover and chat with people nearby',
+      langBtn: 'Dansk',
+      f1t: 'Nearby grid', f1p: 'See who\'s around you in real time on an interactive grid',
+      f2t: 'Instant messaging', f2p: 'Send messages and photos directly to people nearby',
+      f3t: 'Privacy first', f3p: 'Your data stays secure. No background tracking, no data selling',
+      f4t: 'Safe community', f4p: 'Content moderation, reporting tools, and strict community guidelines',
+      cta: 'Get it on Google Play',
+      note: 'Free to download. 18+ only.',
+      privacy: 'Privacy Policy',
+      terms: 'Terms & Conditions',
+      del: 'Delete Account',
+      contact: 'Contact',
+    },
+    da: {
+      hero: 'Opdag og chat med folk i n\u00e6rheden',
+      langBtn: 'English',
+      f1t: 'N\u00e6rhedsgitter', f1p: 'Se hvem der er i n\u00e6rheden af dig i realtid p\u00e5 et interaktivt gitter',
+      f2t: 'Beskeder', f2p: 'Send beskeder og billeder direkte til folk i n\u00e6rheden',
+      f3t: 'Privatliv f\u00f8rst', f3p: 'Dine data er sikre. Ingen baggrundssporing, ingen salg af data',
+      f4t: 'Trygt f\u00e6llesskab', f4p: 'Indholdsmoderering, rapporteringsv\u00e6rkt\u00f8jer og strenge retningslinjer',
+      cta: 'Hent p\u00e5 Google Play',
+      note: 'Gratis at downloade. Kun 18+.',
+      privacy: 'Privatlivspolitik',
+      terms: 'Vilk\u00e5r og betingelser',
+      del: 'Slet konto',
+      contact: 'Kontakt',
+    }
+  };
+
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+    document.getElementById('btn-theme').textContent = '\u2600\uFE0F';
+  }
+
+  function toggleLang() {
+    lang = lang === 'en' ? 'da' : 'en';
+    document.documentElement.lang = lang;
+    applyTexts();
+  }
+
+  function toggleTheme() {
+    isDark = !isDark;
+    document.documentElement.classList.toggle('dark', isDark);
+    document.getElementById('btn-theme').textContent = isDark ? '\u2600\uFE0F' : '\uD83C\uDF19';
+  }
+
+  function applyTexts() {
+    var t = texts[lang];
+    document.getElementById('hero-text').textContent = t.hero;
+    document.getElementById('btn-lang').textContent = t.langBtn;
+    document.getElementById('f1-title').textContent = t.f1t;
+    document.getElementById('f1-text').textContent = t.f1p;
+    document.getElementById('f2-title').textContent = t.f2t;
+    document.getElementById('f2-text').textContent = t.f2p;
+    document.getElementById('f3-title').textContent = t.f3t;
+    document.getElementById('f3-text').textContent = t.f3p;
+    document.getElementById('f4-title').textContent = t.f4t;
+    document.getElementById('f4-text').textContent = t.f4p;
+    document.getElementById('cta-text').textContent = t.cta;
+    document.getElementById('cta-note').textContent = t.note;
+    document.getElementById('link-privacy').textContent = t.privacy;
+    document.getElementById('link-terms').textContent = t.terms;
+    document.getElementById('link-delete').textContent = t.del;
+    document.getElementById('link-contact').textContent = t.contact;
+  }
+
+  // Email deobfuscation
+  document.querySelectorAll('.eml').forEach(function(el) {
+    var addr = el.dataset.u + '@' + el.dataset.d;
+    el.href = 'mailto:' + addr;
+    if (!el.textContent.trim()) el.textContent = addr;
+  });
+</script>
+
+</body>
+</html>

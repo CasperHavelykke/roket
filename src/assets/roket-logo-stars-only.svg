@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 354 299" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(1,0,0,1,-60,-153.416)">
+        <g id="Stjerne1" transform="matrix(3.85582,0,0,3.85582,-2889.7,-431.439)">
+            <path d="M791.89,175.342C791.89,190.182 779.841,202.23 765.001,202.23C779.841,202.23 791.89,214.278 791.89,229.119C791.89,214.278 803.938,202.23 818.778,202.23C803.938,202.23 791.89,190.182 791.89,175.342Z" style="fill:white;"/>
+        </g>
+        <g id="Stjerne11" serif:id="Stjerne1" transform="matrix(2.43295,0,0,2.43295,-1578.9,-273.182)">
+            <path d="M791.89,175.342C791.89,190.182 779.841,202.23 765.001,202.23C779.841,202.23 791.89,214.278 791.89,229.119C791.89,214.278 803.938,202.23 818.778,202.23C803.938,202.23 791.89,190.182 791.89,175.342Z" style="fill:white;"/>
+        </g>
+    </g>
+</svg>

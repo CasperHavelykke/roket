@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet, StatusBar, Alert, AppState, TouchableOpacity } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from './src/services/NotificationService';
+import LocationService from './src/services/LocationService';
+import NotificationBanner, { NotificationBannerRef, NotificationData } from './src/components/NotificationBanner';
+import DisclosureModal from './src/components/DisclosureModal';
+import { ThemeContext, useThemeProvider } from './src/theme';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
@@ -13,65 +19,369 @@ import ProfileViewScreen from './src/screens/ProfileViewScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import ChatsListScreen from './src/screens/ChatsListScreen';
 import MyProfileScreen from './src/screens/MyProfileScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import FeedbackScreen from './src/screens/FeedbackScreen';
+import BlockedUsersScreen from './src/screens/BlockedUsersScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
+import DeleteAccountScreen from './src/screens/DeleteAccountScreen';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
+import TermsConditionsScreen from './src/screens/TermsConditionsScreen';
+import CommunityGuidelinesScreen from './src/screens/CommunityGuidelinesScreen';
+import ChildSafetyScreen from './src/screens/ChildSafetyScreen';
 
-const Stack = createNativeStackNavigator();
+type RootStackParamList = {
+  Login: undefined;
+  Signup: undefined;
+  ProfileSetup: undefined;
+  Home: undefined;
+  ProfileView: { userId: string };
+  Chat: { otherUser: { id: string; displayName: string } };
+  ChatsList: undefined;
+  MyProfile: undefined;
+  Settings: undefined;
+  Feedback: undefined;
+  BlockedUsers: undefined;
+  EditProfile: undefined;
+  DeleteAccount: undefined;
+  PrivacyPolicy: undefined;
+  TermsConditions: undefined;
+  CommunityGuidelines: undefined;
+  ChildSafety: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 function App() {
   const [initializing, setInitializing] = useState(true);
-  // null = ikke tjekket endnu, false = ikke logget ind, true = logget ind med profil, 'setup' = logget ind uden profil
   const [authState, setAuthState] = useState<null | false | true | 'setup'>(null);
+  const [networkError, setNetworkError] = useState(false);
+  const [showNotifDisclosure, setShowNotifDisclosure] = useState(false);
+  const notifDisclosureResolve = useRef<(() => void) | null>(null);
+  const theme = useThemeProvider();
+  const bannerRef = useRef<NotificationBannerRef>(null);
 
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(async user => {
+    const timeout = setTimeout(() => {
+      setNetworkError(prev => {
+        // Kun vis fejl hvis vi stadig initialiserer
+        if (initializing) return true;
+        return prev;
+      });
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, [initializing]);
+
+  useEffect(() => {
+    let unsubscribeProfile: (() => void) | null = null;
+
+    const unsubscribeAuth = auth().onAuthStateChanged(user => {
+      setNetworkError(false);
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+
       if (user) {
-        const doc = await firestore().collection('users').doc(user.uid).get();
-        if (doc.exists() && doc.data()?.displayName) {
-          setAuthState(true);
-          NotificationService.initialize().catch(console.error);
-        } else {
-          setAuthState('setup');
-        }
+        unsubscribeProfile = firestore()
+          .collection('users')
+          .doc(user.uid)
+          .onSnapshot(doc => {
+            if (doc.exists()) {
+              const data = doc.data();
+
+              // Tjek om brugeren er banned
+              if (data?.banned) {
+                Alert.alert(
+                  'Konto deaktiveret',
+                  'Din konto er blevet permanent deaktiveret for overtrædelse af retningslinjerne.',
+                  [{ text: 'OK', onPress: () => auth().signOut() }],
+                  { cancelable: false },
+                );
+                return;
+              }
+
+              // Tjek om brugeren er suspenderet
+              if (data?.suspendedUntil) {
+                const suspendedUntil = data.suspendedUntil.toDate?.() ?? new Date(data.suspendedUntil);
+                if (suspendedUntil > new Date()) {
+                  const dateStr = suspendedUntil.toLocaleDateString();
+                  Alert.alert(
+                    'Konto suspenderet',
+                    `Din konto er midlertidigt suspenderet indtil ${dateStr}.`,
+                    [{ text: 'OK', onPress: () => auth().signOut() }],
+                    { cancelable: false },
+                  );
+                  return;
+                }
+              }
+
+              // Tjek om brugeren har nye advarsler
+              const warnings = data?.warnings || 0;
+              const warningsSeen = data?.warningsSeen || 0;
+              if (warnings > warningsSeen) {
+                Alert.alert(
+                  'Advarsel',
+                  `Du har modtaget ${warnings - warningsSeen === 1 ? 'en advarsel' : `${warnings - warningsSeen} advarsler`} for overtrædelse af retningslinjerne. Yderligere overtrædelser kan føre til suspendering eller permanent deaktivering af din konto.`,
+                  [{
+                    text: 'Forstået',
+                    onPress: () => {
+                      firestore()
+                        .collection('users')
+                        .doc(user.uid)
+                        .update({ warningsSeen: warnings })
+                        .catch(console.error);
+                    },
+                  }],
+                  { cancelable: false },
+                );
+              }
+
+              setAuthState(true);
+
+              // Vis disclosure-modal før notification-permission (kun første gang)
+              const initNotifications = async () => {
+                const disclosed = await AsyncStorage.getItem('@roket_notif_disclosure_shown');
+                if (!disclosed) {
+                  await new Promise<void>(resolve => {
+                    notifDisclosureResolve.current = resolve;
+                    setShowNotifDisclosure(true);
+                  });
+                  await AsyncStorage.setItem('@roket_notif_disclosure_shown', 'true');
+                }
+                await NotificationService.initialize();
+              };
+              initNotifications().catch(console.error);
+            } else {
+              // Profildokument eksisterer ikke — nyt signup eller slettet af admin?
+              const creationTime = user.metadata.creationTime;
+              const accountAge = creationTime
+                ? Date.now() - new Date(creationTime).getTime()
+                : Infinity;
+
+              if (accountAge < 10 * 60 * 1000) {
+                // Ny bruger (< 10 min siden signup) — vis profil-setup
+                setAuthState('setup');
+              } else {
+                // Gammel konto uden profil — slettet af admin, log ud
+                auth().signOut().catch(console.error);
+              }
+            }
+            setInitializing(false);
+          });
       } else {
         setAuthState(false);
+        setInitializing(false);
       }
-      setInitializing(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
-  if (initializing) {
+  // Notification listeners
+  useEffect(() => {
+    if (authState !== true) return;
+
+    // Foreground: show in-app banner
+    const unsubForeground = NotificationService.onForegroundMessage(remoteMessage => {
+      const data = remoteMessage.data;
+      if (!data?.senderId || !data?.senderName) return;
+
+      // Ignorer notifikationer fra dig selv
+      if (data.senderId === auth().currentUser?.uid) return;
+
+      // Don't show banner if on messages screen or in chat with this sender
+      if (navigationRef.isReady()) {
+        const state = navigationRef.getCurrentRoute();
+        if (state?.name === 'ChatsList') return;
+        if (
+          state?.name === 'Chat' &&
+          (state.params as any)?.otherUser?.id === data.senderId
+        ) {
+          return;
+        }
+      }
+
+      bannerRef.current?.show({
+        senderName: data.senderName as string,
+        senderId: data.senderId as string,
+        message: remoteMessage.notification?.body ?? (data.message as string) ?? '',
+        senderPhoto: (data.senderPhoto as string) || null,
+      });
+    });
+
+    // Background: user tapped notification while app was in background
+    NotificationService.onNotificationOpenedApp(remoteMessage => {
+      const data = remoteMessage.data;
+      if (!data?.senderId || !data?.senderName) return;
+      if (navigationRef.isReady()) {
+        navigationRef.navigate('Chat', {
+          otherUser: { id: data.senderId as string, displayName: data.senderName as string },
+        });
+      }
+    });
+
+    // Quit: app was opened via notification tap
+    NotificationService.getInitialNotification().then(remoteMessage => {
+      if (!remoteMessage) return;
+      const data = remoteMessage.data;
+      if (!data?.senderId || !data?.senderName) return;
+      if (navigationRef.isReady()) {
+        navigationRef.navigate('Chat', {
+          otherUser: { id: data.senderId as string, displayName: data.senderName as string },
+        });
+      }
+    });
+
+    return () => unsubForeground();
+  }, [authState]);
+
+  // Global location watch — opdaterer lokation uanset hvilken skærm brugeren er på
+  useEffect(() => {
+    if (authState !== true) return;
+    let watchId: number | null = null;
+
+    const startWatch = async () => {
+      const precision = await LocationService.checkCurrentPrecision();
+      if (precision === 'denied') {
+        // Fjern gammel lokation fra Firestore
+        const user = auth().currentUser;
+        if (user) {
+          firestore().collection('userLocations').doc(user.uid).delete().catch(() => {});
+        }
+        return;
+      }
+      const id = await LocationService.watchPosition(
+        async (latitude, longitude) => {
+          const user = auth().currentUser;
+          if (!user) return;
+          await firestore().collection('userLocations').doc(user.uid).set({
+            location: new firestore.GeoPoint(latitude, longitude),
+            updatedAt: firestore.FieldValue.serverTimestamp(),
+          });
+        },
+      );
+      watchId = id;
+    };
+
+    startWatch();
+
+    // Stop watch når appen går i baggrunden (forhindrer crash hvis bruger ændrer permission)
+    // Genstart når appen kommer i forgrunden
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        if (watchId !== null) {
+          LocationService.clearWatch(watchId);
+          watchId = null;
+        }
+      } else if (nextState === 'active') {
+        startWatch();
+      }
+    });
+
+    return () => {
+      if (watchId !== null) LocationService.clearWatch(watchId);
+      subscription.remove();
+    };
+  }, [authState]);
+
+  const handleBannerPress = useCallback((data: NotificationData) => {
+    if (navigationRef.isReady()) {
+      navigationRef.navigate('Chat' as never, {
+        otherUser: { id: data.senderId, displayName: data.senderName },
+      } as never);
+    }
+  }, []);
+
+  if (initializing || !theme.loaded) {
+    if (networkError) {
+      return (
+        <View style={[styles.loading, { backgroundColor: theme.colors.background }]}>
+          <Text style={[styles.noConnectionText, { color: theme.colors.textPrimary }]}>
+            {theme.t.noConnection}
+          </Text>
+          <Text style={[styles.noConnectionSubtext, { color: theme.colors.textMuted }]}>
+            {theme.t.noConnectionSubtext}
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: theme.colors.primaryBlue }]}
+            onPress={() => {
+              setNetworkError(false);
+              setInitializing(true);
+              // Re-trigger auth check ved at logge ud og ind igen via listener
+              auth().currentUser?.reload().catch(() => {});
+            }}
+          >
+            <Text style={styles.retryButtonText}>{theme.t.retry}</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#667eea" />
+      <View style={[styles.loading, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primaryRed} />
       </View>
     );
   }
 
+  const navTheme = theme.isDark
+    ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: theme.colors.background } }
+    : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: theme.colors.background } };
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {authState === false ? (
-          // Ikke logget ind
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Signup" component={SignupScreen} />
-          </>
-        ) : authState === 'setup' ? (
-          // Logget ind men ingen profil
-          <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
-        ) : (
-          // Logget ind med profil
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="ProfileView" component={ProfileViewScreen} />
-            <Stack.Screen name="Chat" component={ChatScreen} />
-            <Stack.Screen name="ChatsList" component={ChatsListScreen} />
-            <Stack.Screen name="MyProfile" component={MyProfileScreen} />
-          </>
+    <SafeAreaProvider>
+      <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceMode: theme.distanceMode, setDistanceMode: theme.setDistanceMode, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, gridColumns: theme.gridColumns, setGridColumns: theme.setGridColumns, t: theme.t }}>
+        <NavigationContainer ref={navigationRef} theme={navTheme}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {authState === false ? (
+              <>
+                <Stack.Screen name="Login" component={LoginScreen} />
+                <Stack.Screen name="Signup" component={SignupScreen} />
+                <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
+              </>
+            ) : authState === 'setup' ? (
+              <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+            ) : (
+              <>
+                <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="ProfileView" component={ProfileViewScreen} />
+                <Stack.Screen name="Chat" component={ChatScreen} />
+                <Stack.Screen name="ChatsList" component={ChatsListScreen} />
+                <Stack.Screen name="MyProfile" component={MyProfileScreen} />
+                <Stack.Screen name="Settings" component={SettingsScreen} />
+                <Stack.Screen name="Feedback" component={FeedbackScreen} />
+                <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
+                <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+                <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
+                <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
+                <Stack.Screen name="CommunityGuidelines" component={CommunityGuidelinesScreen} />
+                <Stack.Screen name="ChildSafety" component={ChildSafetyScreen} />
+              </>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+        {authState === true && (
+          <NotificationBanner ref={bannerRef} onPress={handleBannerPress} />
         )}
-      </Stack.Navigator>
-    </NavigationContainer>
+        <DisclosureModal
+          visible={showNotifDisclosure}
+          icon="🔔"
+          title={theme.t.disclosureNotificationTitle}
+          message={theme.t.disclosureNotificationMessage}
+          acceptLabel={theme.t.disclosureNotificationAccept}
+          onAccept={() => {
+            setShowNotifDisclosure(false);
+            notifDisclosureResolve.current?.();
+          }}
+        />
+      </ThemeContext.Provider>
+    </SafeAreaProvider>
   );
 }
 
@@ -80,7 +390,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+  },
+  noConnectionText: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  noConnectionSubtext: {
+    fontSize: 14,
+    marginBottom: 24,
+  },
+  retryButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 24,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

@@ -9,21 +9,169 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  SafeAreaView,
   Image,
   Alert,
+  Modal,
+  Dimensions,
+  Pressable,
+  Animated,
+  ScrollView,
+  Clipboard,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { pickImages } from '../utils/pickImage';
+import { useTheme } from '../theme';
+import getFirebaseError from '../utils/getFirebaseError';
+import CameraIcon from '../assets/camera.svg';
+import SendIcon from '../assets/send.svg';
 
 interface Message {
   id: string;
   senderId: string;
   text?: string;
   imageURL?: string;
+  imageExpired?: boolean;
   timestamp: any;
+  likedBy?: string[];
+  deleted?: boolean;
+  flagged?: boolean;
+  flaggedReason?: string;
+}
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+
+function FullscreenZoomImage({ uri, onClose }: { uri: string; onClose: () => void }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  const scaleVal = useRef(1);
+  const txVal = useRef(0);
+  const tyVal = useRef(0);
+  const pinchDist0 = useRef(0);
+  const pinchScale0 = useRef(1);
+  const panStartX = useRef(0);
+  const panStartY = useRef(0);
+  const lastTxVal = useRef(0);
+  const lastTyVal = useRef(0);
+  const wasPinching = useRef(false);
+  const touchStart = useRef({ time: 0, x: 0, y: 0 });
+
+  useEffect(() => {
+    const s1 = scale.addListener(({ value }) => { scaleVal.current = value; });
+    const s2 = translateX.addListener(({ value }) => { txVal.current = value; });
+    const s3 = translateY.addListener(({ value }) => { tyVal.current = value; });
+    return () => { scale.removeListener(s1); translateX.removeListener(s2); translateY.removeListener(s3); };
+  }, []);
+
+  const imgH = SCREEN_H * 0.8;
+
+  const dist = (touches: any[]) => {
+    const dx = touches[0].pageX - touches[1].pageX;
+    const dy = touches[0].pageY - touches[1].pageY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const clampTx = (tx: number, s: number) => {
+    const maxX = (SCREEN_W * (s - 1)) / 2;
+    return Math.max(-maxX, Math.min(maxX, tx));
+  };
+
+  const clampTy = (ty: number, s: number) => {
+    const maxY = (imgH * (s - 1)) / 2;
+    return Math.max(-maxY, Math.min(maxY, ty));
+  };
+
+  const onTouchStart = (e: any) => {
+    const t = e.nativeEvent.touches;
+    if (t.length === 2) {
+      wasPinching.current = true;
+      pinchDist0.current = dist(t);
+      pinchScale0.current = scaleVal.current;
+    } else if (t.length === 1) {
+      touchStart.current = { time: Date.now(), x: t[0].pageX, y: t[0].pageY };
+      panStartX.current = t[0].pageX;
+      panStartY.current = t[0].pageY;
+      lastTxVal.current = txVal.current;
+      lastTyVal.current = tyVal.current;
+    }
+  };
+
+  const onTouchMove = (e: any) => {
+    const t = e.nativeEvent.touches;
+    if (t.length >= 2 && pinchDist0.current > 0) {
+      const d = dist(t);
+      const s = Math.max(1, Math.min(pinchScale0.current * (d / pinchDist0.current), 5));
+      scale.setValue(s);
+      // Clamp eksisterende translation til nye grænser
+      translateX.setValue(clampTx(txVal.current, s));
+      translateY.setValue(clampTy(tyVal.current, s));
+    } else if (t.length === 1 && scaleVal.current > 1 && !wasPinching.current) {
+      const damp = 0.6;
+      const rawX = lastTxVal.current + (t[0].pageX - panStartX.current) * damp;
+      const rawY = lastTyVal.current + (t[0].pageY - panStartY.current) * damp;
+      translateX.setValue(clampTx(rawX, scaleVal.current));
+      translateY.setValue(clampTy(rawY, scaleVal.current));
+    }
+  };
+
+  const onTouchEnd = (e: any) => {
+    const remaining = e.nativeEvent.touches;
+    if (remaining.length === 0) {
+      const ch = e.nativeEvent.changedTouches[0];
+      const elapsed = Date.now() - touchStart.current.time;
+      const movedX = Math.abs(ch.pageX - touchStart.current.x);
+      const movedY = Math.abs(ch.pageY - touchStart.current.y);
+
+      // Enkelt tryk → luk (hvis ikke zoomet og ingen bevægelse)
+      if (!wasPinching.current && scaleVal.current <= 1 && elapsed < 300 && movedX < 10 && movedY < 10) {
+        onClose();
+        return;
+      }
+
+      wasPinching.current = false;
+      pinchDist0.current = 0;
+
+      if (scaleVal.current <= 1.1) {
+        Animated.parallel([
+          Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+          Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
+        ]).start();
+      }
+    } else if (remaining.length === 1) {
+      // Én finger løftet efter pinch — nulstil pan-tracking
+      pinchDist0.current = 0;
+      panStartX.current = remaining[0].pageX;
+      panStartY.current = remaining[0].pageY;
+      lastTxVal.current = txVal.current;
+      lastTyVal.current = tyVal.current;
+    }
+  };
+
+  return (
+    <View
+      style={styles.fullscreenOverlay}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      <Animated.Image
+        source={{ uri }}
+        style={[styles.fullscreenImage, {
+          transform: [{ scale }, { translateX }, { translateY }],
+        }]}
+        resizeMode="contain"
+      />
+      <TouchableOpacity style={styles.fullscreenCloseBtn} onPress={onClose}>
+        <Text style={styles.fullscreenClose}>✕</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 function getOrCreateChatId(uid1: string, uid2: string): string {
@@ -32,50 +180,102 @@ function getOrCreateChatId(uid1: string, uid2: string): string {
 }
 
 export default function ChatScreen({ route, navigation }: any) {
-  const { otherUser } = route.params as {
-    otherUser: { id: string; displayName: string };
+  const { colors, timeFormat, t, language } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { otherUser, fromProfile } = route.params as {
+    otherUser: { id: string; displayName: string; testAccount?: boolean };
+    fromProfile?: boolean;
   };
 
-  const currentUser = auth().currentUser!;
-  const chatId = getOrCreateChatId(currentUser.uid, otherUser.id);
+  const currentUser = auth().currentUser;
+  const chatId = currentUser ? getOrCreateChatId(currentUser.uid, otherUser.id) : '';
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingImage, setSendingImage] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
+  const [revealedImages, setRevealedImages] = useState<Set<string>>(new Set());
   const flatListRef = useRef<FlatList>(null);
+  const lastTapRef = useRef<{ id: string; time: number }>({ id: '', time: 0 });
+
+  // Tjek om en af parterne har blokeret den anden
+  useEffect(() => {
+    if (!currentUser) return;
+    const checkBlock = async () => {
+      const [myDoc, theirDoc] = await Promise.all([
+        firestore().collection('users').doc(currentUser.uid).get(),
+        firestore().collection('users').doc(otherUser.id).get(),
+      ]);
+      const myBlocked: string[] = myDoc.data()?.blockedUsers ?? [];
+      const theirBlocked: string[] = theirDoc.data()?.blockedUsers ?? [];
+      setBlocked(myBlocked.includes(otherUser.id) || theirBlocked.includes(currentUser.uid));
+    };
+    checkBlock();
+  }, []);
 
   useEffect(() => {
-    // Opret chat-dokument hvis det ikke findes
-    const chatRef = firestore().collection('chats').doc(chatId);
-    chatRef.set(
-      {
-        participants: [currentUser.uid, otherUser.id],
-        createdAt: firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    if (!currentUser) return;
+    let unsubscribe: (() => void) | undefined;
 
-    // Lyt til beskeder real-time
-    const unsubscribe = firestore()
-      .collection('chats')
-      .doc(chatId)
-      .collection('messages')
-      .orderBy('timestamp', 'asc')
-      .onSnapshot(snapshot => {
-        const msgs: Message[] = snapshot.docs.map(doc => ({
-          id: doc.id,
-          senderId: doc.data().senderId,
-          text: doc.data().text,
-          imageURL: doc.data().imageURL,
-          timestamp: doc.data().timestamp,
-        }));
-        setMessages(msgs);
-        setLoading(false);
-      });
+    const setup = async () => {
+      // Opret chat-dokument først, så Firestore-regler tillader læsning af messages
+      const chatRef = firestore().collection('chats').doc(chatId);
+      await chatRef.set(
+        {
+          participants: [currentUser.uid, otherUser.id],
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
 
-    return () => unsubscribe();
+      // Lyt til beskeder real-time
+      unsubscribe = firestore()
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .onSnapshot(snapshot => {
+          if (!snapshot) {
+            setLoading(false);
+            return;
+          }
+          const msgs: Message[] = snapshot.docs.map(doc => ({
+            id: doc.id,
+            senderId: doc.data().senderId,
+            text: doc.data().text,
+            imageURL: doc.data().imageURL,
+            timestamp: doc.data().timestamp,
+            imageExpired: doc.data().imageExpired ?? false,
+            likedBy: doc.data().likedBy ?? [],
+            deleted: doc.data().deleted ?? false,
+            flagged: doc.data().flagged ?? false,
+            flaggedReason: doc.data().flaggedReason,
+          }));
+          msgs.sort((a, b) => {
+            if (!a.timestamp) return -1;
+            if (!b.timestamp) return 1;
+            const aTime = a.timestamp.toDate ? a.timestamp.toDate().getTime() : 0;
+            const bTime = b.timestamp.toDate ? b.timestamp.toDate().getTime() : 0;
+            return bTime - aTime;
+          });
+          setMessages(msgs);
+          setLoading(false);
+
+          // Markér chatten som læst (brug Timestamp.now() så lokal cache opdateres straks)
+          chatRef.update({
+            [`lastRead.${currentUser.uid}`]: firestore.Timestamp.now(),
+          }).catch(() => {});
+        });
+    };
+
+    setup();
+
+    return () => unsubscribe?.();
   }, [chatId]);
+
+  if (!currentUser) return null;
 
   const sendMessage = async () => {
     const text = inputText.trim();
@@ -94,143 +294,460 @@ export default function ChatScreen({ route, navigation }: any) {
 
     await chatRef.set(
       {
-        lastMessage: text,
+        lastMessage: text.slice(0, 500),
         lastMessageTime: firestore.FieldValue.serverTimestamp(),
+        lastMessageSenderId: currentUser.uid,
       },
       { merge: true }
     );
   };
 
-  const handleSendImage = () => {
-    launchImageLibrary(
-      { mediaType: 'photo', quality: 0.8, maxWidth: 1080, maxHeight: 1080 },
-      async response => {
-        if (response.didCancel || response.errorCode) return;
-        const uri = response.assets?.[0]?.uri;
-        if (!uri) return;
+  const handlePickImage = async () => {
+    const uris = await pickImages(3);
+    if (uris.length > 0) setPendingImages(uris);
+  };
 
-        setSendingImage(true);
-        try {
-          const chatRef = firestore().collection('chats').doc(chatId);
-          const messageRef = chatRef.collection('messages').doc();
-          const ref = storage().ref(`chatImages/${chatId}/${messageRef.id}.jpg`);
-          await ref.putFile(uri);
-          const imageURL = await ref.getDownloadURL();
+  const handleAddMoreImages = async () => {
+    const remaining = 3 - pendingImages.length;
+    if (remaining <= 0) return;
+    const uris = await pickImages(remaining);
+    if (uris.length > 0) {
+      setPendingImages(prev => [...prev, ...uris].slice(0, 3));
+    }
+  };
 
-          await messageRef.set({
-            senderId: currentUser.uid,
-            imageURL,
-            timestamp: firestore.FieldValue.serverTimestamp(),
-          });
+  const handleConfirmSendImages = async () => {
+    if (pendingImages.length === 0) return;
+    const uris = [...pendingImages];
+    setPendingImages([]);
+    setSendingImage(true);
+    try {
+      const chatRef = firestore().collection('chats').doc(chatId);
 
-          await chatRef.set(
-            {
-              lastMessage: '📷 Foto',
-              lastMessageTime: firestore.FieldValue.serverTimestamp(),
-            },
-            { merge: true }
-          );
-        } catch (error: any) {
-          Alert.alert('Fejl', error.message);
-        } finally {
-          setSendingImage(false);
-        }
+      for (const uri of uris) {
+        const messageRef = chatRef.collection('messages').doc();
+        const ref = storage().ref(`chatImages/${chatId}/${messageRef.id}.jpg`);
+        await ref.putFile(uri);
+        const imageURL = await ref.getDownloadURL();
+
+        await messageRef.set({
+          senderId: currentUser.uid,
+          imageURL,
+          timestamp: firestore.FieldValue.serverTimestamp(),
+        });
       }
-    );
+
+      await chatRef.set(
+        {
+          lastMessage: t.chatPhotoLabel,
+          lastMessageTime: firestore.FieldValue.serverTimestamp(),
+          lastMessageSenderId: currentUser.uid,
+        },
+        { merge: true }
+      );
+    } catch (error: any) {
+      Alert.alert(t.error, getFirebaseError(error, t));
+    } finally {
+      setSendingImage(false);
+    }
   };
 
   const formatTime = (timestamp: any): string => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: timeFormat === '12h',
+    });
+  };
+
+  const isImageExpired = (timestamp: any): boolean => {
+    if (!timestamp) return false;
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return Date.now() - date.getTime() > 24 * 60 * 60 * 1000;
+  };
+
+  const getTimeRemaining = (timestamp: any): string => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const msLeft = 24 * 60 * 60 * 1000 - (Date.now() - date.getTime());
+    if (msLeft <= 0) return '';
+    const hoursLeft = Math.floor(msLeft / (60 * 60 * 1000));
+    const minsLeft = Math.floor((msLeft % (60 * 60 * 1000)) / (60 * 1000));
+    if (hoursLeft > 0) return t.chatExpiresHoursMinutes(hoursLeft, minsLeft);
+    return t.chatExpiresMinutes(minsLeft);
+  };
+
+  const handleDoubleTap = (messageId: string) => {
+    const now = Date.now();
+    const last = lastTapRef.current;
+    if (last.id === messageId && now - last.time < 300) {
+      // Dobbelt-tryk: toggle like
+      const msgRef = firestore()
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId);
+      const msg = messages.find(m => m.id === messageId);
+      const alreadyLiked = msg?.likedBy?.includes(currentUser.uid);
+      msgRef.update({
+        likedBy: alreadyLiked
+          ? firestore.FieldValue.arrayRemove(currentUser.uid)
+          : firestore.FieldValue.arrayUnion(currentUser.uid),
+      }).catch(err => console.warn('Like fejl:', err.message));
+      lastTapRef.current = { id: '', time: 0 };
+    } else {
+      lastTapRef.current = { id: messageId, time: now };
+    }
+  };
+
+  const handleMessageAction = (message: Message) => {
+    const isMe = message.senderId === currentUser.uid;
+    const buttons: any[] = [];
+
+    // Kopier (kun hvis der er tekst)
+    if (message.text && !message.deleted) {
+      buttons.push({
+        text: t.chatCopy,
+        onPress: () => {
+          Clipboard.setString(message.text!);
+        },
+      });
+    }
+
+    // Slet (kun egne beskeder)
+    if (isMe && !message.deleted) {
+      buttons.push({
+        text: t.delete,
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert(t.chatDeleteTitle, t.chatDeleteConfirm, [
+            { text: t.cancel, style: 'cancel' },
+            {
+              text: t.delete,
+              style: 'destructive',
+              onPress: () => {
+                storage().ref(`chatImages/${chatId}/${message.id}.jpg`).delete().catch(() => {});
+                firestore()
+                  .collection('chats')
+                  .doc(chatId)
+                  .collection('messages')
+                  .doc(message.id)
+                  .update({ deleted: true, text: null, imageURL: null })
+                  .catch(err => Alert.alert(t.error, getFirebaseError(err, t)));
+              },
+            },
+          ]);
+        },
+      });
+    }
+
+    if (buttons.length === 0) return;
+
+    buttons.push({ text: t.cancel, style: 'cancel' });
+    Alert.alert(undefined as any, undefined, buttons);
+  };
+
+  const handleRevealFlagged = (messageId: string) => {
+    Alert.alert(
+      t.chatFlaggedTitle,
+      t.chatFlaggedWarning,
+      [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.chatFlaggedReveal,
+          onPress: () => setRevealedImages(prev => new Set(prev).add(messageId)),
+        },
+      ],
+    );
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isMe = item.senderId === currentUser.uid;
+    const expired = item.imageExpired || (item.imageURL && isImageExpired(item.timestamp)) || (!item.text && !item.imageURL && !item.deleted);
+    const isLiked = item.likedBy && item.likedBy.length > 0;
+    const isFlaggedImage = item.flagged && item.imageURL && !expired && !item.deleted;
+    const isRevealed = revealedImages.has(item.id);
     return (
       <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowThem]}>
-        <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem, item.imageURL && styles.bubbleImage]}>
-          {item.imageURL ? (
-            <Image source={{ uri: item.imageURL }} style={styles.chatImage} resizeMode="cover" />
-          ) : (
-            <Text style={[styles.messageText, isMe ? styles.messageTextMe : styles.messageTextThem]}>
-              {item.text}
-            </Text>
+        <Pressable
+          style={styles.messagePressable}
+          onPress={() => handleDoubleTap(item.id)}
+          onLongPress={!item.deleted ? () => handleMessageAction(item) : undefined}
+        >
+          <View style={[
+            styles.bubble,
+            isMe
+              ? [styles.bubbleMe, { backgroundColor: item.deleted ? colors.bubbleReceived : colors.primaryBlue }]
+              : [styles.bubbleThem, { backgroundColor: colors.bubbleReceived }],
+            item.imageURL && !expired && !item.deleted && styles.bubbleImage,
+          ]}>
+            {item.deleted ? (
+              <Text style={[styles.deletedText, { color: colors.textMuted }]}>
+                {t.chatDeleted}
+              </Text>
+            ) : (item.imageURL || expired) ? (
+              expired ? (
+                <Text style={[
+                  styles.expiredText,
+                  isMe ? { color: 'rgba(255,255,255,0.6)' } : { color: colors.textMuted },
+                ]}>
+                  {t.chatImageExpired}
+                </Text>
+              ) : (
+                <>
+                  {isFlaggedImage && !isRevealed ? (
+                    <TouchableOpacity activeOpacity={0.85} onPress={() => handleRevealFlagged(item.id)}>
+                      <View style={styles.chatImage}>
+                        <Image source={{ uri: item.imageURL }} style={[styles.chatImage, { position: 'absolute' }]} resizeMode="cover" blurRadius={30} />
+                        <View style={styles.flaggedOverlay}>
+                          <Text style={styles.flaggedIcon}>!</Text>
+                          <Text style={styles.flaggedText}>{t.chatFlaggedLabel}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity activeOpacity={0.85} onPress={() => setFullscreenImage(item.imageURL!)}>
+                      <Image source={{ uri: item.imageURL }} style={styles.chatImage} resizeMode="cover" />
+                    </TouchableOpacity>
+                  )}
+                  <Text style={[styles.expiryText, isMe ? { color: 'rgba(255,255,255,0.5)' } : { color: colors.textMuted }]}>
+                    {getTimeRemaining(item.timestamp)}
+                  </Text>
+                </>
+              )
+            ) : (
+              <Text style={[
+                styles.messageText,
+                isMe
+                  ? { color: colors.textWhite }
+                  : { color: colors.bubbleReceivedText },
+              ]}>
+                {item.text}
+              </Text>
+            )}
+            {!item.deleted && (
+              <Text style={[styles.timestamp, isMe ? styles.timestampMe : styles.timestampThem]}>
+                {formatTime(item.timestamp)}
+              </Text>
+            )}
+          </View>
+          {isLiked && (
+            <View style={[styles.heartBadge, { backgroundColor: colors.white }, isMe ? styles.heartBadgeMe : styles.heartBadgeThem]}>
+              <Text style={styles.heartEmoji}>❤️</Text>
+            </View>
           )}
-          <Text style={[styles.timestamp, isMe ? styles.timestampMe : styles.timestampThem]}>
-            {formatTime(item.timestamp)}
-          </Text>
-        </View>
+        </Pressable>
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+      <LinearGradient
+        colors={[colors.primaryBlue, colors.primaryRed]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
+      >
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
+          <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>{otherUser.displayName}</Text>
-        </View>
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#667eea" />
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.messageList}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Sig hej til {otherUser.displayName}! 👋</Text>
+        {fromProfile ? (
+          <View style={styles.headerInfo}>
+            <View style={styles.headerNameRow}>
+              <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>
+              {otherUser.testAccount && <View style={styles.headerTestBadge}><Text style={styles.headerTestBadgeText}>{t.testAccount}</Text></View>}
             </View>
-          }
-        />
-      )}
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.headerInfo}
+            onPress={async () => {
+              const [otherDoc, myLocDoc, theirLocDoc] = await Promise.all([
+                firestore().collection('users').doc(otherUser.id).get(),
+                firestore().collection('userLocations').doc(currentUser.uid).get(),
+                firestore().collection('userLocations').doc(otherUser.id).get(),
+              ]);
+              const data = otherDoc.data();
+              if (!data) return;
+
+              let distance: number | undefined;
+              const myLoc = myLocDoc.data()?.location;
+              const theirLoc = theirLocDoc.data()?.location;
+              if (myLoc && theirLoc) {
+                const R = 6371;
+                const toRad = (d: number) => d * (Math.PI / 180);
+                const dLat = toRad(theirLoc.latitude - myLoc.latitude);
+                const dLon = toRad(theirLoc.longitude - myLoc.longitude);
+                const a = Math.sin(dLat / 2) ** 2 +
+                  Math.cos(toRad(myLoc.latitude)) * Math.cos(toRad(theirLoc.latitude)) *
+                  Math.sin(dLon / 2) ** 2;
+                distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+              }
+
+              navigation.navigate('ProfileView', {
+                user: {
+                  id: otherUser.id,
+                  displayName: data.displayName,
+                  bio: data.bio || '',
+                  photoURL: data.photoURL || null,
+                  lastSeen: data.lastSeen?.toDate?.()?.getTime(),
+                  distanceMode: data.distanceMode ?? 'exact',
+                  age: data.age,
+                  gender: data.gender,
+                  sexuality: data.sexuality,
+                  photos: data.photos,
+                  testAccount: data.testAccount ?? false,
+                  distance,
+                  location: theirLoc ? { latitude: theirLoc.latitude, longitude: theirLoc.longitude } : undefined,
+                },
+                fromChat: true,
+              });
+            }}
+          >
+            <View style={styles.headerNameRow}>
+              <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>
+              {otherUser.testAccount && <View style={styles.headerTestBadge}><Text style={styles.headerTestBadgeText}>{t.testAccount}</Text></View>}
+            </View>
+          </TouchableOpacity>
+        )}
+      </LinearGradient>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        behavior="padding"
         keyboardVerticalOffset={0}
       >
-        <View style={styles.inputRow}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primaryBlueText} />
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.messageList}
+            inverted
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t.chatSayHi(otherUser.displayName)}</Text>
+              </View>
+            }
+          />
+        )}
+
+        {blocked ? (
+          <View style={[styles.blockedBar, { backgroundColor: colors.white, borderTopColor: colors.border }]}>
+            <Text style={[styles.blockedText, { color: colors.textMuted }]}>
+              {t.chatBlocked}
+            </Text>
+          </View>
+        ) : (
+        <View>
+          {inputText.length > 800 && (
+            <Text style={[styles.charCounter, { color: inputText.length > 950 ? colors.primaryRed : colors.textMuted }]}>
+              {inputText.length}/1000
+            </Text>
+          )}
+        <View style={[styles.inputRow, { backgroundColor: colors.white, borderTopColor: colors.border }]}>
           <TouchableOpacity
             style={styles.imageButton}
-            onPress={handleSendImage}
+            onPress={handlePickImage}
             disabled={sendingImage}
           >
             {sendingImage ? (
-              <ActivityIndicator size="small" color="#667eea" />
+              <ActivityIndicator size="small" color={colors.primaryRed} />
             ) : (
-              <Text style={styles.imageButtonText}>📷</Text>
+              <CameraIcon width={22} height={22} fill={colors.primaryRed} />
             )}
           </TouchableOpacity>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary }]}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Skriv en besked..."
-            placeholderTextColor="#aaa"
+            placeholder={t.chatInputPlaceholder}
+            placeholderTextColor={colors.textMuted}
             multiline
             maxLength={1000}
             onSubmitEditing={sendMessage}
           />
           <TouchableOpacity
-            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+            style={[styles.sendButton, { backgroundColor: colors.primaryRed }, !inputText.trim() && styles.sendButtonDisabled]}
             onPress={sendMessage}
             disabled={!inputText.trim()}
           >
-            <Text style={styles.sendButtonText}>→</Text>
+            <SendIcon width={20} height={20} stroke={colors.textWhite} />
           </TouchableOpacity>
         </View>
+        </View>
+        )}
       </KeyboardAvoidingView>
+
+      <Modal visible={!!fullscreenImage} transparent animationType="fade">
+        <FullscreenZoomImage uri={fullscreenImage!} onClose={() => setFullscreenImage(null)} />
+      </Modal>
+
+      <Modal visible={pendingImages.length > 0} transparent animationType="fade">
+        <View style={styles.previewOverlay}>
+          {pendingImages.length === 1 ? (
+            <View>
+              <Image
+                source={{ uri: pendingImages[0] }}
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              style={styles.previewScroll}
+              contentContainerStyle={styles.previewScrollContent}
+            >
+              {pendingImages.map((uri, i) => (
+                <View key={i} style={styles.previewSlide}>
+                  <Image source={{ uri }} style={styles.previewImage} resizeMode="contain" />
+                  <TouchableOpacity
+                    style={styles.previewRemoveBtn}
+                    onPress={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
+                  >
+                    <Text style={styles.previewRemoveText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+          <Text style={styles.previewCount}>{pendingImages.length}/3</Text>
+          <View style={styles.previewButtons}>
+            <TouchableOpacity
+              style={[styles.previewButton, styles.previewButtonCancel]}
+              onPress={() => setPendingImages([])}
+            >
+              <Text style={styles.previewButtonText}>{t.cancel}</Text>
+            </TouchableOpacity>
+            {pendingImages.length < 3 && (
+              <TouchableOpacity
+                style={[styles.previewButton, { backgroundColor: 'rgba(255,255,255,0.25)' }]}
+                onPress={handleAddMoreImages}
+              >
+                <Text style={styles.previewButtonText}>+ {language === 'da' ? 'Tilføj' : 'Add'}</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.previewButton, { backgroundColor: colors.primaryRed }]}
+              onPress={handleConfirmSendImages}
+            >
+              <Text style={styles.previewButtonText}>{t.send}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -238,13 +755,11 @@ export default function ChatScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#667eea',
-    paddingVertical: 14,
+    paddingBottom: 14,
     paddingHorizontal: 16,
   },
   backButton: {
@@ -252,16 +767,30 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 24,
-    color: '#fff',
     fontWeight: 'bold',
   },
   headerInfo: {
     flex: 1,
   },
+  headerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   headerName: {
     fontSize: 18,
     fontWeight: '700',
+  },
+  headerTestBadge: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  headerTestBadgeText: {
     color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   loadingContainer: {
     flex: 1,
@@ -280,10 +809,9 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
   },
   messageRow: {
-    marginBottom: 8,
+    marginBottom: 12,
     flexDirection: 'row',
   },
   messageRowMe: {
@@ -292,18 +820,18 @@ const styles = StyleSheet.create({
   messageRowThem: {
     justifyContent: 'flex-start',
   },
-  bubble: {
+  messagePressable: {
     maxWidth: '75%',
+  },
+  bubble: {
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 18,
   },
   bubbleMe: {
-    backgroundColor: '#667eea',
     borderBottomRightRadius: 4,
   },
   bubbleThem: {
-    backgroundColor: '#fff',
     borderBottomLeftRadius: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -314,12 +842,6 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 16,
     lineHeight: 22,
-  },
-  messageTextMe: {
-    color: '#fff',
-  },
-  messageTextThem: {
-    color: '#222',
   },
   timestamp: {
     fontSize: 11,
@@ -332,30 +854,40 @@ const styles = StyleSheet.create({
   timestampThem: {
     color: '#aaa',
   },
+  blockedBar: {
+    padding: 16,
+    borderTopWidth: 1,
+    alignItems: 'center',
+  },
+  blockedText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  charCounter: {
+    fontSize: 11,
+    textAlign: 'right',
+    paddingRight: 16,
+    paddingTop: 4,
+  },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
-    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
   },
   input: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 16,
     maxHeight: 120,
-    color: '#222',
   },
   sendButton: {
     marginLeft: 10,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#667eea',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -364,7 +896,6 @@ const styles = StyleSheet.create({
   },
   sendButtonText: {
     fontSize: 20,
-    color: '#fff',
     fontWeight: 'bold',
   },
   imageButton: {
@@ -385,5 +916,150 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 14,
+    overflow: 'hidden',
+  },
+  flaggedOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 14,
+  },
+  flaggedIcon: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '800',
+    width: 40,
+    height: 40,
+    lineHeight: 40,
+    textAlign: 'center',
+    backgroundColor: 'rgba(255,59,48,0.8)',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  flaggedText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  deletedText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  expiredText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  expiryText: {
+    fontSize: 11,
+    marginTop: 4,
+  },
+  heartBadge: {
+    position: 'absolute',
+    bottom: -8,
+    borderRadius: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  heartBadgeMe: {
+    left: 4,
+  },
+  heartBadgeThem: {
+    right: 4,
+  },
+  heartEmoji: {
+    fontSize: 14,
+  },
+  fullscreenOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenImage: {
+    width: SCREEN_W,
+    height: SCREEN_H * 0.8,
+  },
+  fullscreenCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenClose: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewScroll: {
+    maxHeight: SCREEN_H * 0.7,
+    flexGrow: 0,
+  },
+  previewScrollContent: {
+    alignItems: 'center',
+  },
+  previewSlide: {
+    width: SCREEN_W,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewImage: {
+    width: SCREEN_W * 0.9,
+    height: SCREEN_H * 0.6,
+  },
+  previewRemoveBtn: {
+    position: 'absolute',
+    top: 10,
+    right: SCREEN_W * 0.08,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewRemoveText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  previewCount: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    marginTop: 8,
+  },
+  previewButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  previewButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 24,
+  },
+  previewButtonCancel: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  previewButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

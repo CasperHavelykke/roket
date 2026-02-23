@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,19 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   Alert,
+  Dimensions,
+  Modal,
+  Pressable,
+  TextInput,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import LinearGradient from 'react-native-linear-gradient';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import { useTheme } from '../theme';
+import LocationService from '../services/LocationService';
+import PhotoGalleryModal from '../components/PhotoGalleryModal';
 
 interface RouteParams {
   user: {
@@ -20,147 +28,323 @@ interface RouteParams {
     photoURL: string | null;
     distance?: number;
     lastSeen?: number; // millisekunder siden epoch
+    distanceMode?: string;
+    age?: number;
+    gender?: string;
+    sexuality?: string;
+    photos?: string[];
+    testAccount?: boolean;
   };
 }
 
-const formatLastSeen = (lastSeenMs?: number): string => {
-  if (!lastSeenMs) return '';
-  const diff = Date.now() - lastSeenMs;
-  if (diff < 5 * 60 * 1000) return 'Online nu';
-  if (diff < 60 * 60 * 1000) return `Sidst set ${Math.floor(diff / 60000)} min siden`;
-  if (diff < 24 * 60 * 60 * 1000) return `Sidst set ${Math.floor(diff / 3600000)} timer siden`;
-  return `Sidst set ${Math.floor(diff / 86400000)} dage siden`;
-};
-
 export default function ProfileViewScreen({ route, navigation }: any) {
-  const { user } = route.params as RouteParams;
-  const currentUser = auth().currentUser!;
+  const { colors, isDark, t, distanceMode, distanceUnit } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [locationGranted, setLocationGranted] = useState(true);
 
-  const handleBlockReport = () => {
-    Alert.alert(user.displayName, undefined, [
-      {
-        text: `Bloker ${user.displayName}`,
-        style: 'destructive',
-        onPress: () =>
-          Alert.alert(
-            `Bloker ${user.displayName}?`,
-            `${user.displayName} vil ikke længere dukke op i din liste og kan ikke sende dig beskeder.`,
-            [
-              { text: 'Annuller', style: 'cancel' },
-              {
-                text: 'Bloker',
-                style: 'destructive',
-                onPress: async () => {
-                  await firestore()
-                    .collection('users')
-                    .doc(currentUser.uid)
-                    .update({
-                      blockedUsers: firestore.FieldValue.arrayUnion(user.id),
-                    });
-                  navigation.goBack();
-                },
-              },
-            ]
-          ),
-      },
-      {
-        text: `Rapporter ${user.displayName}`,
-        onPress: () =>
-          Alert.alert(
-            `Rapporter ${user.displayName}?`,
-            'Dit rapport sendes anonymt til vores moderation.',
-            [
-              { text: 'Annuller', style: 'cancel' },
-              {
-                text: 'Send rapport',
-                onPress: async () => {
-                  await firestore().collection('reports').add({
-                    reporterId: currentUser.uid,
-                    reportedUserId: user.id,
-                    createdAt: firestore.FieldValue.serverTimestamp(),
-                  });
-                  Alert.alert('Tak', 'Din rapport er modtaget.');
-                },
-              },
-            ]
-          ),
-      },
-      { text: 'Annuller', style: 'cancel' },
-    ]);
+  useEffect(() => {
+    LocationService.checkCurrentPrecision().then(p => setLocationGranted(p !== 'denied'));
+  }, []);
+
+  const formatLastSeen = (lastSeenMs?: number): string => {
+    if (!lastSeenMs) return '';
+    const diff = Date.now() - lastSeenMs;
+    if (diff < 5 * 60 * 1000) return t.profileOnlineNow;
+    if (diff < 60 * 60 * 1000) return t.profileLastSeenMinutes(Math.floor(diff / 60000));
+    if (diff < 24 * 60 * 60 * 1000) return t.profileLastSeenHours(Math.floor(diff / 3600000));
+    return t.profileLastSeenDays(Math.floor(diff / 86400000));
+  };
+  const genderLabels: Record<string, string> = {
+    male: t.genderMale, female: t.genderFemale, nonbinary: t.genderNonBinary,
+    trans: t.genderTrans,
+  };
+  const sexualityLabels: Record<string, string> = {
+    straight: t.sexualityStraight, gay: t.sexualityGay, bisexual: t.sexualityBisexual,
+    pansexual: t.sexualityPansexual, other: t.sexualityOther,
+  };
+
+  const { user, fromChat } = route.params as RouteParams & { fromChat?: boolean };
+  const currentUser = auth().currentUser;
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportText, setReportText] = useState('');
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [showMenu, setShowMenu] = useState(false);
+  const photoSize = Dimensions.get('window').width - 40;
+
+  if (!currentUser) return null;
+
+  const allPhotos = [
+    ...(user.photoURL ? [user.photoURL] : []),
+    ...(user.photos ?? []),
+  ];
+
+  const handleBlockReport = () => setShowMenu(true);
+
+  const handleBlock = () => {
+    setShowMenu(false);
+    Alert.alert(
+      t.profileBlockConfirm(user.displayName),
+      t.profileBlockDescription(user.displayName),
+      [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.profileBlockButton,
+          style: 'destructive',
+          onPress: async () => {
+            await firestore()
+              .collection('users')
+              .doc(currentUser.uid)
+              .update({
+                blockedUsers: firestore.FieldValue.arrayUnion(user.id),
+              });
+            if (fromChat) {
+              navigation.pop(2);
+            } else {
+              navigation.goBack();
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReport = () => {
+    setShowMenu(false);
+    setReportText('');
+    setShowReportModal(true);
+  };
+
+  const handleSendReport = async () => {
+    setShowReportModal(false);
+    await firestore().collection('reports').add({
+      reporterId: currentUser.uid,
+      reportedUserId: user.id,
+      message: reportText.trim() || null,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    });
+    setReportText('');
+    Alert.alert(t.profileReportThanks, t.profileReportReceived);
   };
 
   const formatDistance = (distance?: number): string => {
-    if (!distance) return '';
-    if (distance < 1) {
-      return `${Math.round(distance * 1000)} m away`;
+    if (distance == null) return '';
+    if (distanceMode === 'hidden' || user.distanceMode === 'hidden') return '';
+    if (distanceUnit === 'mi') {
+      const miles = distance * 0.621371;
+      if ((distanceMode === 'fuzzy' || user.distanceMode === 'fuzzy') && distance < 0.03) {
+        return t.distanceUnder100ft;
+      }
+      if (miles < 1) {
+        return t.distanceFeet(Math.round(miles * 5280));
+      }
+      return t.distanceMiles(miles.toFixed(1));
     }
-    return `${distance.toFixed(1)} km away`;
+    if ((distanceMode === 'fuzzy' || user.distanceMode === 'fuzzy') && distance < 0.03) {
+      return t.distanceUnder30;
+    }
+    if (distance < 1) {
+      return t.distanceMeters(Math.round(distance * 1000));
+    }
+    return t.distanceKm(distance.toFixed(1).replace('.', ','));
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.topBar}>
+    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: isDark ? colors.textWhite : colors.primaryBlue }]}>{t.profileBack}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleBlockReport} style={styles.moreButton}>
-          <Text style={styles.moreButtonText}>⋮</Text>
+          <Text style={[styles.moreButtonText, { color: colors.textMuted }]}>⋮</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.photoContainer}>
-          {user.photoURL ? (
-            <Image source={{ uri: user.photoURL }} style={styles.photo} />
+          {allPhotos.length > 1 ? (
+            <View style={[styles.photoCarousel, { width: photoSize, height: photoSize }]}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                bounces={false}
+                onMomentumScrollEnd={(e) => {
+                  setCurrentPhotoIndex(Math.round(e.nativeEvent.contentOffset.x / photoSize));
+                }}
+              >
+                {allPhotos.map((uri, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    activeOpacity={0.9}
+                    onPress={() => { setGalleryIndex(i); setShowGallery(true); }}
+                  >
+                    <Image source={{ uri }} style={{ width: photoSize, height: photoSize }} resizeMode="cover" />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <View style={styles.photoCountBadge} pointerEvents="none">
+                <Text style={styles.photoCountText}>{currentPhotoIndex + 1}/{allPhotos.length}</Text>
+              </View>
+            </View>
           ) : (
-            <View style={styles.photoPlaceholder}>
-              <Text style={styles.photoPlaceholderText}>
-                {user.displayName.charAt(0).toUpperCase()}
-              </Text>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => allPhotos.length > 0 && setShowGallery(true)}
+              disabled={allPhotos.length === 0}
+            >
+              <Image
+                source={user.photoURL ? { uri: user.photoURL } : isDark ? require('../assets/missing-profile-pic.png') : require('../assets/missing-profile-pic-light.png')}
+                style={[styles.photo, { width: photoSize, height: photoSize }]}
+              />
+            </TouchableOpacity>
+          )}
+          {user.testAccount && (
+            <View style={styles.testBadge}>
+              <Text style={styles.testBadgeText}>{t.testAccount}</Text>
             </View>
           )}
         </View>
 
-        <View style={styles.infoContainer}>
-          <Text style={styles.name}>{user.displayName}</Text>
+        <View style={[styles.infoContainer, { backgroundColor: colors.white }]}>
+          <Text style={[styles.name, { color: colors.textPrimary }]}>{user.displayName || ''}{user.displayName && user.age ? `, ${user.age}` : user.age ? `${user.age}` : ''}</Text>
 
           {user.lastSeen !== undefined && (
             <Text style={[
               styles.onlineStatus,
-              Date.now() - user.lastSeen < 5 * 60 * 1000 ? styles.onlineStatusActive : styles.onlineStatusInactive,
+              Date.now() - user.lastSeen < 5 * 60 * 1000
+                ? { color: colors.online }
+                : { color: colors.offline },
             ]}>
               {Date.now() - user.lastSeen < 5 * 60 * 1000 ? '● ' : '○ '}
               {formatLastSeen(user.lastSeen)}
             </Text>
           )}
 
-          {user.distance !== undefined && (
-            <Text style={styles.distance}>📍 {formatDistance(user.distance)}</Text>
+          {locationGranted && user.distance !== undefined && formatDistance(user.distance) !== '' && (
+            <Text style={[styles.distance, { color: colors.primaryRed }]}>📍 {formatDistance(user.distance)}</Text>
+          )}
+
+          {(user.gender || user.sexuality) && (
+            <View style={styles.detailsRow}>
+              {user.gender && (
+                <View style={[styles.detailChip, { backgroundColor: colors.backgroundLight, borderColor: colors.inputBorder }]}>
+                  <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>{genderLabels[user.gender] ?? user.gender}</Text>
+                </View>
+              )}
+              {user.sexuality && (
+                <View style={[styles.detailChip, { backgroundColor: colors.backgroundLight, borderColor: colors.inputBorder }]}>
+                  <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>{sexualityLabels[user.sexuality] ?? user.sexuality}</Text>
+                </View>
+              )}
+            </View>
           )}
 
           {user.bio ? (
-            <View style={styles.bioContainer}>
-              <Text style={styles.bioLabel}>About</Text>
-              <Text style={styles.bio}>{user.bio}</Text>
+            <View style={[styles.bioContainer, { borderTopColor: colors.borderLight }]}>
+              <Text style={[styles.bioLabel, { color: colors.textMuted }]}>{t.profileAbout}</Text>
+              <Text style={[styles.bio, { color: colors.textPrimary }]}>{user.bio}</Text>
             </View>
           ) : (
-            <View style={styles.bioContainer}>
-              <Text style={styles.bioEmpty}>No bio yet.</Text>
+            <View style={[styles.bioContainer, { borderTopColor: colors.borderLight }]}>
+              <Text style={[styles.bioEmpty, { color: colors.textMuted }]}>{t.profileNoBio}</Text>
             </View>
           )}
         </View>
 
-        <TouchableOpacity
-          style={styles.messageButton}
-          onPress={() =>
-            navigation.navigate('Chat', {
-              otherUser: { id: user.id, displayName: user.displayName },
-            })
-          }
-        >
-          <Text style={styles.messageButtonText}>Send Message 💬</Text>
-        </TouchableOpacity>
+        {user.testAccount && (
+          <View style={[styles.testDisclaimer, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+            <Text style={[styles.testDisclaimerText, { color: colors.textSecondary }]}>{t.testAccountDisclaimer}</Text>
+          </View>
+        )}
+
+        {!fromChat && (
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('Chat', {
+                otherUser: { id: user.id, displayName: user.displayName, testAccount: user.testAccount },
+                fromProfile: true,
+              })
+            }
+          >
+            <LinearGradient
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.messageButton}
+            >
+              <Text style={[styles.messageButtonText, { color: colors.textWhite }]}>{t.profileSendMessage}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </ScrollView>
+
+      <Modal visible={showReportModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+              {t.profileReportConfirm(user.displayName)}
+            </Text>
+            <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>
+              {t.profileReportDescription}
+            </Text>
+            <TextInput
+              style={[styles.modalInput, {
+                borderColor: colors.inputBorder,
+                backgroundColor: colors.inputBackground,
+                color: colors.textPrimary,
+              }]}
+              placeholder={t.profileReportPlaceholder}
+              placeholderTextColor={colors.textMuted}
+              value={reportText}
+              onChangeText={setReportText}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: colors.backgroundLight }]}
+                onPress={() => setShowReportModal(false)}
+              >
+                <Text style={[styles.modalButtonText, { color: colors.textPrimary }]}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: colors.primaryRed }]}
+                onPress={handleSendReport}
+              >
+                <Text style={[styles.modalButtonText, { color: '#FFF' }]}>{t.profileReportSend}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showMenu} transparent animationType="fade" onRequestClose={() => setShowMenu(false)}>
+        <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
+          <View style={[styles.menuCard, { backgroundColor: colors.card, top: insets.top + 50, right: 16 }]}>
+            <TouchableOpacity style={styles.menuOption} onPress={handleBlock}>
+              <Text style={[styles.menuOptionText, { color: colors.primaryRed }]}>{t.profileBlock(user.displayName)}</Text>
+            </TouchableOpacity>
+            <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+            <TouchableOpacity style={styles.menuOption} onPress={handleReport}>
+              <Text style={[styles.menuOptionText, { color: colors.textPrimary }]}>{t.profileReport(user.displayName)}</Text>
+            </TouchableOpacity>
+            <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+            <TouchableOpacity style={styles.menuOption} onPress={() => setShowMenu(false)}>
+              <Text style={[styles.menuOptionText, { color: colors.textMuted }]}>{t.cancel}</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <PhotoGalleryModal
+        visible={showGallery}
+        photos={allPhotos}
+        initialIndex={galleryIndex}
+        onClose={() => setShowGallery(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -168,18 +352,40 @@ export default function ProfileViewScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  menuOverlay: {
+    flex: 1,
+  },
+  menuCard: {
+    position: 'absolute',
+    minWidth: 200,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  menuOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  menuOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  menuDivider: {
+    height: StyleSheet.hairlineWidth,
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    paddingBottom: 0,
+    paddingBottom: 8,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#667eea',
     fontWeight: '600',
   },
   moreButton: {
@@ -187,7 +393,6 @@ const styles = StyleSheet.create({
   },
   moreButtonText: {
     fontSize: 26,
-    color: '#999',
     lineHeight: 28,
   },
   scrollContent: {
@@ -198,26 +403,41 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 24,
   },
+  photoCarousel: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
   photo: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: Dimensions.get('window').width - 40,
+    height: Dimensions.get('window').width - 40,
+    borderRadius: 16,
+  },
+  photoCountBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  photoCountText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   photoPlaceholder: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: '#667eea',
+    width: Dimensions.get('window').width - 40,
+    height: Dimensions.get('window').width - 40,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   photoPlaceholderText: {
-    fontSize: 64,
-    color: '#fff',
+    fontSize: 80,
     fontWeight: 'bold',
   },
   infoContainer: {
-    backgroundColor: '#fff',
     marginHorizontal: 20,
     borderRadius: 16,
     padding: 20,
@@ -230,7 +450,6 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 26,
     fontWeight: 'bold',
-    color: '#222',
     marginBottom: 6,
   },
   onlineStatus: {
@@ -238,43 +457,47 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 6,
   },
-  onlineStatusActive: {
-    color: '#22c55e',
-  },
-  onlineStatusInactive: {
-    color: '#999',
-  },
   distance: {
     fontSize: 14,
-    color: '#667eea',
     fontWeight: '600',
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  detailChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  detailChipText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   bioLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#999',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 6,
   },
   bioContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
     paddingTop: 16,
   },
   bio: {
-    fontSize: 16,
-    color: '#444',
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 26,
   },
   bioEmpty: {
     fontSize: 15,
-    color: '#bbb',
     fontStyle: 'italic',
   },
   messageButton: {
-    backgroundColor: '#667eea',
     marginHorizontal: 20,
     marginTop: 24,
     padding: 18,
@@ -282,8 +505,77 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   messageButtonText: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 30,
+  },
+  modalCard: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  modalDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    minHeight: 100,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  testBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  testBadgeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  testDisclaimer: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  testDisclaimerText: {
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
   },
 });

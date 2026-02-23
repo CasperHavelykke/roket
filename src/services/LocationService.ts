@@ -1,39 +1,67 @@
 import Geolocation from 'react-native-geolocation-service';
-import { PermissionsAndroid, Platform, Alert } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
+
+export type LocationPrecision = 'fine' | 'coarse' | 'denied' | 'never_ask_again';
 
 class LocationService {
-  // Request location permission
-  async requestLocationPermission(): Promise<boolean> {
+  // Request location permission and return precision level
+  async requestLocationPermission(): Promise<LocationPrecision> {
     if (Platform.OS === 'android') {
       try {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Roket Location Permission',
-            message: 'Roket needs access to your location to show nearby people',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          }
         );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          return 'fine';
+        }
+
+        // Android 12+: brugeren kan vælge "Omtrentlig lokation"
+        // Tjek altid coarse før vi konkluderer denied/never_ask_again
+        const coarse = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+        );
+        if (coarse) {
+          return 'coarse';
+        }
+
+        if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+          return 'never_ask_again';
+        }
+
+        return 'denied';
       } catch (err) {
         console.warn(err);
-        return false;
+        return 'denied';
       }
     }
-    return true; // iOS handles permissions differently
+    return 'fine'; // iOS handles permissions differently
+  }
+
+  // Check current precision without requesting (non-intrusive)
+  async checkCurrentPrecision(): Promise<LocationPrecision> {
+    if (Platform.OS !== 'android') return 'fine';
+    try {
+      const fine = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      );
+      if (fine) return 'fine';
+
+      const coarse = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+      );
+      if (coarse) return 'coarse';
+
+      return 'denied';
+    } catch {
+      return 'denied';
+    }
   }
 
   // Get current position
-  async getCurrentPosition(): Promise<{latitude: number; longitude: number} | null> {
-    const hasPermission = await this.requestLocationPermission();
-    
-    if (!hasPermission) {
-      Alert.alert(
-        'Permission Denied',
-        'Location permission is required to use Roket'
-      );
+  async getCurrentPosition(): Promise<{latitude: number; longitude: number; precision: LocationPrecision} | null> {
+    const precision = await this.requestLocationPermission();
+
+    if (precision === 'denied' || precision === 'never_ask_again') {
       return null;
     }
 
@@ -43,15 +71,15 @@ class LocationService {
           resolve({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
+            precision,
           });
         },
         (error) => {
           console.error('Location error:', error);
-          Alert.alert('Location Error', error.message);
           resolve(null);
         },
         {
-          enableHighAccuracy: true,
+          enableHighAccuracy: precision === 'fine',
           timeout: 15000,
           maximumAge: 10000,
         }
@@ -60,10 +88,17 @@ class LocationService {
   }
 
   // Watch position (updates when user moves)
-  watchPosition(
+  async watchPosition(
     onUpdate: (latitude: number, longitude: number) => void,
     onError?: (error: any) => void
-  ): number | null {
+  ): Promise<number | null> {
+    // Tjek kun eksisterende permission — vis ikke dialog igen
+    const precision = await this.checkCurrentPrecision();
+    if (precision === 'denied') {
+      if (onError) onError({ message: 'Location permission not granted.', code: 1 });
+      return null;
+    }
+
     return Geolocation.watchPosition(
       (position) => {
         onUpdate(position.coords.latitude, position.coords.longitude);
@@ -73,7 +108,7 @@ class LocationService {
         if (onError) onError(error);
       },
       {
-        enableHighAccuracy: true,
+        enableHighAccuracy: precision === 'fine',
         distanceFilter: 50, // Update every 50 meters
         interval: 10000, // Check every 10 seconds
         fastestInterval: 5000,

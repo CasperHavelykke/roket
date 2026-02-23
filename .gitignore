@@ -32,6 +32,7 @@ local.properties
 *.hprof
 .cxx/
 *.keystore
+*.jks
 !debug.keystore
 .kotlin/
 
@@ -66,6 +67,21 @@ yarn-error.log
 # Firebase config (del ikke disse offentligt)
 google-services.json
 GoogleService-Info.plist
+
+# Firebase cache
+.firebase/
+
+# Claude Code
+.claude/
+
+# Admin scripts
+admin/
+
+# Android build outputs
+android/app/release/
+
+# Windows artifacts
+nul
 
 # testing
 /coverage

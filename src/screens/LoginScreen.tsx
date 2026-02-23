@@ -7,110 +7,153 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import auth from '@react-native-firebase/auth';
+import { useTheme } from '../theme';
+import getFirebaseError from '../utils/getFirebaseError';
+import RoketLogo from '../assets/roket-logo-2.svg';
 
 export default function LoginScreen({ navigation }: any) {
+  const { colors, t } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+      Alert.alert(t.error, t.loginErrorEmpty);
       return;
     }
 
     setLoading(true);
     try {
       await auth().signInWithEmailAndPassword(email, password);
-      // App.tsx's onAuthStateChanged håndterer navigation automatisk
     } catch (error: any) {
-      Alert.alert('Login Error', error.message);
+      Alert.alert(t.loginError, getFirebaseError(error, t));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Roket 🚀</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Login</Text>
-        )}
-      </TouchableOpacity>
-      
-      <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-        <Text style={styles.linkText}>
-          Don't have an account? Sign up
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <LinearGradient
+      colors={[colors.darkBlue, colors.primaryRed]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <View style={styles.logoContainer}>
+        <RoketLogo width={100} height={100} />
+      </View>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t.loginWelcome}</Text>
+
+        <TextInput
+          style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.textPrimary }]}
+          placeholder={t.loginEmailPlaceholder}
+          placeholderTextColor={colors.textMuted}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+
+        <TextInput
+          style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.textPrimary }]}
+          placeholder={t.loginPasswordPlaceholder}
+          placeholderTextColor={colors.textMuted}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primaryRed }]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.textWhite} />
+          ) : (
+            <Text style={styles.buttonText}>{t.loginButton}</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+          <Text style={[styles.linkText, { color: colors.darkBlueText }]}>
+            {t.loginNoAccount}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={styles.testInfo}>For testing use mail: test@test.com password: Test1234</Text>
+      </View>
+      </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#fff',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  card: {
+    borderRadius: 20,
+    padding: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 40,
+    marginBottom: 30,
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     padding: 15,
     marginBottom: 15,
-    borderRadius: 8,
+    borderRadius: 10,
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#667eea',
-    padding: 15,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 10,
     marginTop: 10,
   },
   buttonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     textAlign: 'center',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   linkText: {
-    color: '#667eea',
     textAlign: 'center',
     marginTop: 20,
     fontSize: 16,
+  },
+  testInfo: {
+    textAlign: 'center',
+    marginTop: 16,
+    fontSize: 12,
+    color: '#999',
   },
 });

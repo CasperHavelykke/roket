@@ -2,27 +2,46 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Profilbilleder: profilePhotos/{userId}.jpg
-    match /profilePhotos/{userId}.jpg {
-      // Alle indloggede kan læse (til HomeScreen-grid og profilvisning)
+    // Profilbilleder: læsning + listing (til admin-panelet med listAll)
+    match /profilePhotos/{allPaths=**} {
       allow read: if request.auth != null;
-
-      // Kun brugeren selv kan uploade/overskrive sit billede
-      allow write: if request.auth != null &&
-                      request.auth.uid == userId &&
-                      request.resource.contentType.matches('image/.*') &&
-                      request.resource.size < 5 * 1024 * 1024; // Maks 5 MB
     }
 
-    // Chat-billeder: chatImages/{chatId}/{messageId}.jpg
-    match /chatImages/{chatId}/{messageId} {
-      // Kun indloggede brugere kan læse og skrive chat-billeder
-      // (fuld deltager-tjek er dyrt i Storage rules, så vi kræver bare auth)
-      allow read: if request.auth != null;
+    // Profilbilleder: skriveregler for profilePhotos/{uid}.jpg og profilePhotos/{uid}_extra_{0-4}.jpg
+    match /profilePhotos/{fileName} {
+      // Kun brugeren selv kan uploade — filnavn skal starte med brugerens uid
+      allow create, update: if request.auth != null &&
+                      fileName.matches(request.auth.uid + '.*') &&
+                      request.resource.contentType.matches('image/.*') &&
+                      request.resource.size < 5 * 1024 * 1024; // Maks 5 MB
 
-      allow write: if request.auth != null &&
+      // Brugeren selv kan slette sine billeder
+      allow delete: if request.auth != null &&
+                       fileName.matches(request.auth.uid + '.*');
+    }
+
+    // Chat-billeder: læsning + listing (til admin-panelet med listAll)
+    match /chatImages/{allPaths=**} {
+      allow read: if request.auth != null;
+    }
+
+    // Chat-billeder: skriveregler for chatImages/{chatId}/{messageId}.jpg
+    match /chatImages/{chatId}/{messageId} {
+      allow create, update: if request.auth != null &&
                       request.resource.contentType.matches('image/.*') &&
                       request.resource.size < 10 * 1024 * 1024; // Maks 10 MB
+
+      // Alle indloggede kan slette (bruger sletter egen besked, admin sletter flagged)
+      allow delete: if request.auth != null;
+    }
+
+    // Feedback-billeder: feedbackImages/{fileName}
+    match /feedbackImages/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null &&
+                      request.resource.contentType.matches('image/.*') &&
+                      request.resource.size < 5 * 1024 * 1024;
+      allow delete: if request.auth != null;
     }
   }
 }

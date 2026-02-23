@@ -7,43 +7,102 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import auth from '@react-native-firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../theme';
+import getFirebaseError from '../utils/getFirebaseError';
+import RoketLogo from '../assets/roket-logo-2.svg';
+
+const months_da = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
+const months_en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function daysInMonth(month: number, year: number): number {
+  if (!month || !year) return 31;
+  return new Date(year, month, 0).getDate();
+}
+
+function getAge(day: number, month: number, year: number): number {
+  const today = new Date();
+  const birth = new Date(year, month - 1, day);
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
 
 export default function SignupScreen({ navigation }: any) {
+  const { colors, t, language } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [birthDay, setBirthDay] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthYear, setBirthYear] = useState('');
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+
+  const months = language === 'da' ? months_da : months_en;
 
   const handleSignup = async () => {
     if (!email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill all fields');
+      Alert.alert(t.error, t.signupErrorEmpty);
+      return;
+    }
+
+    const day = parseInt(birthDay, 10);
+    const month = parseInt(birthMonth, 10);
+    const year = parseInt(birthYear, 10);
+
+    if (!day || !month || !year || day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) {
+      Alert.alert(t.error, t.signupErrorNoBirthday);
+      return;
+    }
+
+    const maxDay = daysInMonth(month, year);
+    if (day > maxDay) {
+      Alert.alert(t.error, t.signupErrorNoBirthday);
+      return;
+    }
+
+    if (getAge(day, month, year) < 18) {
+      Alert.alert(t.error, t.signupErrorTooYoung);
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t.error, t.signupErrorMismatch);
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert(t.error, t.signupErrorShort);
+      return;
+    }
+
+    if (!acceptedPrivacy) {
+      Alert.alert(t.error, t.signupErrorNoPrivacy);
       return;
     }
 
     setLoading(true);
     try {
+      await AsyncStorage.setItem('@roket_birthday', JSON.stringify({ day, month, year }));
       await auth().createUserWithEmailAndPassword(email, password);
-      Alert.alert('Success', 'Account created!');
-      navigation.navigate('ProfileSetup');
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
-        Alert.alert('Error', 'Email is already in use');
+        Alert.alert(t.error, t.signupErrorInUse);
       } else if (error.code === 'auth/invalid-email') {
-        Alert.alert('Error', 'Invalid email address');
+        Alert.alert(t.error, t.signupErrorInvalidEmail);
       } else {
-        Alert.alert('Signup Error', error.message);
+        Alert.alert(t.signupError, getFirebaseError(error, t));
       }
     } finally {
       setLoading(false);
@@ -51,90 +110,282 @@ export default function SignupScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Account 🚀</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Password (min 6 characters)"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-      />
-      
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleSignup}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Sign Up</Text>
-        )}
-      </TouchableOpacity>
-      
-      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.linkText}>
-          Already have an account? Login
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <LinearGradient
+      colors={[colors.primaryRed, colors.darkBlue]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
+    >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.logoContainer}>
+          <RoketLogo width={100} height={100} />
+        </View>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t.signupTitle}</Text>
+
+          <TextInput
+            style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.textPrimary }]}
+            placeholder={t.signupEmailPlaceholder}
+            placeholderTextColor={colors.textMuted}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
+          <TextInput
+            style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.textPrimary }]}
+            placeholder={t.signupPasswordPlaceholder}
+            placeholderTextColor={colors.textMuted}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+
+          <TextInput
+            style={[styles.input, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.textPrimary }]}
+            placeholder={t.signupConfirmPlaceholder}
+            placeholderTextColor={colors.textMuted}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+
+          <Text style={[styles.birthdayLabel, { color: colors.textSecondary }]}>{t.signupBirthday}</Text>
+          <View style={styles.birthdayRow}>
+            <TextInput
+              style={[styles.birthdayInput, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.textPrimary }]}
+              placeholder={language === 'da' ? 'Dag' : 'Day'}
+              placeholderTextColor={colors.textMuted}
+              value={birthDay}
+              onChangeText={(v) => {
+                const num = v.replace(/[^0-9]/g, '').slice(0, 2);
+                setBirthDay(num);
+              }}
+              keyboardType="number-pad"
+              maxLength={2}
+            />
+            <TouchableOpacity
+              style={[styles.monthPicker, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}
+              onPress={() => setShowMonthPicker(!showMonthPicker)}
+            >
+              <Text style={[styles.monthPickerText, birthMonth ? { color: colors.textPrimary } : { color: colors.textMuted }]}>
+                {birthMonth ? months[parseInt(birthMonth, 10) - 1] : (language === 'da' ? 'Måned' : 'Month')}
+              </Text>
+            </TouchableOpacity>
+            <TextInput
+              style={[styles.birthdayInput, styles.yearInput, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.textPrimary }]}
+              placeholder={language === 'da' ? 'År' : 'Year'}
+              placeholderTextColor={colors.textMuted}
+              value={birthYear}
+              onChangeText={(v) => {
+                const num = v.replace(/[^0-9]/g, '').slice(0, 4);
+                setBirthYear(num);
+              }}
+              keyboardType="number-pad"
+              maxLength={4}
+            />
+          </View>
+
+          {showMonthPicker && (
+            <View style={[styles.monthGrid, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+              {months.map((m, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[
+                    styles.monthOption,
+                    parseInt(birthMonth, 10) === i + 1 && { backgroundColor: colors.primaryBlue },
+                  ]}
+                  onPress={() => {
+                    setBirthMonth(String(i + 1));
+                    setShowMonthPicker(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.monthOptionText,
+                    { color: colors.textPrimary },
+                    parseInt(birthMonth, 10) === i + 1 && { color: '#fff' },
+                  ]}>
+                    {m}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.privacyRow}
+            onPress={() => setAcceptedPrivacy(!acceptedPrivacy)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, { borderColor: colors.inputBorder }, acceptedPrivacy && { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue }]}>
+              {acceptedPrivacy && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={[styles.privacyText, { color: colors.textSecondary }]}>
+              {t.signupAcceptPrivacy}
+              <Text
+                style={{ color: colors.darkBlueText, textDecorationLine: 'underline' }}
+                onPress={() => navigation.navigate('PrivacyPolicy')}
+              >
+                {t.signupPrivacyLink}
+              </Text>
+              {t.signupAnd}
+              <Text
+                style={{ color: colors.darkBlueText, textDecorationLine: 'underline' }}
+                onPress={() => navigation.navigate('TermsConditions')}
+              >
+                {t.signupTermsLink}
+              </Text>
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.primaryBlue }]}
+            onPress={handleSignup}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.textWhite} />
+            ) : (
+              <Text style={styles.buttonText}>{t.signupButton}</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={[styles.linkText, { color: colors.primaryRed }]}>
+              {t.signupHasAccount}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#fff',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  card: {
+    borderRadius: 20,
+    padding: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 40,
+    marginBottom: 30,
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     padding: 15,
     marginBottom: 15,
-    borderRadius: 8,
+    borderRadius: 10,
     fontSize: 16,
   },
-  button: {
-    backgroundColor: '#667eea',
+  birthdayLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  birthdayRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 15,
+  },
+  birthdayInput: {
+    flex: 1,
+    borderWidth: 1,
     padding: 15,
+    borderRadius: 10,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  yearInput: {
+    flex: 1.3,
+  },
+  monthPicker: {
+    flex: 1.2,
+    borderWidth: 1,
+    padding: 15,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthPickerText: {
+    fontSize: 16,
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 6,
+    marginBottom: 15,
+    gap: 4,
+  },
+  monthOption: {
+    width: '23%',
+    paddingVertical: 10,
     borderRadius: 8,
+    alignItems: 'center',
+  },
+  monthOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  button: {
+    padding: 16,
+    borderRadius: 10,
     marginTop: 10,
   },
   buttonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     textAlign: 'center',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  privacyText: {
+    fontSize: 14,
+    flex: 1,
   },
   linkText: {
-    color: '#667eea',
     textAlign: 'center',
     marginTop: 20,
     fontSize: 16,
