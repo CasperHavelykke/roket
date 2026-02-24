@@ -11,6 +11,7 @@ import {
   Linking,
   useWindowDimensions,
   Platform,
+  Pressable,
 } from 'react-native';
 import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
@@ -61,8 +62,14 @@ const getAge = (birthday: { day: number; month: number; year: number }): number 
 };
 
 export default function HomeScreen({ navigation }: any) {
-  const { colors, isDark, t, distanceMode, distanceUnit, gridColumns } = useTheme();
+  const { colors, isDark, t, distanceMode, distanceUnit, gridColumns, setGridColumns, showTestBadges } = useTheme();
   const insets = useSafeAreaInsets();
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [hoveredColumn, setHoveredColumn] = useState<number | null>(null);
+  const showPickerRef = useRef(false);
+  const hoveredColRef = useRef<number | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const buttonTopPageYRef = useRef(0);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -373,7 +380,7 @@ export default function HomeScreen({ navigation }: any) {
       {isOnline(item.lastSeen) && (
         <View style={[styles.onlineDot, { backgroundColor: colors.online, borderColor: '#fff' }, isCompact && { width: 8, height: 8, borderRadius: 4, top: 5, right: 5 }]} />
       )}
-      {item.testAccount && !isCompact && (
+      {showTestBadges && item.testAccount && !isCompact && (
         <View style={styles.testBadge}>
           <Text style={styles.testBadgeText}>{t.testAccount}</Text>
         </View>
@@ -459,6 +466,7 @@ export default function HomeScreen({ navigation }: any) {
           renderItem={renderUserCard}
           keyExtractor={item => item.id}
           numColumns={numColumns}
+          extraData={showTestBadges}
           columnWrapperStyle={numColumns > 1 ? { justifyContent: 'center' } : undefined}
           contentContainerStyle={[styles.grid, { padding: gridPadding, paddingBottom: gridPadding + insets.bottom }]}
           onEndReached={onEndReached}
@@ -468,30 +476,138 @@ export default function HomeScreen({ navigation }: any) {
           }
         />
       )}
+      {showColumnPicker && (
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => { showPickerRef.current = false; setShowColumnPicker(false); }} />
+      )}
       {(() => {
         const fabSize = 56;
         const fabGap = 10;
         const fabGroupLeft = screenWidth - 16 - (3 * fabSize + 2 * fabGap);
+        const PICKER_ITEM_H = 48;
+        // Distance from button top to first picker item (bottom-most):
+        // 6px gap (bottom:62 - button:56) + 1.5px border + 10px paddingBottom = 17.5
+        const PICKER_OFFSET = 17.5;
+
+        const getHoveredCol = (pageY: number): number | null => {
+          const distAbove = buttonTopPageYRef.current - pageY - PICKER_OFFSET;
+          if (distAbove < 0 || distAbove >= 4 * PICKER_ITEM_H) return null;
+          // Items bottom-to-top: 4, 3, 2, 1
+          return 4 - Math.floor(distAbove / PICKER_ITEM_H);
+        };
+
+        const fabButtons = [
+          { icon: <ProfileIcon width={26} height={26} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <View style={styles.fabBadgeRed} />, unread: needsProfile },
+          { icon: <MessagesIcon width={26} height={26} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread && <View style={styles.fabBadgeBlue} />, unread: hasUnread },
+          { icon: <SettingsIcon width={26} height={26} stroke="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null, unread: false },
+        ];
+
         return (
           <View style={[styles.fab, { bottom: insets.bottom + 16 }]}>
-            {[
-              { icon: <ProfileIcon width={26} height={26} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <View style={styles.fabBadgeRed} />, unread: needsProfile },
-              { icon: <MessagesIcon width={26} height={26} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread && <View style={styles.fabBadgeBlue} />, unread: hasUnread },
-              { icon: <SettingsIcon width={26} height={26} stroke="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null, unread: false },
-            ].map((btn, i) => {
+            {fabButtons.map((btn, i) => {
               const btnLeft = fabGroupLeft + i * (fabSize + fabGap);
+
+              if (i === 2) {
+                return (
+                  <View key={i}>
+                    {showColumnPicker && (
+                      <GradientView
+                        colors={[colors.primaryBlue, colors.primaryRed]}
+                        start={{ x: -btnLeft / fabSize, y: 0 }}
+                        end={{ x: (screenWidth - btnLeft) / fabSize, y: 0 }}
+                        style={styles.columnPicker}
+                      >
+                        {([1, 2, 3, 4] as const).map(col => {
+                          const isHighlighted = hoveredColumn === col || (hoveredColumn === null && gridColumns === col);
+                          return (
+                            <TouchableOpacity
+                              key={col}
+                              activeOpacity={0.7}
+                              onPress={() => { setGridColumns(col); showPickerRef.current = false; setShowColumnPicker(false); }}
+                              style={styles.columnPickerItem}
+                            >
+                              <View style={styles.columnLines}>
+                                {Array.from({ length: col }).map((_, j) => (
+                                  <View key={j} style={[styles.columnLine, isHighlighted && styles.columnLineActive]} />
+                                ))}
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </GradientView>
+                    )}
+                    <View
+                      onStartShouldSetResponder={() => true}
+                      onMoveShouldSetResponder={() => true}
+                      onResponderGrant={(e) => {
+                        // Capture button top: pageY minus where on the button the finger landed
+                        buttonTopPageYRef.current = e.nativeEvent.pageY - e.nativeEvent.locationY;
+                        longPressTimerRef.current = setTimeout(() => {
+                          showPickerRef.current = true;
+                          setShowColumnPicker(true);
+                        }, 300);
+                      }}
+                      onResponderMove={(e) => {
+                        if (!showPickerRef.current) return;
+                        const col = getHoveredCol(e.nativeEvent.pageY);
+                        if (col !== hoveredColRef.current) {
+                          hoveredColRef.current = col;
+                          setHoveredColumn(col);
+                        }
+                      }}
+                      onResponderRelease={() => {
+                        if (longPressTimerRef.current) {
+                          clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = null;
+                        }
+                        if (showPickerRef.current && hoveredColRef.current) {
+                          setGridColumns(hoveredColRef.current as any);
+                          showPickerRef.current = false;
+                          setShowColumnPicker(false);
+                        } else if (!showPickerRef.current) {
+                          navigation.navigate('Settings');
+                        }
+                        hoveredColRef.current = null;
+                        setHoveredColumn(null);
+                      }}
+                      onResponderTerminate={() => {
+                        if (longPressTimerRef.current) {
+                          clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = null;
+                        }
+                        showPickerRef.current = false;
+                        setShowColumnPicker(false);
+                        hoveredColRef.current = null;
+                        setHoveredColumn(null);
+                      }}
+                      style={styles.fabShadow}
+                    >
+                      <GradientView
+                        colors={[colors.primaryBlue, colors.primaryRed]}
+                        start={{ x: -btnLeft / fabSize, y: 0 }}
+                        end={{ x: (screenWidth - btnLeft) / fabSize, y: 0 }}
+                        style={styles.fabButton}
+                      >
+                        {btn.icon}
+                      </GradientView>
+                    </View>
+                  </View>
+                );
+              }
+
               return (
-                <TouchableOpacity key={i} onPress={btn.onPress} activeOpacity={0.8} style={styles.fabShadow}>
-                  <GradientView
-                    colors={[colors.primaryBlue, colors.primaryRed]}
-                    start={{ x: -btnLeft / fabSize, y: 0 }}
-                    end={{ x: (screenWidth - btnLeft) / fabSize, y: 0 }}
-                    style={[styles.fabButton, btn.unread && styles.fabButtonUnread]}
-                  >
-                    {btn.icon}
-                    {btn.badge}
-                  </GradientView>
-                </TouchableOpacity>
+                <View key={i}>
+                  <TouchableOpacity onPress={btn.onPress} activeOpacity={0.8} style={styles.fabShadow}>
+                    <GradientView
+                      colors={[colors.primaryBlue, colors.primaryRed]}
+                      start={{ x: -btnLeft / fabSize, y: 0 }}
+                      end={{ x: (screenWidth - btnLeft) / fabSize, y: 0 }}
+                      style={[styles.fabButton, btn.unread && styles.fabButtonUnread]}
+                    >
+                      {btn.icon}
+                      {btn.badge}
+                    </GradientView>
+                  </TouchableOpacity>
+                </View>
               );
             })}
           </View>
@@ -564,22 +680,22 @@ const styles = StyleSheet.create({
   },
   fabBadgeRed: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: 6,
+    right: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: '#E63946',
     borderWidth: 2,
     borderColor: '#fff',
   },
   fabBadgeBlue: {
     position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: 6,
+    right: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: '#4A90FF',
     borderWidth: 2,
     borderColor: '#fff',
@@ -702,5 +818,41 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     bottom: 36,
     left: 5,
+  },
+  columnPicker: {
+    position: 'absolute',
+    bottom: 62,
+    left: 0,
+    width: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
+  columnPickerItem: {
+    height: 48,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  columnLines: {
+    flexDirection: 'row',
+    gap: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  columnLine: {
+    width: 2.5,
+    height: 18,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+  },
+  columnLineActive: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    backgroundColor: '#fff',
   },
 });

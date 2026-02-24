@@ -19,7 +19,7 @@ import getFirebaseError from '../utils/getFirebaseError';
 import RoketLogo from '../assets/roket-logo-2.svg';
 
 export default function LoginScreen({ navigation }: any) {
-  const { colors, t } = useTheme();
+  const { colors, t, loginTestInfo } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -92,7 +92,7 @@ export default function LoginScreen({ navigation }: any) {
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.testInfo}>For testing use mail: test@test.com password: Test1234</Text>
+        {loginTestInfo ? <Text style={styles.testInfo}>{loginTestInfo}</Text> : null}
       </View>
       </ScrollView>
       </KeyboardAvoidingView>

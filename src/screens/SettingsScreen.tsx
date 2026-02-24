@@ -14,14 +14,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { useTheme, ThemeMode, TimeFormat, Language, DistanceMode, DistanceUnit, GridColumns } from '../theme';
+import { useTheme, ThemeMode, TimeFormat, Language, DistanceMode, DistanceUnit } from '../theme';
 import getFirebaseError from '../utils/getFirebaseError';
 import LocationService from '../services/LocationService';
 import RoketLogo from '../assets/roket-logo-simpel.svg';
 import RoketStars from '../assets/roket-logo-stars-only.svg';
 
 export default function SettingsScreen({ navigation }: any) {
-  const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, gridColumns, setGridColumns, t } = useTheme();
+  const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, appVersion, releaseTag, t } = useTheme();
   const insets = useSafeAreaInsets();
   const currentUser = auth().currentUser;
 
@@ -58,12 +58,6 @@ export default function SettingsScreen({ navigation }: any) {
     { value: 'mi', label: t.settingsDistanceUnitMi },
   ];
 
-  const gridColumnOptions: { value: GridColumns; label: string }[] = [
-    { value: 1, label: '1' },
-    { value: 2, label: '2' },
-    { value: 3, label: '3' },
-    { value: 4, label: '4' },
-  ];
 
   const handleDistanceModeChange = async (mode: DistanceMode) => {
     if (mode === 'exact' && Platform.OS === 'android') {
@@ -207,10 +201,6 @@ export default function SettingsScreen({ navigation }: any) {
           {renderSelector(distanceUnits, distanceUnit, setDistanceUnit)}
         </View>
 
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsGridColumns}</Text>
-        <View style={[styles.card, { backgroundColor: colors.white }]}>
-          {renderSelector(gridColumnOptions, gridColumns, setGridColumns)}
-        </View>
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsPrivacy}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
@@ -291,7 +281,7 @@ export default function SettingsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.copyright}>© 2026 Røket · v1.0.1 Beta</Text>
+        <Text style={styles.copyright}>© 2026 Røket · v{appVersion}{releaseTag ? ` ${releaseTag}` : ''}</Text>
       </ScrollView>
     </SafeAreaView>
   );

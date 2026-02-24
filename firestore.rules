@@ -58,6 +58,7 @@ service cloud.firestore {
     match /userLocations/{userId} {
       allow read: if request.auth != null;
       allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if isAdmin();
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
@@ -86,6 +87,13 @@ service cloud.firestore {
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageURL']);
       allow read, update: if isAdmin();
       allow delete: if isAdmin();
+    }
+
+    // App-konfiguration (showTestBadges mv.)
+    // App-config er offentlig læsbar (UI-toggles, ikke følsom data)
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Flagged content (fotomoderering)

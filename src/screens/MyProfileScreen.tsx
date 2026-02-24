@@ -19,7 +19,7 @@ import LocationService from '../services/LocationService';
 import PhotoGalleryModal from '../components/PhotoGalleryModal';
 
 export default function MyProfileScreen({ navigation }: any) {
-  const { colors, isDark, t, distanceUnit } = useTheme();
+  const { colors, isDark, t, distanceUnit, showTestBadges } = useTheme();
   const insets = useSafeAreaInsets();
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
@@ -147,7 +147,7 @@ export default function MyProfileScreen({ navigation }: any) {
               />
             </TouchableOpacity>
           )}
-          {testAccount && (
+          {showTestBadges && testAccount && (
             <View style={styles.testBadge}>
               <Text style={styles.testBadgeText}>{t.testAccount}</Text>
             </View>
@@ -202,7 +202,7 @@ export default function MyProfileScreen({ navigation }: any) {
           )}
         </View>
 
-        {testAccount && (
+        {showTestBadges && testAccount && (
           <View style={[styles.testDisclaimer, { borderColor: colors.inputBorder, backgroundColor: colors.white }]}>
             <Text style={[styles.testDisclaimerText, { color: colors.textSecondary }]}>{t.testAccountDisclaimer}</Text>
           </View>

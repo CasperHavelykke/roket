@@ -92,6 +92,10 @@ interface ThemeContextType {
   setDistanceUnit: (unit: DistanceUnit) => void;
   gridColumns: GridColumns;
   setGridColumns: (cols: GridColumns) => void;
+  showTestBadges: boolean;
+  loginTestInfo: string;
+  appVersion: string;
+  releaseTag: string;
   t: Translations;
 }
 
@@ -110,6 +114,10 @@ export const ThemeContext = createContext<ThemeContextType>({
   setDistanceUnit: () => {},
   gridColumns: 2,
   setGridColumns: () => {},
+  showTestBadges: true,
+  loginTestInfo: 'For testing use mail: test@test.com password: Test1234',
+  appVersion: '1.0.1',
+  releaseTag: 'Beta',
   t: translations.da,
 });
 
@@ -160,6 +168,10 @@ export function useThemeProvider() {
   const [distanceMode, setDistanceModeState] = useState<DistanceMode>('exact');
   const [distanceUnit, setDistanceUnitState] = useState<DistanceUnit>('km');
   const [gridColumns, setGridColumnsState] = useState<GridColumns>(2);
+  const [showTestBadges, setShowTestBadges] = useState(true);
+  const [loginTestInfo, setLoginTestInfo] = useState('For testing use mail: test@test.com password: Test1234');
+  const [appVersion, setAppVersion] = useState('1.0.1');
+  const [releaseTag, setReleaseTag] = useState('Beta');
   const [loaded, setLoaded] = useState(false);
   const asyncDone = useRef(false);
   const firestoreDone = useRef(false);
@@ -264,6 +276,25 @@ export function useThemeProvider() {
     return () => unsubscribe();
   }, []);
 
+  // Lyt til global app-config (showTestBadges)
+  useEffect(() => {
+    const unsub = firestore().collection('config').doc('app').onSnapshot(
+      snap => {
+        if (!snap.exists) {
+          setShowTestBadges(true);
+          return;
+        }
+        const data = snap.data();
+        setShowTestBadges(data?.showTestBadges !== false);
+        if (typeof data?.loginTestInfo === 'string') setLoginTestInfo(data.loginTestInfo);
+        if (typeof data?.appVersion === 'string') setAppVersion(data.appVersion);
+        if (typeof data?.releaseTag === 'string') setReleaseTag(data.releaseTag);
+      },
+      () => setShowTestBadges(true), // on error, default to showing badges
+    );
+    return () => unsub();
+  }, []);
+
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
     AsyncStorage.setItem(THEME_STORAGE_KEY, newMode);
@@ -323,6 +354,10 @@ export function useThemeProvider() {
     setDistanceUnit,
     gridColumns,
     setGridColumns,
+    showTestBadges,
+    loginTestInfo,
+    appVersion,
+    releaseTag,
     t: translations[language],
     loaded,
   };

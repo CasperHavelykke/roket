@@ -334,7 +334,7 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-      <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceMode: theme.distanceMode, setDistanceMode: theme.setDistanceMode, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, gridColumns: theme.gridColumns, setGridColumns: theme.setGridColumns, t: theme.t }}>
+      <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceMode: theme.distanceMode, setDistanceMode: theme.setDistanceMode, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, gridColumns: theme.gridColumns, setGridColumns: theme.setGridColumns, showTestBadges: theme.showTestBadges, loginTestInfo: theme.loginTestInfo, appVersion: theme.appVersion, releaseTag: theme.releaseTag, t: theme.t }}>
         <NavigationContainer ref={navigationRef} theme={navTheme}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {authState === false ? (

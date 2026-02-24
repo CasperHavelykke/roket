@@ -181,7 +181,7 @@ function getOrCreateChatId(uid1: string, uid2: string): string {
 }
 
 export default function ChatScreen({ route, navigation }: any) {
-  const { colors, timeFormat, t, language } = useTheme();
+  const { colors, timeFormat, t, language, showTestBadges } = useTheme();
   const insets = useSafeAreaInsets();
   const { otherUser, fromProfile } = route.params as {
     otherUser: { id: string; displayName: string; testAccount?: boolean };
@@ -559,7 +559,7 @@ export default function ChatScreen({ route, navigation }: any) {
           <View style={styles.headerInfo}>
             <View style={styles.headerNameRow}>
               <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>
-              {otherUser.testAccount && <View style={styles.headerTestBadge}><Text style={styles.headerTestBadgeText}>{t.testAccount}</Text></View>}
+              {showTestBadges && otherUser.testAccount && <View style={styles.headerTestBadge}><Text style={styles.headerTestBadgeText}>{t.testAccount}</Text></View>}
             </View>
           </View>
         ) : (
@@ -610,7 +610,7 @@ export default function ChatScreen({ route, navigation }: any) {
           >
             <View style={styles.headerNameRow}>
               <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>
-              {otherUser.testAccount && <View style={styles.headerTestBadge}><Text style={styles.headerTestBadgeText}>{t.testAccount}</Text></View>}
+              {showTestBadges && otherUser.testAccount && <View style={styles.headerTestBadge}><Text style={styles.headerTestBadgeText}>{t.testAccount}</Text></View>}
             </View>
           </TouchableOpacity>
         )}

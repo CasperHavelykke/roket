@@ -95,7 +95,7 @@ function SwipeableRow({ children, onAction, actionLabel, actionColor }: {
 }
 
 export default function ChatsListScreen({ navigation }: any) {
-  const { colors, isDark, t } = useTheme();
+  const { colors, isDark, t, showTestBadges } = useTheme();
   const insets = useSafeAreaInsets();
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -289,7 +289,7 @@ export default function ChatsListScreen({ navigation }: any) {
           <View style={styles.chatInfo}>
             <View style={styles.chatTop}>
               <Text style={[styles.chatName, { color: colors.textPrimary }]}>{item.otherUserName}</Text>
-              {item.otherUserTestAccount && <View style={styles.testTag}><Text style={styles.testTagText}>{t.testAccount}</Text></View>}
+              {showTestBadges && item.otherUserTestAccount && <View style={styles.testTag}><Text style={styles.testTagText}>{t.testAccount}</Text></View>}
               <View style={styles.chatTopRight}>
                 {isPinned && <Text style={styles.pinIcon}>📌</Text>}
                 <Text style={[styles.chatTime, unread && { color: colors.primaryBlue, fontWeight: '600' }]}>
@@ -356,6 +356,7 @@ export default function ChatsListScreen({ navigation }: any) {
           data={chats}
           renderItem={renderChat}
           keyExtractor={item => item.chatId}
+          extraData={showTestBadges}
         />
       )}
     </SafeAreaView>

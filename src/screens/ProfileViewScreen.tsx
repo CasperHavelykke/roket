@@ -39,7 +39,7 @@ interface RouteParams {
 }
 
 export default function ProfileViewScreen({ route, navigation }: any) {
-  const { colors, isDark, t, distanceMode, distanceUnit } = useTheme();
+  const { colors, isDark, t, distanceMode, distanceUnit, showTestBadges } = useTheme();
   const insets = useSafeAreaInsets();
   const [locationGranted, setLocationGranted] = useState(true);
 
@@ -201,7 +201,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
               />
             </TouchableOpacity>
           )}
-          {user.testAccount && (
+          {showTestBadges && user.testAccount && (
             <View style={styles.testBadge}>
               <Text style={styles.testBadgeText}>{t.testAccount}</Text>
             </View>
@@ -254,7 +254,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
           )}
         </View>
 
-        {user.testAccount && (
+        {showTestBadges && user.testAccount && (
           <View style={[styles.testDisclaimer, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
             <Text style={[styles.testDisclaimerText, { color: colors.textSecondary }]}>{t.testAccountDisclaimer}</Text>
           </View>
