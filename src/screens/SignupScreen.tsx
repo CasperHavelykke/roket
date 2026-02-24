@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme';
@@ -110,7 +111,7 @@ export default function SignupScreen({ navigation }: any) {
   };
 
   return (
-    <LinearGradient
+    <GradientView
       colors={[colors.primaryRed, colors.darkBlue]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -260,7 +261,7 @@ export default function SignupScreen({ navigation }: any) {
         </View>
       </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </GradientView>
   );
 }
 

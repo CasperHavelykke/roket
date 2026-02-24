@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useFocusEffect } from '@react-navigation/native';
@@ -208,14 +209,14 @@ export default function MyProfileScreen({ navigation }: any) {
         )}
 
         <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
-          <LinearGradient
+          <GradientView
             colors={[colors.primaryBlue, colors.primaryRed]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.editButton}
           >
             <Text style={[styles.editButtonText, { color: colors.textWhite }]}>{t.myProfileEdit}</Text>
-          </LinearGradient>
+          </GradientView>
         </TouchableOpacity>
       </ScrollView>
 

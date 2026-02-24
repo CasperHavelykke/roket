@@ -15,6 +15,7 @@ import {
   Modal,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -204,12 +205,12 @@ export default function ProfileSetupScreen() {
           {photoUri ? (
             <Image source={{ uri: photoUri }} style={styles.photo} />
           ) : (
-            <LinearGradient
+            <GradientView
               colors={[colors.primaryBlue, colors.primaryRed]}
               style={styles.photoPlaceholder}
             >
               <RoketLogo width={56} height={56} />
-            </LinearGradient>
+            </GradientView>
           )}
           <View style={[styles.cameraBadge, { backgroundColor: colors.white }]}>
             <CameraIcon width={16} height={16} fill={colors.primaryBlueText} />

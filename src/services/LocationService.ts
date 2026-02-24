@@ -34,7 +34,11 @@ class LocationService {
         return 'denied';
       }
     }
-    return 'fine'; // iOS handles permissions differently
+    // iOS: request authorization explicitly
+    const auth = await Geolocation.requestAuthorization('whenInUse');
+    if (auth === 'granted') return 'fine';
+    if (auth === 'denied') return 'denied';
+    return 'never_ask_again';
   }
 
   // Check current precision without requesting (non-intrusive)

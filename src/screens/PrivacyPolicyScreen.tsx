@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import { useTheme } from '../theme';
 
 const policyDA = `Privatlivspolitik
@@ -498,7 +499,7 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
+      <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -508,7 +509,7 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
           <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.privacyPolicyTitle}</Text>
-      </LinearGradient>
+      </GradientView>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.card, { backgroundColor: colors.white }]}>

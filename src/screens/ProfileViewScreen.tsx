@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../theme';
@@ -268,14 +269,14 @@ export default function ProfileViewScreen({ route, navigation }: any) {
               })
             }
           >
-            <LinearGradient
+            <GradientView
               colors={[colors.primaryBlue, colors.primaryRed]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.messageButton}
             >
               <Text style={[styles.messageButtonText, { color: colors.textWhite }]}>{t.profileSendMessage}</Text>
-            </LinearGradient>
+            </GradientView>
           </TouchableOpacity>
         )}
       </ScrollView>

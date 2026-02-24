@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import { useTheme } from '../theme';
 import getFirebaseError from '../utils/getFirebaseError';
@@ -40,7 +41,7 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <LinearGradient
+    <GradientView
       colors={[colors.darkBlue, colors.primaryRed]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -95,7 +96,7 @@ export default function LoginScreen({ navigation }: any) {
       </View>
       </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </GradientView>
   );
 }
 

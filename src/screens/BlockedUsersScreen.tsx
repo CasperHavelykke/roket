@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../theme';
@@ -88,7 +89,7 @@ export default function BlockedUsersScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
+      <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -98,7 +99,7 @@ export default function BlockedUsersScreen({ navigation }: any) {
           <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.blockedTitle}</Text>
-      </LinearGradient>
+      </GradientView>
 
       {loading ? (
         <View style={styles.center}>

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
@@ -222,7 +223,7 @@ export default function EditProfileScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
+      <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -232,7 +233,7 @@ export default function EditProfileScreen({ navigation }: any) {
           <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.editProfileTitle}</Text>
-      </LinearGradient>
+      </GradientView>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -241,12 +242,12 @@ export default function EditProfileScreen({ navigation }: any) {
         <ScrollView contentContainerStyle={styles.content}>
           <TouchableOpacity onPress={handleChangePhoto} style={styles.photoContainer}>
             {uploading ? (
-              <LinearGradient
+              <GradientView
                 colors={[colors.primaryBlue, colors.primaryRed]}
                 style={styles.photoPlaceholder}
               >
                 <ActivityIndicator color={colors.textWhite} />
-              </LinearGradient>
+              </GradientView>
             ) : (
               <Image
                 source={photoURL ? { uri: photoURL } : isDark ? require('../assets/missing-profile-pic.png') : require('../assets/missing-profile-pic-light.png')}

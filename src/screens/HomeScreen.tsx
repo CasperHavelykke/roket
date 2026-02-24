@@ -10,8 +10,9 @@ import {
   ScrollView,
   Linking,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import LocationService from '../services/LocationService';
@@ -361,14 +362,14 @@ export default function HomeScreen({ navigation }: any) {
         compact={isCompact}
         onPress={navigateToProfile}
       />
-      <LinearGradient
+      <GradientView
         colors={['transparent', 'rgba(0,0,0,0.7)']}
         style={styles.cardOverlay}
         pointerEvents="none"
       >
         <Text style={[styles.cardName, isCompact && { fontSize: 12 }]} numberOfLines={1}>{item.displayName || ''}{item.displayName && item.age ? `, ${item.age}` : item.age ? `${item.age}` : ''}</Text>
         <Text style={[styles.cardDistance, isCompact && { fontSize: 10 }]}>{formatDistance(item.distance, item.distanceMode)}</Text>
-      </LinearGradient>
+      </GradientView>
       {isOnline(item.lastSeen) && (
         <View style={[styles.onlineDot, { backgroundColor: colors.online, borderColor: '#fff' }, isCompact && { width: 8, height: 8, borderRadius: 4, top: 5, right: 5 }]} />
       )}
@@ -413,17 +414,17 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
+      <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Text style={[styles.headerTitle, { color: colors.textWhite }]}>Røket</Text>
           <RoketLogo width={28} height={28} />
         </View>
-      </LinearGradient>
+      </GradientView>
 
       {users.length === 0 ? (
         <ScrollView
@@ -481,7 +482,7 @@ export default function HomeScreen({ navigation }: any) {
               const btnLeft = fabGroupLeft + i * (fabSize + fabGap);
               return (
                 <TouchableOpacity key={i} onPress={btn.onPress} activeOpacity={0.8} style={styles.fabShadow}>
-                  <LinearGradient
+                  <GradientView
                     colors={[colors.primaryBlue, colors.primaryRed]}
                     start={{ x: -btnLeft / fabSize, y: 0 }}
                     end={{ x: (screenWidth - btnLeft) / fabSize, y: 0 }}
@@ -489,7 +490,7 @@ export default function HomeScreen({ navigation }: any) {
                   >
                     {btn.icon}
                     {btn.badge}
-                  </LinearGradient>
+                  </GradientView>
                 </TouchableOpacity>
               );
             })}

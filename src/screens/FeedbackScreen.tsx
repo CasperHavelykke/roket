@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
@@ -86,7 +87,7 @@ export default function FeedbackScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
+      <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -96,7 +97,7 @@ export default function FeedbackScreen({ navigation }: any) {
           <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.feedbackTitle}</Text>
-      </LinearGradient>
+      </GradientView>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.content}>
