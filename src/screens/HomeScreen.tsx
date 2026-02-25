@@ -25,7 +25,12 @@ import MessagesIcon from '../assets/messages.svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CardCarousel from '../components/CardCarousel';
 import RoketLogo from '../assets/roket-logo-3.svg';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+
+const BANNER_AD_ID = Platform.select({
+  android: 'ca-app-pub-3274880494665608/1274892218',
+  ios: 'ca-app-pub-3274880494665608/3956537086',
+}) as string;
 
 const AD_AFTER_ROWS = 3; // Vis annonce efter 3 rækker
 
@@ -421,7 +426,7 @@ export default function HomeScreen({ navigation }: any) {
       return (
         <View style={styles.adBannerInline}>
           <BannerAd
-            unitId={TestIds.ADAPTIVE_BANNER}
+            unitId={BANNER_AD_ID}
             size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
           />
         </View>

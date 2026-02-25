@@ -6,13 +6,19 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import GradientView from '../components/GradientView';
 import { useTheme } from '../theme';
 import RoketLogo from '../assets/roket-logo-simpel.svg';
 import RoketStars from '../assets/roket-logo-stars-only.svg';
-import { RewardedAd, RewardedAdEventType, AdEventType, TestIds } from 'react-native-google-mobile-ads';
+import { RewardedAd, RewardedAdEventType, AdEventType } from 'react-native-google-mobile-ads';
+
+const REWARDED_AD_ID = Platform.select({
+  android: 'ca-app-pub-3274880494665608/2491916759',
+  ios: 'ca-app-pub-3274880494665608/5022565538',
+}) as string;
 
 export default function SupportScreen({ navigation }: any) {
   const { colors, t } = useTheme();
@@ -22,7 +28,7 @@ export default function SupportScreen({ navigation }: any) {
   const rewardedAdRef = React.useRef<RewardedAd | null>(null);
 
   useEffect(() => {
-    const ad = RewardedAd.createForAdRequest(TestIds.REWARDED);
+    const ad = RewardedAd.createForAdRequest(REWARDED_AD_ID);
     rewardedAdRef.current = ad;
 
     const unsubLoaded = ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
@@ -36,7 +42,7 @@ export default function SupportScreen({ navigation }: any) {
       setAdLoaded(false);
       setLoading(true);
       // Reload for next watch
-      const nextAd = RewardedAd.createForAdRequest(TestIds.REWARDED);
+      const nextAd = RewardedAd.createForAdRequest(REWARDED_AD_ID);
       rewardedAdRef.current = nextAd;
       nextAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
         setAdLoaded(true);
@@ -71,7 +77,7 @@ export default function SupportScreen({ navigation }: any) {
       ad.show();
     } else if (!loading) {
       setLoading(true);
-      const newAd = RewardedAd.createForAdRequest(TestIds.REWARDED);
+      const newAd = RewardedAd.createForAdRequest(REWARDED_AD_ID);
       rewardedAdRef.current = newAd;
       newAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
         setAdLoaded(true);
