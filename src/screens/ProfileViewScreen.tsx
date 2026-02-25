@@ -20,6 +20,8 @@ import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../theme';
 import LocationService from '../services/LocationService';
 import PhotoGalleryModal from '../components/PhotoGalleryModal';
+import MessageIcon from '../assets/message.svg';
+import MessagesIcon from '../assets/messages.svg';
 
 interface RouteParams {
   user: {
@@ -72,7 +74,27 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+  const [hasConversation, setHasConversation] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
   const photoSize = Dimensions.get('window').width - 40;
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const chatId = [currentUser.uid, user.id].sort().join('_');
+    firestore().collection('chats').doc(chatId).get().then(snap => {
+      if (!snap.exists) return;
+      setHasConversation(true);
+      const data = snap.data();
+      if (!data) return;
+      const lastRead = data.lastRead?.[currentUser.uid];
+      const isUnread =
+        data.lastMessageSenderId !== currentUser.uid &&
+        (!lastRead ||
+          (data.lastMessageTime &&
+            lastRead.toMillis() < data.lastMessageTime.toMillis()));
+      setHasUnread(!!isUnread);
+    }).catch(() => {});
+  }, [currentUser, user.id]);
 
   if (!currentUser) return null;
 
@@ -260,26 +282,33 @@ export default function ProfileViewScreen({ route, navigation }: any) {
           </View>
         )}
 
-        {!fromChat && (
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate('Chat', {
-                otherUser: { id: user.id, displayName: user.displayName, testAccount: user.testAccount },
-                fromProfile: true,
-              })
-            }
-          >
-            <GradientView
-              colors={[colors.primaryBlue, colors.primaryRed]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.messageButton}
-            >
-              <Text style={[styles.messageButtonText, { color: colors.textWhite }]}>{t.profileSendMessage}</Text>
-            </GradientView>
-          </TouchableOpacity>
-        )}
       </ScrollView>
+
+      {!fromChat && (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={[styles.fab, { bottom: insets.bottom + 24 }]}
+          onPress={() =>
+            navigation.navigate('Chat', {
+              otherUser: { id: user.id, displayName: user.displayName, testAccount: user.testAccount },
+              fromProfile: true,
+            })
+          }
+        >
+          <GradientView
+            colors={[colors.primaryBlue, colors.primaryRed]}
+            start={{ x: -(Dimensions.get('window').width - 32 - 64) / 64, y: 0 }}
+            end={{ x: (32 + 64) / 64, y: 0 }}
+            style={[styles.fabButton, hasUnread && styles.fabButtonUnread]}
+          >
+            {hasConversation
+              ? <MessagesIcon width={30} height={30} stroke="#fff" />
+              : <MessageIcon width={30} height={30} stroke="#fff" />
+            }
+          </GradientView>
+          {hasUnread && <View style={styles.fabBadgeBlue}><View style={styles.fabBadgeGlow3Blue} /><View style={styles.fabBadgeGlow2Blue} /><View style={styles.fabBadgeGlow1Blue} /></View>}
+        </TouchableOpacity>
+      )}
 
       <Modal visible={showReportModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -498,16 +527,69 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontStyle: 'italic',
   },
-  messageButton: {
-    marginHorizontal: 20,
-    marginTop: 24,
-    padding: 18,
-    borderRadius: 14,
-    alignItems: 'center',
+  fab: {
+    position: 'absolute',
+    right: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  messageButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
+  fabButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  fabButtonUnread: {
+    borderWidth: 2.5,
+    borderColor: '#fff',
+  },
+  fabBadgeBlue: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#4A90FF',
+    overflow: 'visible',
+    zIndex: 3,
+  },
+  fabBadgeGlow1Blue: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(74, 144, 255, 0.5)',
+    zIndex: -1,
+  },
+  fabBadgeGlow2Blue: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(74, 144, 255, 0.25)',
+    zIndex: -2,
+  },
+  fabBadgeGlow3Blue: {
+    position: 'absolute',
+    top: -6,
+    left: -6,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(74, 144, 255, 0.1)',
+    zIndex: -3,
   },
   modalOverlay: {
     flex: 1,

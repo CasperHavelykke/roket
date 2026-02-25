@@ -94,7 +94,6 @@ interface ThemeContextType {
   setGridColumns: (cols: GridColumns) => void;
   showTestBadges: boolean;
   loginTestInfo: string;
-  appVersion: string;
   releaseTag: string;
   t: Translations;
 }
@@ -116,7 +115,6 @@ export const ThemeContext = createContext<ThemeContextType>({
   setGridColumns: () => {},
   showTestBadges: true,
   loginTestInfo: 'For testing use mail: test@test.com password: Test1234',
-  appVersion: '1.0.1',
   releaseTag: 'Beta',
   t: translations.da,
 });
@@ -170,7 +168,6 @@ export function useThemeProvider() {
   const [gridColumns, setGridColumnsState] = useState<GridColumns>(2);
   const [showTestBadges, setShowTestBadges] = useState(true);
   const [loginTestInfo, setLoginTestInfo] = useState('For testing use mail: test@test.com password: Test1234');
-  const [appVersion, setAppVersion] = useState('1.0.1');
   const [releaseTag, setReleaseTag] = useState('Beta');
   const [loaded, setLoaded] = useState(false);
   const asyncDone = useRef(false);
@@ -287,7 +284,6 @@ export function useThemeProvider() {
         const data = snap.data();
         setShowTestBadges(data?.showTestBadges !== false);
         if (typeof data?.loginTestInfo === 'string') setLoginTestInfo(data.loginTestInfo);
-        if (typeof data?.appVersion === 'string') setAppVersion(data.appVersion);
         if (typeof data?.releaseTag === 'string') setReleaseTag(data.releaseTag);
       },
       () => setShowTestBadges(true), // on error, default to showing badges
@@ -356,7 +352,6 @@ export function useThemeProvider() {
     setGridColumns,
     showTestBadges,
     loginTestInfo,
-    appVersion,
     releaseTag,
     t: translations[language],
     loaded,

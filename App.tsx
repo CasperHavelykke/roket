@@ -28,6 +28,10 @@ import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import TermsConditionsScreen from './src/screens/TermsConditionsScreen';
 import CommunityGuidelinesScreen from './src/screens/CommunityGuidelinesScreen';
 import ChildSafetyScreen from './src/screens/ChildSafetyScreen';
+import SupportScreen from './src/screens/SupportScreen';
+import mobileAds from 'react-native-google-mobile-ads';
+
+mobileAds().initialize();
 
 type RootStackParamList = {
   Login: undefined;
@@ -47,6 +51,7 @@ type RootStackParamList = {
   TermsConditions: undefined;
   CommunityGuidelines: undefined;
   ChildSafety: undefined;
+  Support: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -334,7 +339,7 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-      <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceMode: theme.distanceMode, setDistanceMode: theme.setDistanceMode, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, gridColumns: theme.gridColumns, setGridColumns: theme.setGridColumns, showTestBadges: theme.showTestBadges, loginTestInfo: theme.loginTestInfo, appVersion: theme.appVersion, releaseTag: theme.releaseTag, t: theme.t }}>
+      <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceMode: theme.distanceMode, setDistanceMode: theme.setDistanceMode, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, gridColumns: theme.gridColumns, setGridColumns: theme.setGridColumns, showTestBadges: theme.showTestBadges, loginTestInfo: theme.loginTestInfo, releaseTag: theme.releaseTag, t: theme.t }}>
         <NavigationContainer ref={navigationRef} theme={navTheme}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {authState === false ? (
@@ -362,6 +367,7 @@ function App() {
                 <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
                 <Stack.Screen name="CommunityGuidelines" component={CommunityGuidelinesScreen} />
                 <Stack.Screen name="ChildSafety" component={ChildSafetyScreen} />
+                <Stack.Screen name="Support" component={SupportScreen} />
               </>
             )}
           </Stack.Navigator>

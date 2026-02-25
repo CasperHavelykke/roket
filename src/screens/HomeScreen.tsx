@@ -25,6 +25,11 @@ import MessagesIcon from '../assets/messages.svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CardCarousel from '../components/CardCarousel';
 import RoketLogo from '../assets/roket-logo-3.svg';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+
+const AD_AFTER_ROWS = 3; // Vis annonce efter 3 rækker
+
+type GridRow = { type: 'users'; users: User[]; key: string } | { type: 'ad'; key: string };
 
 interface User {
   id: string;
@@ -351,7 +356,23 @@ export default function HomeScreen({ navigation }: any) {
 
   const fallbackSource = isDark ? require('../assets/missing-profile-pic.png') : require('../assets/missing-profile-pic-light.png');
 
-  const renderUserCard = ({ item }: { item: User }) => {
+  const gridRows = React.useMemo((): GridRow[] => {
+    const visible = users.slice(0, visibleCount);
+    const rows: GridRow[] = [];
+    let adInserted = false;
+    let rowCount = 0;
+    for (let i = 0; i < visible.length; i += numColumns) {
+      if (rowCount >= AD_AFTER_ROWS && !adInserted) {
+        rows.push({ type: 'ad', key: '__ad__' });
+        adInserted = true;
+      }
+      rows.push({ type: 'users', users: visible.slice(i, i + numColumns), key: `row-${i}` });
+      rowCount++;
+    }
+    return rows;
+  }, [users, visibleCount, numColumns]);
+
+  const renderUserCard = (item: User) => {
     const allPhotos = [item.photoURL, ...(item.photos || [])].filter(Boolean) as string[];
 
     const navigateToProfile = () => navigation.navigate('ProfileView', {
@@ -360,6 +381,7 @@ export default function HomeScreen({ navigation }: any) {
 
     return (
     <View
+      key={item.id}
       style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin }, isSingle && { aspectRatio: 1.2 }, unreadFromUsers.has(item.id) && { borderWidth: 3, borderColor: colors.primaryBlue }]}
     >
       <CardCarousel
@@ -392,6 +414,24 @@ export default function HomeScreen({ navigation }: any) {
       )}
     </View>
   );
+  };
+
+  const renderGridRow = ({ item }: { item: GridRow }) => {
+    if (item.type === 'ad') {
+      return (
+        <View style={styles.adBannerInline}>
+          <BannerAd
+            unitId={TestIds.ADAPTIVE_BANNER}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          />
+        </View>
+      );
+    }
+    return (
+      <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+        {item.users.map(user => renderUserCard(user))}
+      </View>
+    );
   };
 
   if (loading) {
@@ -445,7 +485,7 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t.homeLocationDenied}</Text>
               <TouchableOpacity
                 style={[styles.enableLocationButton, { backgroundColor: colors.primaryBlue }]}
-                onPress={() => updateLocationAndLoad()}
+                onPress={() => { Linking.openSettings(); }}
               >
                 <Text style={styles.enableLocationText}>{t.homeEnableLocation}</Text>
               </TouchableOpacity>
@@ -462,12 +502,10 @@ export default function HomeScreen({ navigation }: any) {
       ) : (
         <FlatList
           key={`grid-${numColumns}`}
-          data={users.slice(0, visibleCount)}
-          renderItem={renderUserCard}
-          keyExtractor={item => item.id}
-          numColumns={numColumns}
+          data={gridRows}
+          renderItem={renderGridRow}
+          keyExtractor={item => item.key}
           extraData={showTestBadges}
-          columnWrapperStyle={numColumns > 1 ? { justifyContent: 'center' } : undefined}
           contentContainerStyle={[styles.grid, { padding: gridPadding, paddingBottom: gridPadding + insets.bottom }]}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
@@ -480,9 +518,9 @@ export default function HomeScreen({ navigation }: any) {
         <Pressable style={StyleSheet.absoluteFill} onPress={() => { showPickerRef.current = false; setShowColumnPicker(false); }} />
       )}
       {(() => {
-        const fabSize = 56;
+        const fabSize = 64;
         const fabGap = 10;
-        const fabGroupLeft = screenWidth - 16 - (3 * fabSize + 2 * fabGap);
+        const fabGroupLeft = screenWidth - 32 - (3 * fabSize + 2 * fabGap);
         const PICKER_ITEM_H = 48;
         // Distance from button top to first picker item (bottom-most):
         // 6px gap (bottom:62 - button:56) + 1.5px border + 10px paddingBottom = 17.5
@@ -496,13 +534,13 @@ export default function HomeScreen({ navigation }: any) {
         };
 
         const fabButtons = [
-          { icon: <ProfileIcon width={26} height={26} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <View style={styles.fabBadgeRed} />, unread: needsProfile },
-          { icon: <MessagesIcon width={26} height={26} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread && <View style={styles.fabBadgeBlue} />, unread: hasUnread },
-          { icon: <SettingsIcon width={26} height={26} stroke="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null, unread: false },
+          { icon: <ProfileIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <View style={styles.fabBadgeRed}><View style={styles.fabBadgeGlow3Red} /><View style={styles.fabBadgeGlow2Red} /><View style={styles.fabBadgeGlow1Red} /></View>, unread: needsProfile },
+          { icon: <MessagesIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread && <View style={styles.fabBadgeBlue}><View style={styles.fabBadgeGlow3Blue} /><View style={styles.fabBadgeGlow2Blue} /><View style={styles.fabBadgeGlow1Blue} /></View>, unread: hasUnread },
+          { icon: <SettingsIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null, unread: false },
         ];
 
         return (
-          <View style={[styles.fab, { bottom: insets.bottom + 16 }]}>
+          <View style={[styles.fab, { bottom: insets.bottom + 24 }]}>
             {fabButtons.map((btn, i) => {
               const btnLeft = fabGroupLeft + i * (fabSize + fabGap);
 
@@ -604,8 +642,8 @@ export default function HomeScreen({ navigation }: any) {
                       style={[styles.fabButton, btn.unread && styles.fabButtonUnread]}
                     >
                       {btn.icon}
-                      {btn.badge}
                     </GradientView>
+                    {btn.badge}
                   </TouchableOpacity>
                 </View>
               );
@@ -652,12 +690,12 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    right: 16,
+    right: 32,
     flexDirection: 'row',
     gap: 10,
   },
   fabShadow: {
-    borderRadius: 28,
+    borderRadius: 32,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -665,9 +703,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   fabButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -680,25 +718,85 @@ const styles = StyleSheet.create({
   },
   fabBadgeRed: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    top: 2,
+    right: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#E63946',
-    borderWidth: 2,
-    borderColor: '#fff',
+    overflow: 'visible',
+    zIndex: 3,
+  },
+  fabBadgeGlow1Red: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(230, 57, 70, 0.5)',
+    zIndex: -1,
+  },
+  fabBadgeGlow2Red: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(230, 57, 70, 0.25)',
+    zIndex: -2,
+  },
+  fabBadgeGlow3Red: {
+    position: 'absolute',
+    top: -6,
+    left: -6,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(230, 57, 70, 0.1)',
+    zIndex: -3,
   },
   fabBadgeBlue: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    top: 2,
+    right: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#4A90FF',
-    borderWidth: 2,
-    borderColor: '#fff',
+    overflow: 'visible',
+    zIndex: 3,
+  },
+  fabBadgeGlow1Blue: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(74, 144, 255, 0.5)',
+    zIndex: -1,
+  },
+  fabBadgeGlow2Blue: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(74, 144, 255, 0.25)',
+    zIndex: -2,
+  },
+  fabBadgeGlow3Blue: {
+    position: 'absolute',
+    top: -6,
+    left: -6,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(74, 144, 255, 0.1)',
+    zIndex: -3,
   },
   headerTitle: {
     fontSize: 28,
@@ -716,10 +814,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 20,
     fontWeight: '600',
+    textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
     marginTop: 8,
+    textAlign: 'center',
   },
   enableLocationButton: {
     marginTop: 20,
@@ -821,10 +921,10 @@ const styles = StyleSheet.create({
   },
   columnPicker: {
     position: 'absolute',
-    bottom: 62,
+    bottom: 70,
     left: 0,
-    width: 56,
-    borderRadius: 28,
+    width: 64,
+    borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
@@ -854,5 +954,9 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 2,
     backgroundColor: '#fff',
+  },
+  adBannerInline: {
+    alignItems: 'center',
+    marginVertical: 4,
   },
 });

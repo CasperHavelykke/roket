@@ -1,4 +1,8 @@
 {
   "name": "roket",
-  "displayName": "roket"
+  "displayName": "roket",
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-3274880494665608~7496326840",
+    "ios_app_id": "ca-app-pub-3274880494665608~2814516230"
+  }
 }

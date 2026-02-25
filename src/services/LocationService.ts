@@ -69,26 +69,34 @@ class LocationService {
       return null;
     }
 
-    return new Promise((resolve) => {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            precision,
-          });
-        },
-        (error) => {
-          console.error('Location error:', error);
-          resolve(null);
-        },
-        {
-          enableHighAccuracy: precision === 'fine',
-          timeout: 15000,
-          maximumAge: 10000,
-        }
-      );
-    });
+    const getPosition = (highAccuracy: boolean): Promise<{latitude: number; longitude: number; precision: LocationPrecision} | null> =>
+      new Promise((resolve) => {
+        Geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              precision,
+            });
+          },
+          (error) => {
+            console.error('Location error:', error);
+            resolve(null);
+          },
+          {
+            enableHighAccuracy: highAccuracy,
+            timeout: 15000,
+            maximumAge: 10000,
+          },
+        );
+      });
+
+    if (precision === 'fine') {
+      const result = await getPosition(true);
+      if (result) return result;
+      return getPosition(false);
+    }
+    return getPosition(false);
   }
 
   // Watch position (updates when user moves)

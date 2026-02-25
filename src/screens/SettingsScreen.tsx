@@ -21,7 +21,7 @@ import RoketLogo from '../assets/roket-logo-simpel.svg';
 import RoketStars from '../assets/roket-logo-stars-only.svg';
 
 export default function SettingsScreen({ navigation }: any) {
-  const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, appVersion, releaseTag, t } = useTheme();
+  const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, releaseTag, t } = useTheme();
   const insets = useSafeAreaInsets();
   const currentUser = auth().currentUser;
 
@@ -249,12 +249,22 @@ export default function SettingsScreen({ navigation }: any) {
           style={styles.card}
         >
           <TouchableOpacity
-            style={styles.row}
+            style={[styles.row, { borderBottomColor: 'rgba(255,255,255,0.2)' }]}
             onPress={() => navigation.navigate('Feedback')}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <RoketStars width={20} height={20} />
               <Text style={[styles.rowText, { color: colors.textWhite, fontWeight: '700' }]}>{t.settingsFeedback}</Text>
+            </View>
+            <Text style={[styles.rowArrow, { color: colors.textWhite, fontWeight: '700' }]}>→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => navigation.navigate('Support')}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <RoketStars width={20} height={20} />
+              <Text style={[styles.rowText, { color: colors.textWhite, fontWeight: '700' }]}>{t.supportRoket}</Text>
             </View>
             <Text style={[styles.rowArrow, { color: colors.textWhite, fontWeight: '700' }]}>→</Text>
           </TouchableOpacity>
@@ -281,7 +291,7 @@ export default function SettingsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.copyright}>© 2026 Røket · v{appVersion}{releaseTag ? ` ${releaseTag}` : ''}</Text>
+        <Text style={styles.copyright}>© 2026 Røket · v1.0.4{releaseTag ? ` ${releaseTag}` : ''}</Text>
       </ScrollView>
     </SafeAreaView>
   );
