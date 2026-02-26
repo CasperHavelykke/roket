@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
 import { useTheme } from '../theme';
 
 interface DisclosureModalProps {
@@ -34,19 +34,19 @@ export default function DisclosureModal({
           <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
           <View style={styles.buttons}>
             {cancelLabel && onCancel && (
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton, { borderColor: colors.inputBorder }]}
+              <Pressable
+                style={({ pressed }) => [styles.button, styles.cancelButton, { borderColor: colors.inputBorder, opacity: pressed ? 0.7 : 1 }]}
                 onPress={onCancel}
               >
                 <Text style={[styles.buttonText, { color: colors.textSecondary }]}>{cancelLabel}</Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
-            <TouchableOpacity
-              style={[styles.button, styles.acceptButton, { backgroundColor: colors.primaryBlue }, cancelLabel ? {} : { flex: 1 }]}
+            <Pressable
+              style={({ pressed }) => [styles.button, styles.acceptButton, { backgroundColor: colors.primaryBlue, opacity: pressed ? 0.7 : 1 }, cancelLabel ? {} : { flex: 1 }]}
               onPress={onAccept}
             >
               <Text style={[styles.buttonText, { color: '#fff' }]}>{acceptLabel}</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </View>

@@ -11,6 +11,7 @@
 		4E6D3B1FE454C204D25064FF /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F43ECA16E4002BBC051D976A /* GoogleService-Info.plist */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		AA0B10010000000000000002 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0B10010000000000000001 /* InfoPlist.strings */; };
 		B75D38E9BF8B5553ABF0B58D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		BF33E075EC71518D4B2E0CCB /* Pods_roket.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A89A63E8DC94AAA1A1E31B80 /* Pods_roket.framework */; };
 /* End PBXBuildFile section */
@@ -27,6 +28,12 @@
 		A89A63E8DC94AAA1A1E31B80 /* Pods_roket.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_roket.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F43ECA16E4002BBC051D976A /* GoogleService-Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = "roket/GoogleService-Info.plist"; sourceTree = SOURCE_ROOT; };
+		AA0B10010000000000000003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = roket/en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		AA0B10010000000000000004 /* da */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = da; path = roket/da.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		AA0B10010000000000000005 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = roket/es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		AA0B10010000000000000006 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = roket/de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		AA0B10010000000000000007 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = roket/fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		AA0B10010000000000000008 /* pt */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pt; path = roket/pt.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,6 +54,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
+				AA0B10010000000000000001 /* InfoPlist.strings */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				F43ECA16E4002BBC051D976A /* GoogleService-Info.plist */,
@@ -146,6 +154,11 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				da,
+				es,
+				de,
+				fr,
+				pt,
 				Base,
 			);
 			mainGroup = 83CBB9F61A601CBA00E9B192;
@@ -165,6 +178,7 @@
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+				AA0B10010000000000000002 /* InfoPlist.strings in Resources */,
 				B75D38E9BF8B5553ABF0B58D /* PrivacyInfo.xcprivacy in Resources */,
 				4E6D3B1FE454C204D25064FF /* GoogleService-Info.plist in Resources */,
 			);
@@ -283,6 +297,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		AA0B10010000000000000001 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AA0B10010000000000000003 /* en */,
+				AA0B10010000000000000004 /* da */,
+				AA0B10010000000000000005 /* es */,
+				AA0B10010000000000000006 /* de */,
+				AA0B10010000000000000007 /* fr */,
+				AA0B10010000000000000008 /* pt */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {

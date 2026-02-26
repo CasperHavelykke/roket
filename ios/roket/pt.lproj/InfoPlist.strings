@@ -1,0 +1,4 @@
+"NSCameraUsageDescription" = "O Roket usa a câmara para fotos de perfil e fotos de chat.";
+"NSLocationWhenInUseUsageDescription" = "O Roket usa a tua localização para mostrar pessoas próximas.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "O Roket usa a tua localização para mostrar pessoas próximas.";
+"NSPhotoLibraryUsageDescription" = "O Roket usa a tua biblioteca de fotos para fotos de perfil e fotos de chat.";

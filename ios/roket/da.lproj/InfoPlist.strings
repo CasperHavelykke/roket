@@ -1,0 +1,4 @@
+"NSCameraUsageDescription" = "Roket bruger kameraet til profilbilleder og chat-billeder.";
+"NSLocationWhenInUseUsageDescription" = "Roket bruger din placering til at vise folk i nærheden.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Roket bruger din placering til at vise folk i nærheden.";
+"NSPhotoLibraryUsageDescription" = "Roket bruger dit fotobibliotek til profilbilleder og chat-billeder.";
