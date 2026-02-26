@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useColorScheme, Platform, NativeModules } from 'react-native';
+import { useColorScheme, Platform, NativeModules, Settings } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -143,12 +143,20 @@ function saveToFirestore(key: string, value: string) {
 }
 
 function getDeviceLanguage(): Language {
-  const locale =
-    Platform.OS === 'ios'
-      ? NativeModules.SettingsManager?.settings?.AppleLocale ??
-        NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ??
-        ''
-      : NativeModules.I18nManager?.localeIdentifier ?? '';
+  let locale = '';
+
+  if (Platform.OS === 'ios') {
+    // AppleLanguages = brugerens foretrukne sprog, AppleLocale = region/locale
+    locale =
+      Settings.get('AppleLanguages')?.[0] ??
+      NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ??
+      Settings.get('AppleLocale') ??
+      NativeModules.SettingsManager?.settings?.AppleLocale ??
+      '';
+  } else {
+    locale = NativeModules.I18nManager?.localeIdentifier ?? '';
+  }
+
   const lower = locale.toLowerCase();
   if (lower.startsWith('da')) return 'da';
   if (lower.startsWith('es')) return 'es';

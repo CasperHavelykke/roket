@@ -1,5 +1,6 @@
 import Geolocation from 'react-native-geolocation-service';
 import { PermissionsAndroid, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type LocationPrecision = 'fine' | 'coarse' | 'denied' | 'never_ask_again';
 
@@ -36,14 +37,21 @@ class LocationService {
     }
     // iOS: request authorization explicitly
     const auth = await Geolocation.requestAuthorization('whenInUse');
-    if (auth === 'granted') return 'fine';
+    if (auth === 'granted') {
+      await AsyncStorage.setItem('ios_location_granted', 'true');
+      return 'fine';
+    }
     if (auth === 'denied') return 'denied';
     return 'never_ask_again';
   }
 
   // Check current precision without requesting (non-intrusive)
   async checkCurrentPrecision(): Promise<LocationPrecision> {
-    if (Platform.OS !== 'android') return 'fine';
+    if (Platform.OS === 'ios') {
+      // iOS: ingen PermissionsAndroid — brug AsyncStorage til at huske om tilladelse er givet
+      const granted = await AsyncStorage.getItem('ios_location_granted');
+      return granted === 'true' ? 'fine' : 'denied';
+    }
     try {
       const fine = await PermissionsAndroid.check(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
