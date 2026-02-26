@@ -202,6 +202,17 @@ export default function SettingsScreen({ navigation }: any) {
         </View>
 
 
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsNotifications}</Text>
+        <View style={[styles.card, { backgroundColor: colors.white }]}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => Linking.openSettings()}
+          >
+            <Text style={[styles.rowText, { color: colors.textPrimary }]}>{t.settingsNotificationsOpen}</Text>
+            <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsPrivacy}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           <TouchableOpacity

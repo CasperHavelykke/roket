@@ -13,6 +13,7 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
@@ -78,23 +79,25 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   const [hasUnread, setHasUnread] = useState(false);
   const photoSize = Dimensions.get('window').width - 40;
 
-  useEffect(() => {
-    if (!currentUser) return;
-    const chatId = [currentUser.uid, user.id].sort().join('_');
-    firestore().collection('chats').doc(chatId).get().then(snap => {
-      if (!snap.exists) return;
-      setHasConversation(true);
-      const data = snap.data();
-      if (!data) return;
-      const lastRead = data.lastRead?.[currentUser.uid];
-      const isUnread =
-        data.lastMessageSenderId !== currentUser.uid &&
-        (!lastRead ||
-          (data.lastMessageTime &&
-            lastRead.toMillis() < data.lastMessageTime.toMillis()));
-      setHasUnread(!!isUnread);
-    }).catch(() => {});
-  }, [currentUser, user.id]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!currentUser) return;
+      const chatId = [currentUser.uid, user.id].sort().join('_');
+      firestore().collection('chats').doc(chatId).get().then(snap => {
+        if (!snap.exists) return;
+        setHasConversation(true);
+        const data = snap.data();
+        if (!data) return;
+        const lastRead = data.lastRead?.[currentUser.uid];
+        const isUnread =
+          data.lastMessageSenderId !== currentUser.uid &&
+          (!lastRead ||
+            (data.lastMessageTime &&
+              lastRead.toMillis() < data.lastMessageTime.toMillis()));
+        setHasUnread(!!isUnread);
+      }).catch(() => {});
+    }, [currentUser, user.id])
+  );
 
   if (!currentUser) return null;
 
@@ -299,14 +302,14 @@ export default function ProfileViewScreen({ route, navigation }: any) {
             colors={[colors.primaryBlue, colors.primaryRed]}
             start={{ x: -(Dimensions.get('window').width - 32 - 64) / 64, y: 0 }}
             end={{ x: (32 + 64) / 64, y: 0 }}
-            style={[styles.fabButton, hasUnread && styles.fabButtonUnread]}
+            style={styles.fabButton}
           >
             {hasConversation
               ? <MessagesIcon width={30} height={30} stroke="#fff" />
               : <MessageIcon width={30} height={30} stroke="#fff" />
             }
           </GradientView>
-          {hasUnread && <View style={styles.fabBadgeBlue}><View style={styles.fabBadgeGlow3Blue} /><View style={styles.fabBadgeGlow2Blue} /><View style={styles.fabBadgeGlow1Blue} /></View>}
+          {hasUnread && <View style={styles.fabBadgeBlue} />}
         </TouchableOpacity>
       )}
 
@@ -546,50 +549,19 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
   },
-  fabButtonUnread: {
-    borderWidth: 2.5,
-    borderColor: '#fff',
-  },
   fabBadgeBlue: {
     position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#4A90FF',
-    overflow: 'visible',
-    zIndex: 3,
-  },
-  fabBadgeGlow1Blue: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(74, 144, 255, 0.5)',
-    zIndex: -1,
-  },
-  fabBadgeGlow2Blue: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(74, 144, 255, 0.25)',
-    zIndex: -2,
-  },
-  fabBadgeGlow3Blue: {
-    position: 'absolute',
-    top: -6,
-    left: -6,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(74, 144, 255, 0.1)',
-    zIndex: -3,
+    shadowColor: '#4A90FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   modalOverlay: {
     flex: 1,

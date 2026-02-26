@@ -356,7 +356,7 @@ export default function HomeScreen({ navigation }: any) {
   const cardMargin = numColumns >= 4 ? 2 : numColumns >= 3 ? 3 : 5;
   const gridPadding = cardMargin;
   const cardWidth = (screenWidth - gridPadding * 2 - numColumns * cardMargin * 2) / numColumns;
-  const isCompact = numColumns >= 4;
+  const isCompact = numColumns >= 3;
   const isSingle = numColumns === 1;
 
   const fallbackSource = isDark ? require('../assets/missing-profile-pic.png') : require('../assets/missing-profile-pic-light.png');
@@ -539,9 +539,9 @@ export default function HomeScreen({ navigation }: any) {
         };
 
         const fabButtons = [
-          { icon: <ProfileIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <View style={styles.fabBadgeRed}><View style={styles.fabBadgeGlow3Red} /><View style={styles.fabBadgeGlow2Red} /><View style={styles.fabBadgeGlow1Red} /></View>, unread: needsProfile },
-          { icon: <MessagesIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread && <View style={styles.fabBadgeBlue}><View style={styles.fabBadgeGlow3Blue} /><View style={styles.fabBadgeGlow2Blue} /><View style={styles.fabBadgeGlow1Blue} /></View>, unread: hasUnread },
-          { icon: <SettingsIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null, unread: false },
+          { icon: <ProfileIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <View style={styles.fabBadgeRed} /> },
+          { icon: <MessagesIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread && <View style={styles.fabBadgeBlue} /> },
+          { icon: <SettingsIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null },
         ];
 
         return (
@@ -644,7 +644,7 @@ export default function HomeScreen({ navigation }: any) {
                       colors={[colors.primaryBlue, colors.primaryRed]}
                       start={{ x: -btnLeft / fabSize, y: 0 }}
                       end={{ x: (screenWidth - btnLeft) / fabSize, y: 0 }}
-                      style={[styles.fabButton, btn.unread && styles.fabButtonUnread]}
+                      style={styles.fabButton}
                     >
                       {btn.icon}
                     </GradientView>
@@ -717,91 +717,33 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
   },
-  fabButtonUnread: {
-    borderWidth: 2.5,
-    borderColor: '#fff',
-  },
   fabBadgeRed: {
     position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#E63946',
-    overflow: 'visible',
-    zIndex: 3,
-  },
-  fabBadgeGlow1Red: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(230, 57, 70, 0.5)',
-    zIndex: -1,
-  },
-  fabBadgeGlow2Red: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(230, 57, 70, 0.25)',
-    zIndex: -2,
-  },
-  fabBadgeGlow3Red: {
-    position: 'absolute',
-    top: -6,
-    left: -6,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(230, 57, 70, 0.1)',
-    zIndex: -3,
+    shadowColor: '#E63946',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   fabBadgeBlue: {
     position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: '#4A90FF',
-    overflow: 'visible',
-    zIndex: 3,
-  },
-  fabBadgeGlow1Blue: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(74, 144, 255, 0.5)',
-    zIndex: -1,
-  },
-  fabBadgeGlow2Blue: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(74, 144, 255, 0.25)',
-    zIndex: -2,
-  },
-  fabBadgeGlow3Blue: {
-    position: 'absolute',
-    top: -6,
-    left: -6,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(74, 144, 255, 0.1)',
-    zIndex: -3,
+    shadowColor: '#4A90FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   headerTitle: {
     fontSize: 28,

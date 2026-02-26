@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Røket — Delete Account</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #F5F5F5;
+    --text: #222222;
+    --card-bg: #FFFFFF;
+    --card-h2: #222222;
+    --card-text: #666666;
+    --card-shadow: rgba(0,0,0,0.06);
+    --link: #4361EE;
+    --footer: #999999;
+  }
+  .dark {
+    --bg: #121212;
+    --text: #E0E0E0;
+    --card-bg: #1E1E1E;
+    --card-h2: #E0E0E0;
+    --card-text: #AAAAAA;
+    --card-shadow: rgba(0,0,0,0.3);
+    --link: #5717ed;
+    --footer: #777777;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    transition: background 0.2s, color 0.2s;
+  }
+  header {
+    background: linear-gradient(90deg, #4361EE, #E63946);
+    padding: 24px 20px 18px;
+    text-align: center;
+  }
+  .dark header {
+    background: linear-gradient(90deg, #3A0CA3, #C1121F);
+  }
+  header h1 {
+    color: #fff;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .header-bottom {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .lang-toggle {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .lang-toggle button {
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+  .lang-toggle button.active {
+    color: #fff;
+    background: rgba(255,255,255,0.2);
+  }
+  .theme-toggle {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 6px;
+    line-height: 1;
+  }
+  .theme-toggle:hover { background: rgba(255,255,255,0.35); }
+  main {
+    max-width: 720px;
+    margin: 24px auto;
+    padding: 0 16px 60px;
+  }
+  .card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 28px 24px;
+    box-shadow: 0 1px 4px var(--card-shadow);
+    transition: background 0.2s;
+  }
+  .card h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--card-h2);
+  }
+  .formatted-text h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    color: var(--card-h2);
+  }
+  .formatted-text p {
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--card-text);
+    margin-bottom: 10px;
+  }
+  .formatted-text ul {
+    padding-left: 20px;
+    margin-bottom: 10px;
+  }
+  .formatted-text li {
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--card-text);
+    margin-bottom: 4px;
+  }
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--footer);
+    font-size: 14px;
+  }
+  .section { display: none; }
+  .section.visible { display: block; }
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--footer);
+    font-size: 12px;
+  }
+  footer a { color: var(--link); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="text-decoration:none;color:#fff;display:inline-block;">
+    <div style="width:48px;height:48px;margin:0 auto 6px;">
+      <svg viewBox="0 0 826 784" xmlns="http://www.w3.org/2000/svg" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+        <g transform="matrix(1,0,0,1,-78.2886,-120)">
+          <path d="M350.675,798.737C292.426,817.031 248.857,860.259 221.928,894.524C215.926,902.287 205.857,905.698 196.373,903.184C186.888,900.67 179.831,892.72 178.461,883.003C143.418,644.102 286.124,560.521 309.765,548.42L309.764,546.713C309.764,318.469 421.289,185.904 478.539,132.889C497.233,115.704 525.976,115.704 544.67,132.889C601.92,185.904 713.445,318.469 713.445,546.713L713.445,548.019C734.462,558.558 880.998,641.265 845.539,883.003C844.169,892.72 837.112,900.67 827.627,903.184C818.143,905.698 808.074,902.287 802.072,894.524C775.037,860.126 731.234,816.694 672.635,798.521C632.768,884.452 569.747,903.155 511.605,903.155C453.519,903.155 390.564,884.488 350.675,798.737ZM512,310.994C559.316,310.994 597.73,349.408 597.73,396.724C597.73,444.04 559.316,482.454 512,482.454C464.684,482.454 426.27,444.04 426.27,396.724C426.27,349.408 464.684,310.994 512,310.994Z" style="fill:white;"/>
+          <g transform="matrix(4.30813,0,0,4.30813,-3217.44,-519.964)"><path d="M791.89,175.342C791.89,190.182 779.841,202.23 765.001,202.23C779.841,202.23 791.89,214.278 791.89,229.119C791.89,214.278 803.938,202.23 818.778,202.23C803.938,202.23 791.89,190.182 791.89,175.342Z" style="fill:white;"/></g>
+          <g transform="matrix(4.30052,0,0,4.30052,-2617.17,-634.06)"><path d="M791.89,175.342C791.89,190.182 779.841,202.23 765.001,202.23C779.841,202.23 791.89,214.278 791.89,229.119C791.89,214.278 803.938,202.23 818.778,202.23C803.938,202.23 791.89,190.182 791.89,175.342Z" style="fill:white;"/></g>
+        </g>
+      </svg>
+    </div>
+    <h1 style="color:#fff;margin:0;">Røket</h1>
+  </a>
+  <div class="header-bottom">
+    <div class="lang-toggle">
+      <button id="btn-en" class="active" onclick="setLang('en')">EN</button>
+      <button id="btn-da" onclick="setLang('da')">DA</button>
+      <button id="btn-es" onclick="setLang('es')">ES</button>
+      <button id="btn-de" onclick="setLang('de')">DE</button>
+      <button id="btn-fr" onclick="setLang('fr')">FR</button>
+      <button id="btn-pt" onclick="setLang('pt')">PT</button>
+    </div>
+    <button class="theme-toggle" id="btn-theme" onclick="toggleTheme()">🌙</button>
+  </div>
+</header>
+
+<main>
+  <div id="content-en" class="section visible">
+    <div class="card">
+      <h2>Delete Account</h2>
+      <div id="delete-en" class="loading">Loading...</div>
+    </div>
+  </div>
+  <div id="content-da" class="section">
+    <div class="card">
+      <h2>Slet konto</h2>
+      <div id="delete-da" class="loading">Indl&#230;ser...</div>
+    </div>
+  </div>
+  <div id="content-es" class="section">
+    <div class="card">
+      <h2>Eliminar cuenta</h2>
+      <div id="delete-es" class="loading">Cargando...</div>
+    </div>
+  </div>
+  <div id="content-de" class="section">
+    <div class="card">
+      <h2>Konto l&#246;schen</h2>
+      <div id="delete-de" class="loading">Laden...</div>
+    </div>
+  </div>
+  <div id="content-fr" class="section">
+    <div class="card">
+      <h2>Supprimer le compte</h2>
+      <div id="delete-fr" class="loading">Chargement...</div>
+    </div>
+  </div>
+  <div id="content-pt" class="section">
+    <div class="card">
+      <h2>Eliminar conta</h2>
+      <div id="delete-pt" class="loading">Carregando...</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  R&oslash;ket &copy; 2026 &middot; <a href="privacy.html">Privacy</a> &middot; <a href="terms.html">Terms</a>
+</footer>
+
+<script>
+var langs = ['en', 'da', 'es', 'de', 'fr', 'pt'];
+var lang = 'en';
+var theme = localStorage.getItem('roket-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+if (theme === 'dark') document.body.classList.add('dark');
+document.getElementById('btn-theme').textContent = theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('visible'); });
+  document.getElementById('content-' + l).classList.add('visible');
+  document.querySelectorAll('.lang-toggle button').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('btn-' + l).classList.add('active');
+}
+
+function toggleTheme() {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.body.classList.toggle('dark');
+  document.getElementById('btn-theme').textContent = theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+  localStorage.setItem('roket-theme', theme);
+}
+
+var texts = {
+  en: 'Delete Account\n\nYou can delete your Røket account and all associated data at any time.\n\n# Delete from within the app\n\nOpen Røket and go to Settings > Delete Account. Enter your password to confirm. Your account and all data will be permanently deleted immediately.\n\n# Delete without access to the app\n\nIf you no longer have access to the app, you can request account deletion by sending an email to casper.roket@proton.me from the email address associated with your Røket account. We will process your request within 14 days.\n\n# What data is deleted?\n\nWhen your account is deleted, the following data is permanently removed:\n\n• Your profile (display name, bio, gender, sexuality, date of birth)\n• All profile photos and chat images\n• All chat messages and conversations\n• Your location data\n• Your feedback and reports\n• Your Firebase authentication account\n\nThis action cannot be undone.',
+  da: 'Slet konto\n\nDu kan slette din Røket-konto og alle tilknyttede data når som helst.\n\n# Slet fra appen\n\nÅbn Røket og gå til Indstillinger > Slet konto. Indtast din adgangskode for at bekræfte. Din konto og alle data slettes permanent med det samme.\n\n# Slet uden adgang til appen\n\nHvis du ikke længere har adgang til appen, kan du anmode om kontosletning ved at sende en e-mail til casper.roket@proton.me fra den e-mailadresse, der er tilknyttet din Røket-konto. Vi behandler din anmodning inden for 14 dage.\n\n# Hvilke data slettes?\n\nNår din konto slettes, fjernes følgende data permanent:\n\n• Din profil (visningsnavn, bio, køn, seksualitet, fødselsdato)\n• Alle profilbilleder og chatbilleder\n• Alle chatbeskeder og samtaler\n• Dine placeringsdata\n• Din feedback og rapporter\n• Din Firebase-godkendelseskonto\n\nDenne handling kan ikke fortrydes.',
+  es: 'Eliminar cuenta\n\nPuedes eliminar tu cuenta de Røket y todos los datos asociados en cualquier momento.\n\n# Eliminar desde la aplicación\n\nAbre Røket y ve a Ajustes > Eliminar cuenta. Introduce tu contraseña para confirmar. Tu cuenta y todos los datos se eliminarán permanentemente de inmediato.\n\n# Eliminar sin acceso a la aplicación\n\nSi ya no tienes acceso a la aplicación, puedes solicitar la eliminación de tu cuenta enviando un correo electrónico a casper.roket@proton.me desde la dirección de correo asociada a tu cuenta de Røket. Procesaremos tu solicitud en un plazo de 14 días.\n\n# ¿Qué datos se eliminan?\n\nCuando se elimina tu cuenta, los siguientes datos se eliminan permanentemente:\n\n• Tu perfil (nombre visible, bio, género, sexualidad, fecha de nacimiento)\n• Todas las fotos de perfil e imágenes de chat\n• Todos los mensajes de chat y conversaciones\n• Tus datos de ubicación\n• Tu feedback y reportes\n• Tu cuenta de autenticación de Firebase\n\nEsta acción no se puede deshacer.',
+  de: 'Konto löschen\n\nSie können Ihr Røket-Konto und alle zugehörigen Daten jederzeit löschen.\n\n# Aus der App löschen\n\nÖffnen Sie Røket und gehen Sie zu Einstellungen > Konto löschen. Geben Sie Ihr Passwort zur Bestätigung ein. Ihr Konto und alle Daten werden sofort dauerhaft gelöscht.\n\n# Ohne Zugang zur App löschen\n\nWenn Sie keinen Zugang mehr zur App haben, können Sie die Kontolöschung beantragen, indem Sie eine E-Mail an casper.roket@proton.me von der E-Mail-Adresse senden, die mit Ihrem Røket-Konto verknüpft ist. Wir werden Ihre Anfrage innerhalb von 14 Tagen bearbeiten.\n\n# Welche Daten werden gelöscht?\n\nWenn Ihr Konto gelöscht wird, werden folgende Daten dauerhaft entfernt:\n\n• Ihr Profil (Anzeigename, Bio, Geschlecht, Sexualität, Geburtsdatum)\n• Alle Profilfotos und Chat-Bilder\n• Alle Chat-Nachrichten und Gespräche\n• Ihre Standortdaten\n• Ihr Feedback und Meldungen\n• Ihr Firebase-Authentifizierungskonto\n\nDiese Aktion kann nicht rückgängig gemacht werden.',
+  fr: 'Supprimer le compte\n\nVous pouvez supprimer votre compte Røket et toutes les données associées à tout moment.\n\n# Supprimer depuis l\'application\n\nOuvrez Røket et accédez à Paramètres > Supprimer le compte. Entrez votre mot de passe pour confirmer. Votre compte et toutes les données seront définitivement supprimés immédiatement.\n\n# Supprimer sans accès à l\'application\n\nSi vous n\'avez plus accès à l\'application, vous pouvez demander la suppression de votre compte en envoyant un e-mail à casper.roket@proton.me depuis l\'adresse e-mail associée à votre compte Røket. Nous traiterons votre demande dans un délai de 14 jours.\n\n# Quelles données sont supprimées ?\n\nLorsque votre compte est supprimé, les données suivantes sont définitivement supprimées :\n\n• Votre profil (nom d\'affichage, bio, genre, sexualité, date de naissance)\n• Toutes les photos de profil et images de chat\n• Tous les messages de chat et conversations\n• Vos données de localisation\n• Vos commentaires et signalements\n• Votre compte d\'authentification Firebase\n\nCette action est irréversible.',
+  pt: 'Eliminar conta\n\nPodes eliminar a tua conta Røket e todos os dados associados a qualquer momento.\n\n# Eliminar a partir da aplicação\n\nAbre o Røket e vai a Definições > Eliminar conta. Introduz a tua palavra-passe para confirmar. A tua conta e todos os dados serão permanentemente eliminados de imediato.\n\n# Eliminar sem acesso à aplicação\n\nSe já não tiveres acesso à aplicação, podes solicitar a eliminação da tua conta enviando um e-mail para casper.roket@proton.me a partir do endereço de e-mail associado à tua conta Røket. Processaremos o teu pedido num prazo de 14 dias.\n\n# Que dados são eliminados?\n\nQuando a tua conta é eliminada, os seguintes dados são permanentemente removidos:\n\n• O teu perfil (nome visível, bio, género, sexualidade, data de nascimento)\n• Todas as fotos de perfil e imagens de chat\n• Todas as mensagens de chat e conversas\n• Os teus dados de localização\n• O teu feedback e denúncias\n• A tua conta de autenticação Firebase\n\nEsta ação não pode ser desfeita.'
+};
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function formatText(text) {
+  var lines = text.split('\n');
+  var html = '';
+  var inList = false;
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var isListItem = /^[\-\u2022]\s/.test(line);
+    if (!isListItem && inList) { html += '</ul>'; inList = false; }
+    if (/^#\s+/.test(line)) {
+      html += '<h3>' + esc(line.replace(/^#\s+/, '')) + '</h3>';
+    } else if (isListItem) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += '<li>' + esc(line.replace(/^[\-\u2022]\s+/, '')) + '</li>';
+    } else if (line.trim() === '') {
+      continue;
+    } else {
+      html += '<p>' + esc(line) + '</p>';
+    }
+  }
+  if (inList) html += '</ul>';
+  return html;
+}
+
+function renderText(elementId, text) {
+  var el = document.getElementById(elementId);
+  if (!el) return;
+  el.className = 'formatted-text';
+  el.innerHTML = formatText(text);
+}
+
+langs.forEach(function(l) {
+  renderText('delete-' + l, texts[l]);
+});
+</script>
+</body>
+</html>

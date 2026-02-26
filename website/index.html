@@ -10,21 +10,21 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
     --bg: #F5F5F5;
-    --text: #222;
-    --text-secondary: #666;
-    --card-bg: #fff;
+    --text: #222222;
+    --text-secondary: #666666;
+    --card-bg: #FFFFFF;
     --card-shadow: rgba(0,0,0,0.06);
-    --footer-text: #999;
-    --divider: #E0E0E0;
+    --footer-text: #999999;
+    --divider: #EEEEEE;
   }
   .dark {
     --bg: #121212;
     --text: #E0E0E0;
-    --text-secondary: #999;
+    --text-secondary: #AAAAAA;
     --card-bg: #1E1E1E;
     --card-shadow: rgba(0,0,0,0.3);
-    --footer-text: #555;
-    --divider: #333;
+    --footer-text: #777777;
+    --divider: #2A2A2A;
   }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -41,6 +41,9 @@
     padding: 60px 20px 50px;
     text-align: center;
     position: relative;
+  }
+  .dark .hero {
+    background: linear-gradient(135deg, #3A0CA3, #C1121F);
   }
   .hero-controls {
     position: absolute;
@@ -136,6 +139,9 @@
     text-decoration: none;
     transition: opacity 0.2s;
   }
+  .dark .cta-badge {
+    background: linear-gradient(90deg, #3A0CA3, #C1121F);
+  }
   .cta-badge:hover { opacity: 0.9; }
   .cta-note {
     color: var(--text-secondary);
@@ -224,9 +230,9 @@
   </div>
 
   <div class="links">
-    <a href="legal.html" id="link-privacy">Privacy Policy</a>
-    <a href="legal.html" id="link-terms" onclick="localStorage.setItem('legal-page','terms')">Terms & Conditions</a>
-    <a href="legal.html" id="link-delete" onclick="localStorage.setItem('legal-page','delete')">Delete Account</a>
+    <a href="privacy.html" id="link-privacy">Privacy Policy</a>
+    <a href="terms.html" id="link-terms">Terms & Conditions</a>
+    <a href="legal.html" id="link-delete">Delete Account</a>
     <a href="#" class="eml" data-u="support" data-d="roketapp.eu" id="link-contact">Contact</a>
   </div>
 </div>
@@ -237,7 +243,8 @@
 
 <script>
   var lang = 'en';
-  var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var savedTheme = localStorage.getItem('roket-theme');
+  var isDark = savedTheme ? savedTheme === 'dark' : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   var texts = {
     en: {
@@ -285,6 +292,7 @@
     isDark = !isDark;
     document.documentElement.classList.toggle('dark', isDark);
     document.getElementById('btn-theme').textContent = isDark ? '\u2600\uFE0F' : '\uD83C\uDF19';
+    localStorage.setItem('roket-theme', isDark ? 'dark' : 'light');
   }
 
   function applyTexts() {
