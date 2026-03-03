@@ -1,4 +1,4 @@
-const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const v1 = require('firebase-functions/v1');
@@ -141,10 +141,15 @@ exports.notifyOnReport = onDocumentCreated(
     const reporterName = reporterDoc.data()?.displayName ?? 'Ukendt';
     const reportedName = reportedDoc.data()?.displayName ?? 'Ukendt';
 
-    await notifyAdmin(
-      `⚠️ Rapport: ${reportedName}`,
-      `${reporterName} har rapporteret ${reportedName}. ${report.message || ''}`
-    );
+    const isMessageReport = !!report.messageId;
+    const title = isMessageReport
+      ? `⚠️ Besked rapporteret: ${reportedName}`
+      : `⚠️ Rapport: ${reportedName}`;
+    const body = isMessageReport
+      ? `${reporterName} har rapporteret en besked fra ${reportedName}.${report.messageText ? ` Tekst: "${report.messageText}"` : ''}${report.messageImageURL ? ' (billede vedhæftet)' : ''}`
+      : `${reporterName} har rapporteret ${reportedName}. ${report.message || ''}`;
+
+    await notifyAdmin(title, body);
   }
 );
 
@@ -216,6 +221,59 @@ exports.onUserModerated = onDocumentUpdated(
     } catch (err) {
       console.error('Failed to send moderation notification:', err);
     }
+  }
+);
+
+// Hjælpefunktion: beregn visibleTo-array baseret på køn, seksualitet og dating-mode
+const ALL_BASE_TAGS = [
+  'male_straight', 'male_gay', 'male_bisexual',
+  'female_straight', 'female_gay', 'female_bisexual',
+];
+
+const DATING_COMPATIBLE_MAP = {
+  male_straight: ['female_straight', 'female_bisexual'],
+  male_gay: ['male_gay', 'male_bisexual'],
+  male_bisexual: ['male_gay', 'male_bisexual', 'female_straight', 'female_bisexual'],
+  female_straight: ['male_straight', 'male_bisexual'],
+  female_gay: ['female_gay', 'female_bisexual'],
+  female_bisexual: ['male_straight', 'male_bisexual', 'female_gay', 'female_bisexual'],
+};
+
+function computeVisibleTo(baseTag, datingOnly) {
+  const compatible = DATING_COMPATIBLE_MAP[baseTag] || [];
+  if (datingOnly) {
+    // Kun synlig for dating-kompatible brugere (begge modes)
+    return compatible.flatMap(tag => [`${tag}_friends`, `${tag}_dating`]);
+  }
+  // Synlig for ALLE friends-brugere + kompatible dating-brugere
+  return [...ALL_BASE_TAGS.map(tag => `${tag}_friends`), ...compatible.map(tag => `${tag}_dating`)];
+}
+
+// Trigger: bruger oprettet/opdateret — beregn matchTag og visibleTo
+exports.onUserWriteMatchTags = onDocumentWritten(
+  'users/{userId}',
+  async (event) => {
+    const after = event.data?.after?.data();
+    const before = event.data?.before?.data();
+
+    if (!after) return; // Slettet bruger
+
+    const { gender, sexuality, datingOnly } = after;
+
+    // Skip hvis intet relevant ændrede sig (forhindrer uendelig loop)
+    if (before &&
+        before.gender === gender &&
+        before.sexuality === sexuality &&
+        before.datingOnly === datingOnly) return;
+
+    // Kræver begge felter for at beregne
+    if (!gender || !sexuality) return;
+
+    const baseTag = `${gender}_${sexuality}`;
+    const matchTag = `${baseTag}_${datingOnly ? 'dating' : 'friends'}`;
+    const visibleTo = computeVisibleTo(baseTag, datingOnly);
+
+    await event.data.after.ref.update({ matchTag, visibleTo });
   }
 );
 
@@ -442,35 +500,39 @@ async function handleProfilePhotoModeration(db, bucket, filePath, scores) {
 
 // Chat-billede-moderation: flag hvis NSFW (slet IKKE)
 async function handleChatImageModeration(db, bucket, filePath, scores) {
-  const HIGH = ['LIKELY', 'VERY_LIKELY'];
-  const isFlagged =
-    HIGH.includes(scores.adult) ||
-    HIGH.includes(scores.violence) ||
-    HIGH.includes(scores.racy);
-
-  if (!isFlagged) return;
-
   // Parse chatId og messageId fra sti: chatImages/{chatId}/{messageId}.jpg
   const parts = filePath.replace('chatImages/', '').split('/');
   const chatId = parts[0];
   const messageId = parts[1]?.replace('.jpg', '');
   if (!chatId || !messageId) return;
 
-  // Hent besked for senderId
   const msgRef = db.collection('chats').doc(chatId).collection('messages').doc(messageId);
   const msgDoc = await msgRef.get();
   if (!msgDoc.exists) return;
 
+  const HIGH = ['LIKELY', 'VERY_LIKELY'];
+  const isFlagged =
+    HIGH.includes(scores.adult) ||
+    HIGH.includes(scores.violence) ||
+    HIGH.includes(scores.racy);
+
+  if (!isFlagged) {
+    // Godkendt — markér som modereret
+    await msgRef.update({ moderated: true });
+    return;
+  }
+
   const msgData = msgDoc.data();
   const senderId = msgData.senderId;
 
-  // Flag beskeden
+  // Flag beskeden og markér som modereret
   const flagReasons = [];
   if (HIGH.includes(scores.adult)) flagReasons.push('adult');
   if (HIGH.includes(scores.violence)) flagReasons.push('violence');
   if (HIGH.includes(scores.racy)) flagReasons.push('racy');
 
   await msgRef.update({
+    moderated: true,
     flagged: true,
     flaggedReason: flagReasons.join(', '),
   });
@@ -505,7 +567,7 @@ async function handleChatImageModeration(db, bucket, filePath, scores) {
 exports.cleanupExpiredChatImages = onSchedule('every 60 minutes', async () => {
   const db = getFirestore();
   const bucket = getStorage().bucket();
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - 12 * 60 * 60 * 1000);
   let cleaned = 0;
 
   // Hent kun beskeder der har et billede (collectionGroup søger på tværs af alle chats)

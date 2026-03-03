@@ -17,6 +17,7 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../theme';
 import CameraIcon from '../assets/camera.svg';
+import RoketLogo from '../assets/roket-logo-simpel.svg';
 
 interface ChatPreview {
   chatId: string;
@@ -340,6 +341,7 @@ export default function ChatsListScreen({ navigation }: any) {
           <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.chatsTitle}</Text>
+        <RoketLogo width={24} height={24} fillRule="evenodd" style={{ marginLeft: 'auto' }} />
       </GradientView>
 
       {loading ? (

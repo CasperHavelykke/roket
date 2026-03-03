@@ -11,10 +11,10 @@ Denne privatlivspolitik gælder for Røket-appen (herefter kaldet "Applikationen
 
 Applikationen indsamler oplysninger, når du downloader og bruger den. Disse oplysninger kan omfatte information såsom:
 
-\u2022 Din enheds internetprotokol-adresse (f.eks. IP-adresse)
-\u2022 De sider i Applikationen, du besøger, tidspunktet og datoen for dit besøg, og den tid du bruger på disse sider
-\u2022 Den tid du bruger på Applikationen
-\u2022 Det operativsystem du bruger på din mobile enhed
+\u2022 Din enheds IP-adresse (registreret af backend-tjenester ved forbindelse)
+\u2022 Enhedstype og operativsystem
+\u2022 Annonceinteraktionsdata (visninger og klik via AdMob)
+\u2022 Tidspunkt for seneste aktivitet (til visning af online-status)
 
 Applikationen indsamler desuden følgende personlige oplysninger:
 
@@ -40,6 +40,11 @@ Tjenesteudbyderen kan bruge de oplysninger, du har givet, til at kontakte dig fr
 # Tredjepartsadgang
 
 Applikationen bruger Google Firebase som sin backend-tjeneste til godkendelse, datalagring, fillagring og push-notifikationer. Dine data behandles og opbevares på Googles servere i overensstemmelse med Googles databehandlingsvilkår. Google sælger ikke dine personlige data.
+
+Applikationen anvender følgende tredjepartstjenester, som har deres egne privatlivspolitikker:
+
+\u2022 Google Play Services
+\u2022 AdMob
 
 Tjenesteudbyderen kan videregive brugerleverede og automatisk indsamlede oplysninger:
 
@@ -73,7 +78,7 @@ Tjenesteudbyderen er optaget af at beskytte fortroligheden af dine oplysninger. 
 
 Denne privatlivspolitik kan opdateres fra tid til anden af enhver grund. Tjenesteudbyderen vil informere dig om eventuelle ændringer i privatlivspolitikken ved at opdatere denne side med den nye privatlivspolitik. Du rådes til at konsultere denne privatlivspolitik regelmæssigt for eventuelle ændringer, da fortsat brug anses som godkendelse af alle ændringer.
 
-Denne privatlivspolitik er gældende fra 2026-02-18.
+Denne privatlivspolitik er gældende fra 2026-02-27.
 
 # Dit samtykke
 
@@ -91,10 +96,10 @@ This privacy policy applies to the Røket app (hereby referred to as "Applicatio
 
 The Application collects information when you download and use it. This information may include information such as:
 
-\u2022 Your device's Internet Protocol address (e.g. IP address)
-\u2022 The pages of the Application that you visit, the time and date of your visit, the time spent on those pages
-\u2022 The time spent on the Application
-\u2022 The operating system you use on your mobile device
+\u2022 Your device's IP address (logged by backend services upon connection)
+\u2022 Device type and operating system
+\u2022 Ad interaction data (impressions and clicks via AdMob)
+\u2022 Last activity timestamp (for online status display)
 
 The Application also collects the following personal information:
 
@@ -120,6 +125,11 @@ The Service Provider may use the information you provided to contact you from ti
 # Third Party Access
 
 The Application uses Google Firebase as its backend service for authentication, data storage, file storage and push notifications. Your data is processed and stored on Google's servers in accordance with Google's data processing terms. Google does not sell your personal data.
+
+The Application utilizes the following third-party services that have their own Privacy Policies:
+
+\u2022 Google Play Services
+\u2022 AdMob
 
 The Service Provider may disclose User Provided and Automatically Collected Information:
 
@@ -153,7 +163,7 @@ The Service Provider is concerned about safeguarding the confidentiality of your
 
 This Privacy Policy may be updated from time to time for any reason. The Service Provider will notify you of any changes to the Privacy Policy by updating this page with the new Privacy Policy. You are advised to consult this Privacy Policy regularly for any changes, as continued use is deemed approval of all changes.
 
-This privacy policy is effective as of 2026-02-18.
+This privacy policy is effective as of 2026-02-27.
 
 # Your Consent
 
@@ -171,10 +181,10 @@ Esta política de privacidad se aplica a la aplicación Røket (en adelante deno
 
 La Aplicación recopila información cuando la descargas y la utilizas. Esta información puede incluir datos como:
 
-\u2022 La dirección de Protocolo de Internet de tu dispositivo (por ejemplo, dirección IP)
-\u2022 Las páginas de la Aplicación que visitas, la hora y fecha de tu visita, y el tiempo que pasas en esas páginas
-\u2022 El tiempo que pasas en la Aplicación
-\u2022 El sistema operativo que utilizas en tu dispositivo móvil
+\u2022 La dirección IP de tu dispositivo (registrada por los servicios de backend al conectarse)
+\u2022 Tipo de dispositivo y sistema operativo
+\u2022 Datos de interacción con anuncios (impresiones y clics a través de AdMob)
+\u2022 Marca de tiempo de última actividad (para mostrar el estado en línea)
 
 La Aplicación también recopila la siguiente información personal:
 
@@ -200,6 +210,11 @@ El Proveedor del Servicio puede utilizar la información que proporcionaste para
 # Acceso de terceros
 
 La Aplicación utiliza Google Firebase como su servicio de backend para autenticación, almacenamiento de datos, almacenamiento de archivos y notificaciones push. Tus datos se procesan y almacenan en los servidores de Google de acuerdo con los términos de procesamiento de datos de Google. Google no vende tus datos personales.
+
+La Aplicación utiliza los siguientes servicios de terceros que tienen sus propias Políticas de Privacidad:
+
+\u2022 Google Play Services
+\u2022 AdMob
 
 El Proveedor del Servicio puede divulgar información proporcionada por el usuario y recopilada automáticamente:
 
@@ -233,7 +248,7 @@ El Proveedor del Servicio se preocupa por proteger la confidencialidad de tu inf
 
 Esta Política de Privacidad puede actualizarse de vez en cuando por cualquier motivo. El Proveedor del Servicio te notificará cualquier cambio en la Política de Privacidad actualizando esta página con la nueva Política de Privacidad. Se te recomienda consultar esta Política de Privacidad regularmente para cualquier cambio, ya que el uso continuado se considera aprobación de todos los cambios.
 
-Esta política de privacidad es efectiva a partir del 2026-02-18.
+Esta política de privacidad es efectiva a partir del 2026-02-27.
 
 # Tu consentimiento
 
@@ -251,10 +266,10 @@ Diese Datenschutzrichtlinie gilt für die Røket-App (im Folgenden als \u201eAnw
 
 Die Anwendung erhebt Informationen, wenn Sie sie herunterladen und verwenden. Diese Informationen können Daten wie folgt umfassen:
 
-\u2022 Die Internet-Protokoll-Adresse Ihres Geräts (z. B. IP-Adresse)
-\u2022 Die Seiten der Anwendung, die Sie besuchen, Uhrzeit und Datum Ihres Besuchs sowie die auf diesen Seiten verbrachte Zeit
-\u2022 Die in der Anwendung verbrachte Zeit
-\u2022 Das Betriebssystem, das Sie auf Ihrem mobilen Gerät verwenden
+\u2022 Die IP-Adresse Ihres Geräts (von Backend-Diensten bei Verbindung protokolliert)
+\u2022 Gerätetyp und Betriebssystem
+\u2022 Anzeigen-Interaktionsdaten (Impressionen und Klicks über AdMob)
+\u2022 Zeitstempel der letzten Aktivität (zur Anzeige des Online-Status)
 
 Die Anwendung erhebt außerdem folgende personenbezogene Daten:
 
@@ -280,6 +295,11 @@ Der Dienstanbieter kann die von Ihnen bereitgestellten Informationen verwenden, 
 # Zugriff durch Dritte
 
 Die Anwendung verwendet Google Firebase als Backend-Dienst für Authentifizierung, Datenspeicherung, Dateispeicherung und Push-Benachrichtigungen. Ihre Daten werden auf Googles Servern gemäß den Datenverarbeitungsbedingungen von Google verarbeitet und gespeichert. Google verkauft Ihre personenbezogenen Daten nicht.
+
+Die Anwendung nutzt die folgenden Drittanbieterdienste, die über eigene Datenschutzrichtlinien verfügen:
+
+\u2022 Google Play Services
+\u2022 AdMob
 
 Der Dienstanbieter kann vom Nutzer bereitgestellte und automatisch erhobene Informationen offenlegen:
 
@@ -313,7 +333,7 @@ Der Dienstanbieter ist um den Schutz der Vertraulichkeit Ihrer Informationen bem
 
 Diese Datenschutzrichtlinie kann jederzeit und aus jedem Grund aktualisiert werden. Der Dienstanbieter wird Sie über Änderungen der Datenschutzrichtlinie informieren, indem er diese Seite mit der neuen Datenschutzrichtlinie aktualisiert. Es wird empfohlen, diese Datenschutzrichtlinie regelmäßig auf Änderungen zu überprüfen, da die fortgesetzte Nutzung als Zustimmung zu allen Änderungen gilt.
 
-Diese Datenschutzrichtlinie gilt ab dem 18.02.2026.
+Diese Datenschutzrichtlinie gilt ab dem 27.02.2026.
 
 # Ihre Einwilligung
 
@@ -331,10 +351,10 @@ Cette politique de confidentialité s'applique à l'application Røket (ci-aprè
 
 L'Application collecte des informations lorsque vous la téléchargez et l'utilisez. Ces informations peuvent inclure des données telles que :
 
-\u2022 L'adresse de protocole Internet de votre appareil (par exemple, adresse IP)
-\u2022 Les pages de l'Application que vous visitez, l'heure et la date de votre visite, et le temps passé sur ces pages
-\u2022 Le temps passé sur l'Application
-\u2022 Le système d'exploitation que vous utilisez sur votre appareil mobile
+\u2022 L'adresse IP de votre appareil (enregistrée par les services backend lors de la connexion)
+\u2022 Type d'appareil et système d'exploitation
+\u2022 Données d'interaction publicitaire (impressions et clics via AdMob)
+\u2022 Horodatage de dernière activité (pour l'affichage du statut en ligne)
 
 L'Application collecte également les informations personnelles suivantes :
 
@@ -360,6 +380,11 @@ Le Fournisseur de services peut utiliser les informations que vous avez fournies
 # Accès par des tiers
 
 L'Application utilise Google Firebase comme service backend pour l'authentification, le stockage de données, le stockage de fichiers et les notifications push. Vos données sont traitées et stockées sur les serveurs de Google conformément aux conditions de traitement des données de Google. Google ne vend pas vos données personnelles.
+
+L'Application utilise les services tiers suivants qui disposent de leurs propres politiques de confidentialité :
+
+\u2022 Google Play Services
+\u2022 AdMob
 
 Le Fournisseur de services peut divulguer les informations fournies par l'utilisateur et collectées automatiquement :
 
@@ -393,7 +418,7 @@ Le Fournisseur de services se soucie de la protection de la confidentialité de 
 
 Cette Politique de confidentialité peut être mise à jour de temps à autre pour quelque raison que ce soit. Le Fournisseur de services vous informera de tout changement de la Politique de confidentialité en mettant à jour cette page avec la nouvelle Politique de confidentialité. Il vous est conseillé de consulter régulièrement cette Politique de confidentialité pour tout changement, car l'utilisation continue est considérée comme une approbation de tous les changements.
 
-Cette politique de confidentialité est en vigueur à compter du 18/02/2026.
+Cette politique de confidentialité est en vigueur à compter du 27/02/2026.
 
 # Votre consentement
 
@@ -411,10 +436,10 @@ Esta política de privacidade aplica-se à aplicação Røket (doravante designa
 
 A Aplicação recolhe informações quando a descarregas e utilizas. Estas informações podem incluir dados como:
 
-\u2022 O endereço de Protocolo de Internet do teu dispositivo (por exemplo, endereço IP)
-\u2022 As páginas da Aplicação que visitas, a hora e data da tua visita e o tempo passado nessas páginas
-\u2022 O tempo passado na Aplicação
-\u2022 O sistema operativo que utilizas no teu dispositivo móvel
+\u2022 O endereço IP do teu dispositivo (registado pelos serviços de backend ao conectar)
+\u2022 Tipo de dispositivo e sistema operativo
+\u2022 Dados de interação com anúncios (impressões e cliques via AdMob)
+\u2022 Marca temporal de última atividade (para exibição do estado online)
 
 A Aplicação também recolhe as seguintes informações pessoais:
 
@@ -440,6 +465,11 @@ O Prestador de Serviços pode utilizar as informações que forneceste para te c
 # Acesso de terceiros
 
 A Aplicação utiliza o Google Firebase como serviço de backend para autenticação, armazenamento de dados, armazenamento de ficheiros e notificações push. Os teus dados são processados e armazenados nos servidores da Google de acordo com os termos de processamento de dados da Google. A Google não vende os teus dados pessoais.
+
+A Aplicação utiliza os seguintes serviços de terceiros que possuem as suas próprias Políticas de Privacidade:
+
+\u2022 Google Play Services
+\u2022 AdMob
 
 O Prestador de Serviços pode divulgar informações fornecidas pelo utilizador e recolhidas automaticamente:
 
@@ -473,7 +503,7 @@ O Prestador de Serviços preocupa-se com a proteção da confidencialidade das t
 
 Esta Política de Privacidade pode ser atualizada ocasionalmente por qualquer motivo. O Prestador de Serviços notificar-te-á de quaisquer alterações à Política de Privacidade atualizando esta página com a nova Política de Privacidade. Aconselhamos-te a consultar regularmente esta Política de Privacidade para quaisquer alterações, uma vez que o uso continuado é considerado aprovação de todas as alterações.
 
-Esta política de privacidade é efetiva a partir de 18/02/2026.
+Esta política de privacidade é efetiva a partir de 27/02/2026.
 
 # O teu consentimento
 
@@ -507,6 +537,15 @@ Med hensyn til Tjenesteudbyderens ansvar for din brug af applikationen er det vi
 
 Tjenesteudbyderen kan ønske at opdatere applikationen på et tidspunkt. Applikationen er i øjeblikket tilgængelig i henhold til kravene for operativsystemet (og for eventuelle yderligere systemer, de beslutter at udvide tilgængeligheden af applikationen til), som kan ændre sig, og du skal downloade opdateringerne, hvis du vil fortsætte med at bruge applikationen. Tjenesteudbyderen garanterer ikke, at de altid vil opdatere applikationen, så den er relevant for dig og/eller kompatibel med den særlige operativsystemversion, der er installeret på din enhed. Du accepterer dog altid at acceptere opdateringer til applikationen, når de tilbydes dig. Tjenesteudbyderen kan også ønske at ophøre med at levere applikationen og kan opsige brugen af den til enhver tid uden at give dig opsigelsesvarsel. Medmindre de informerer dig om andet, vil (a) rettighederne og licenserne, der er givet til dig i disse vilkår, ophøre ved enhver opsigelse; (b) du skal ophøre med at bruge applikationen og (om nødvendigt) slette den fra din enhed.
 
+# Tredjepartstjenester
+
+Applikationen anvender tredjepartstjenester, som har deres egne vilkår og betingelser:
+
+\u2022 Google Play Services
+\u2022 AdMob
+
+Du bør gennemgå disse tredjeparters vilkår og privatlivspolitikker.
+
 # Børnesikkerhed og nul-tolerance
 
 Røket har en streng nul-tolerance-politik overfor seksuelt misbrug og udnyttelse af børn (CSAE). Følgende er strengt forbudt og vil medføre øjeblikkelig permanent udelukkelse samt anmeldelse til myndighederne:
@@ -524,7 +563,7 @@ Hvis du opdager indhold der involverer udnyttelse af mindreårige, bedes du stra
 
 Tjenesteudbyderen kan periodisk opdatere deres vilkår og betingelser. Derfor anbefales det, at du regelmæssigt gennemgår denne side for eventuelle ændringer. Tjenesteudbyderen vil informere dig om eventuelle ændringer ved at offentliggøre de nye vilkår og betingelser på denne side.
 
-Disse vilkår og betingelser er gældende fra 2026-02-14.
+Disse vilkår og betingelser er gældende fra 2026-02-27.
 
 # Kontakt os
 
@@ -552,6 +591,15 @@ In terms of the Service Provider's responsibility for your use of the applicatio
 
 The Service Provider may wish to update the application at some point. The application is currently available as per the requirements for the operating system (and for any additional systems they decide to extend the availability of the application to) may change, and you will need to download the updates if you want to continue using the application. The Service Provider does not guarantee that it will always update the application so that it is relevant to you and/or compatible with the particular operating system version installed on your device. However, you agree to always accept updates to the application when offered to you. The Service Provider may also wish to cease providing the application and may terminate its use at any time without providing termination notice to you. Unless they inform you otherwise, upon any termination, (a) the rights and licenses granted to you in these terms will end; (b) you must cease using the application, and (if necessary) delete it from your device.
 
+# Third-Party Services
+
+The Application utilizes third-party services that have their own terms and conditions:
+
+\u2022 Google Play Services
+\u2022 AdMob
+
+You are advised to review the terms and conditions and privacy policies of these third-party service providers.
+
 # Child Safety and Zero Tolerance
 
 Røket has a strict zero-tolerance policy towards child sexual abuse and exploitation (CSAE). The following is strictly prohibited and will result in immediate permanent suspension and reporting to authorities:
@@ -569,7 +617,7 @@ If you discover content involving the exploitation of minors, please report it i
 
 The Service Provider may periodically update their Terms and Conditions. Therefore, you are advised to review this page regularly for any changes. The Service Provider will notify you of any changes by posting the new Terms and Conditions on this page.
 
-These terms and conditions are effective as of 2026-02-14.
+These terms and conditions are effective as of 2026-02-27.
 
 # Contact Us
 
@@ -597,6 +645,15 @@ En cuanto a la responsabilidad del Proveedor del Servicio por tu uso de la aplic
 
 El Proveedor del Servicio puede desear actualizar la aplicación en algún momento. La aplicación está actualmente disponible según los requisitos del sistema operativo (y para cualquier sistema adicional al que decidan extender la disponibilidad de la aplicación), que pueden cambiar, y deberás descargar las actualizaciones si deseas seguir utilizando la aplicación. El Proveedor del Servicio no garantiza que siempre actualizará la aplicación para que sea relevante para ti y/o compatible con la versión particular del sistema operativo instalada en tu dispositivo. Sin embargo, aceptas siempre aceptar las actualizaciones de la aplicación cuando se te ofrezcan. El Proveedor del Servicio también puede desear dejar de proporcionar la aplicación y puede terminar su uso en cualquier momento sin darte aviso de terminación. A menos que te informen de lo contrario, ante cualquier terminación, (a) los derechos y licencias otorgados a ti en estos términos cesarán; (b) debes dejar de usar la aplicación y (si es necesario) eliminarla de tu dispositivo.
 
+# Servicios de terceros
+
+La Aplicación utiliza servicios de terceros que tienen sus propios términos y condiciones:
+
+\u2022 Google Play Services
+\u2022 AdMob
+
+Se te recomienda revisar los términos y condiciones y las políticas de privacidad de estos proveedores de servicios de terceros.
+
 # Seguridad infantil y tolerancia cero
 
 Røket tiene una estricta política de tolerancia cero hacia el abuso y la explotación sexual infantil (CSAE). Lo siguiente está estrictamente prohibido y resultará en suspensión permanente inmediata y denuncia a las autoridades:
@@ -614,7 +671,7 @@ Si descubres contenido que involucre la explotación de menores, repórtalo inme
 
 El Proveedor del Servicio puede actualizar periódicamente sus Términos y Condiciones. Por lo tanto, se te recomienda revisar esta página regularmente para cualquier cambio. El Proveedor del Servicio te notificará cualquier cambio publicando los nuevos Términos y Condiciones en esta página.
 
-Estos términos y condiciones son efectivos a partir del 2026-02-14.
+Estos términos y condiciones son efectivos a partir del 2026-02-27.
 
 # Contáctanos
 
@@ -642,6 +699,15 @@ In Bezug auf die Verantwortung des Dienstanbieters für Ihre Nutzung der Anwendu
 
 Der Dienstanbieter möchte die Anwendung möglicherweise irgendwann aktualisieren. Die Anwendung ist derzeit gemäß den Anforderungen des Betriebssystems (und für alle zusätzlichen Systeme, auf die die Verfügbarkeit der Anwendung erweitert wird) verfügbar, was sich ändern kann, und Sie müssen die Updates herunterladen, wenn Sie die Anwendung weiterhin nutzen möchten. Der Dienstanbieter garantiert nicht, dass er die Anwendung immer so aktualisiert, dass sie für Sie relevant und/oder mit der auf Ihrem Gerät installierten Betriebssystemversion kompatibel ist. Sie stimmen jedoch zu, Updates der Anwendung immer zu akzeptieren, wenn sie Ihnen angeboten werden. Der Dienstanbieter kann auch die Bereitstellung der Anwendung einstellen und deren Nutzung jederzeit ohne Kündigungsfrist beenden. Sofern nicht anders mitgeteilt, enden bei jeder Beendigung (a) die Ihnen in diesen Bedingungen gewährten Rechte und Lizenzen; (b) Sie müssen die Nutzung der Anwendung einstellen und (falls erforderlich) sie von Ihrem Gerät löschen.
 
+# Drittanbieterdienste
+
+Die Anwendung nutzt Drittanbieterdienste, die ihre eigenen Nutzungsbedingungen haben:
+
+\u2022 Google Play Services
+\u2022 AdMob
+
+Es wird empfohlen, die Nutzungsbedingungen und Datenschutzrichtlinien dieser Drittanbieter zu lesen.
+
 # Kindersicherheit und Null-Toleranz
 
 Røket verfolgt eine strenge Null-Toleranz-Politik gegenüber sexuellem Missbrauch und Ausbeutung von Kindern (CSAE). Folgendes ist strengstens verboten und führt zu sofortiger dauerhafter Sperrung und Meldung an die Behörden:
@@ -659,7 +725,7 @@ Wenn Sie Inhalte entdecken, die die Ausbeutung von Minderjährigen betreffen, me
 
 Der Dienstanbieter kann seine Nutzungsbedingungen regelmäßig aktualisieren. Daher wird Ihnen empfohlen, diese Seite regelmäßig auf Änderungen zu überprüfen. Der Dienstanbieter wird Sie über Änderungen informieren, indem er die neuen Nutzungsbedingungen auf dieser Seite veröffentlicht.
 
-Diese Nutzungsbedingungen gelten ab dem 14.02.2026.
+Diese Nutzungsbedingungen gelten ab dem 27.02.2026.
 
 # Kontakt
 
@@ -687,6 +753,15 @@ En ce qui concerne la responsabilité du Fournisseur de services pour votre util
 
 Le Fournisseur de services peut souhaiter mettre à jour l'application à un moment donné. L'application est actuellement disponible selon les exigences du système d'exploitation (et pour tout système supplémentaire auquel il décide d'étendre la disponibilité de l'application), qui peuvent changer, et vous devrez télécharger les mises à jour si vous souhaitez continuer à utiliser l'application. Le Fournisseur de services ne garantit pas qu'il mettra toujours à jour l'application pour qu'elle soit pertinente pour vous et/ou compatible avec la version du système d'exploitation installée sur votre appareil. Cependant, vous acceptez de toujours accepter les mises à jour de l'application lorsqu'elles vous sont proposées. Le Fournisseur de services peut également souhaiter cesser de fournir l'application et peut en interrompre l'utilisation à tout moment sans vous en aviser. Sauf indication contraire, lors de toute résiliation, (a) les droits et licences qui vous sont accordés dans ces conditions prennent fin ; (b) vous devez cesser d'utiliser l'application et (si nécessaire) la supprimer de votre appareil.
 
+# Services tiers
+
+L'Application utilise des services tiers qui ont leurs propres conditions générales :
+
+\u2022 Google Play Services
+\u2022 AdMob
+
+Il vous est conseillé de consulter les conditions générales et les politiques de confidentialité de ces fournisseurs de services tiers.
+
 # Sécurité des enfants et tolérance zéro
 
 Røket applique une politique stricte de tolérance zéro envers l'abus et l'exploitation sexuels des enfants (CSAE). Ce qui suit est strictement interdit et entraînera une suspension permanente immédiate et un signalement aux autorités :
@@ -704,7 +779,7 @@ Si vous découvrez du contenu impliquant l'exploitation de mineurs, signalez-le 
 
 Le Fournisseur de services peut mettre à jour périodiquement ses Conditions générales. Par conséquent, il vous est conseillé de consulter régulièrement cette page pour tout changement. Le Fournisseur de services vous informera de tout changement en publiant les nouvelles Conditions générales sur cette page.
 
-Ces conditions générales sont en vigueur à compter du 14/02/2026.
+Ces conditions générales sont en vigueur à compter du 27/02/2026.
 
 # Nous contacter
 
@@ -732,6 +807,15 @@ Em termos da responsabilidade do Prestador de Serviços pela tua utilização da
 
 O Prestador de Serviços pode desejar atualizar a aplicação em algum momento. A aplicação está atualmente disponível conforme os requisitos do sistema operativo (e para quaisquer sistemas adicionais aos quais decida estender a disponibilidade da aplicação), que podem mudar, e terás de descarregar as atualizações se quiseres continuar a utilizar a aplicação. O Prestador de Serviços não garante que atualizará sempre a aplicação para que seja relevante para ti e/ou compatível com a versão particular do sistema operativo instalada no teu dispositivo. No entanto, concordas em aceitar sempre as atualizações da aplicação quando te forem oferecidas. O Prestador de Serviços pode também desejar deixar de fornecer a aplicação e pode terminar a sua utilização a qualquer momento sem te dar aviso de terminação. Salvo indicação em contrário, após qualquer terminação, (a) os direitos e licenças concedidos nestes termos cessam; (b) deves deixar de utilizar a aplicação e (se necessário) eliminá-la do teu dispositivo.
 
+# Serviços de terceiros
+
+A Aplicação utiliza serviços de terceiros que têm os seus próprios termos e condições:
+
+\u2022 Google Play Services
+\u2022 AdMob
+
+Aconselhamos-te a rever os termos e condições e as políticas de privacidade destes prestadores de serviços de terceiros.
+
 # Segurança infantil e tolerância zero
 
 O Røket tem uma política estrita de tolerância zero em relação ao abuso e exploração sexual de crianças (CSAE). O seguinte é estritamente proibido e resultará em suspensão permanente imediata e denúncia às autoridades:
@@ -749,7 +833,7 @@ Se descobrires conteúdo envolvendo a exploração de menores, reporta-o imediat
 
 O Prestador de Serviços pode atualizar periodicamente os seus Termos e Condições. Portanto, aconselhamos-te a rever esta página regularmente para quaisquer alterações. O Prestador de Serviços notificar-te-á de quaisquer alterações publicando os novos Termos e Condições nesta página.
 
-Estes termos e condições são efetivos a partir de 14/02/2026.
+Estes termos e condições são efetivos a partir de 27/02/2026.
 
 # Contacta-nos
 
@@ -906,4 +990,222 @@ Quando a tua conta é eliminada, os seguintes dados são permanentemente removid
 \u2022 A tua conta de autenticação Firebase
 
 Esta ação não pode ser desfeita.`,
+};
+
+export const communityGuidelines: Record<string, string> = {
+  da: `Retningslinjer
+
+For at sikre en tryg og respektfuld oplevelse for alle, bedes du følge disse retningslinjer:
+
+1. Vær respektfuld overfor andre brugere
+2. Del ikke personlige oplysninger som adresse eller telefonnummer
+3. Profilbilleder må ikke indeholde nøgenhed, vold eller krænkende indhold
+4. Chikane, trusler, seksuel chikane, hadtale og diskrimination tolereres ikke
+5. Rapportér upassende adfærd via profil-menuen
+6. Du skal være mindst 18 år for at bruge appen
+7. Seksuelt indhold, der involverer mindreårige (CSAM), grooming eller enhver form for udnyttelse af børn er strengt forbudt og vil blive anmeldt til myndighederne
+8. Det er forbudt at udgive sig for at være mindreårig eller opsøge mindreårige
+
+Overtrædelse af disse retningslinjer kan medføre midlertidig eller permanent udelukkelse fra Røket.
+
+# Børnesikkerhed
+
+Røket har en streng nul-tolerance-politik overfor seksuelt misbrug og udnyttelse af børn (CSAE). Overtrædelse medfører øjeblikkelig permanent udelukkelse og anmeldelse til relevante myndigheder.
+
+# Strengt forbudt
+
+\u2022 Upload, deling eller opbevaring af seksuelt indhold der involverer mindreårige (CSAM)
+\u2022 Grooming eller enhver form for kontakt med mindreårige med seksuelt formål
+\u2022 At udgive sig for at være mindreårig
+\u2022 Enhver form for udnyttelse, misbrug eller chikane af mindreårige
+
+# Vores foranstaltninger
+
+Røket er udelukkende beregnet til brugere over 18 år. Alt indhold scannes automatisk for upassende materiale. Mistænkeligt indhold rapporteres til relevante myndigheder.
+
+# Rapportér bekymringer
+
+Hvis du opdager indhold der involverer udnyttelse af mindreårige, eller har mistanke om at en bruger er under 18 år, bedes du straks rapportere det via appens rapporteringsfunktion eller kontakte os direkte: support@roketapp.eu
+
+Røket samarbejder fuldt ud med myndigheder i sager vedrørende børnesikkerhed.`,
+
+  en: `Community Guidelines
+
+To ensure a safe and respectful experience for everyone, please follow these guidelines:
+
+1. Be respectful towards other users
+2. Do not share personal information such as your address or phone number
+3. Profile pictures must not contain nudity, violence, or offensive content
+4. Harassment, threats, sexual harassment, hate speech, and discrimination are not tolerated
+5. Report inappropriate behavior via the profile menu
+6. You must be at least 18 years old to use the app
+7. Sexual content involving minors (CSAM), grooming, or any form of child exploitation is strictly prohibited and will be reported to authorities
+8. It is forbidden to impersonate a minor or to seek out minors
+
+Violation of these guidelines may result in temporary or permanent suspension from Røket.
+
+# Child Safety
+
+Røket has a strict zero-tolerance policy towards child sexual abuse and exploitation (CSAE). Violations will result in immediate permanent suspension and reporting to relevant authorities.
+
+# Strictly Prohibited
+
+\u2022 Uploading, sharing, or storing sexual content involving minors (CSAM)
+\u2022 Grooming or any form of contact with minors for sexual purposes
+\u2022 Impersonating a minor
+\u2022 Any form of exploitation, abuse, or harassment of minors
+
+# Our Measures
+
+Røket is intended exclusively for users aged 18 and older. All content is automatically scanned for inappropriate material. Suspicious content is reported to relevant authorities.
+
+# Report Concerns
+
+If you discover content involving the exploitation of minors, or suspect that a user is under 18, please report it immediately via the app's reporting feature or contact us directly: support@roketapp.eu
+
+Røket fully cooperates with authorities in matters concerning child safety.`,
+
+  es: `Normas de la comunidad
+
+Para garantizar una experiencia segura y respetuosa para todos, sigue estas normas:
+
+1. Sé respetuoso con otros usuarios
+2. No compartas información personal como tu dirección o número de teléfono
+3. Las fotos de perfil no deben contener desnudos, violencia o contenido ofensivo
+4. No se toleran el acoso, amenazas, acoso sexual, discurso de odio ni discriminación
+5. Reporta comportamiento inapropiado a través del menú de perfil
+6. Debes tener al menos 18 años para usar la app
+7. El contenido sexual que involucre a menores (CSAM), el grooming o cualquier forma de explotación infantil está estrictamente prohibido y se denunciará a las autoridades
+8. Está prohibido hacerse pasar por un menor o buscar contacto con menores
+
+La violación de estas normas puede resultar en suspensión temporal o permanente de Røket.
+
+# Seguridad infantil
+
+Røket tiene una estricta política de tolerancia cero hacia el abuso y la explotación sexual infantil (CSAE). Las infracciones resultarán en suspensión permanente inmediata y denuncia a las autoridades pertinentes.
+
+# Estrictamente prohibido
+
+\u2022 Subir, compartir o almacenar contenido sexual que involucre a menores (CSAM)
+\u2022 Grooming o cualquier forma de contacto con menores con fines sexuales
+\u2022 Hacerse pasar por un menor
+\u2022 Cualquier forma de explotación, abuso o acoso a menores
+
+# Nuestras medidas
+
+Røket está destinado exclusivamente a usuarios mayores de 18 años. Todo el contenido se escanea automáticamente en busca de material inapropiado. El contenido sospechoso se reporta a las autoridades pertinentes.
+
+# Reportar preocupaciones
+
+Si descubres contenido que involucre la explotación de menores, o sospechas que un usuario es menor de 18 años, repórtalo inmediatamente a través de la función de reporte de la app o contáctanos directamente: support@roketapp.eu
+
+Røket coopera plenamente con las autoridades en asuntos relacionados con la seguridad infantil.`,
+
+  de: `Community-Richtlinien
+
+Um ein sicheres und respektvolles Erlebnis für alle zu gewährleisten, befolge bitte diese Richtlinien:
+
+1. Sei respektvoll gegenüber anderen Nutzern
+2. Teile keine persönlichen Informationen wie deine Adresse oder Telefonnummer
+3. Profilbilder dürfen keine Nacktheit, Gewalt oder anstößige Inhalte enthalten
+4. Belästigung, Drohungen, sexuelle Belästigung, Hassrede und Diskriminierung werden nicht toleriert
+5. Melde unangemessenes Verhalten über das Profilmenü
+6. Du musst mindestens 18 Jahre alt sein, um die App zu nutzen
+7. Sexuelle Inhalte mit Minderjährigen (CSAM), Grooming oder jegliche Form der Kindesausbeutung sind streng verboten und werden den Behörden gemeldet
+8. Es ist verboten, sich als Minderjähriger auszugeben oder Minderjährige aufzusuchen
+
+Ein Verstoß gegen diese Richtlinien kann zu einer vorübergehenden oder dauerhaften Sperrung von Røket führen.
+
+# Kindersicherheit
+
+Røket hat eine strenge Null-Toleranz-Politik gegenüber sexuellem Missbrauch und Ausbeutung von Kindern (CSAE). Verstöße führen zu sofortiger dauerhafter Sperrung und Meldung an die zuständigen Behörden.
+
+# Streng verboten
+
+\u2022 Hochladen, Teilen oder Speichern sexueller Inhalte, die Minderjährige betreffen (CSAM)
+\u2022 Grooming oder jegliche Kontaktaufnahme mit Minderjährigen zu sexuellen Zwecken
+\u2022 Sich als Minderjähriger ausgeben
+\u2022 Jegliche Form von Ausbeutung, Missbrauch oder Belästigung von Minderjährigen
+
+# Unsere Maßnahmen
+
+Røket ist ausschließlich für Nutzer ab 18 Jahren bestimmt. Alle Inhalte werden automatisch auf unangemessenes Material gescannt. Verdächtige Inhalte werden den zuständigen Behörden gemeldet.
+
+# Bedenken melden
+
+Wenn du Inhalte entdeckst, die die Ausbeutung von Minderjährigen betreffen, oder vermutest, dass ein Nutzer unter 18 ist, melde es sofort über die Meldefunktion der App oder kontaktiere uns direkt: support@roketapp.eu
+
+Røket kooperiert vollständig mit den Behörden in Angelegenheiten der Kindersicherheit.`,
+
+  fr: `Règles de la communauté
+
+Pour assurer une expérience sûre et respectueuse pour tous, veuillez suivre ces règles :
+
+1. Soyez respectueux envers les autres utilisateurs
+2. Ne partagez pas d'informations personnelles comme votre adresse ou numéro de téléphone
+3. Les photos de profil ne doivent pas contenir de nudité, de violence ou de contenu offensant
+4. Le harcèlement, les menaces, le harcèlement sexuel, les discours de haine et la discrimination ne sont pas tolérés
+5. Signalez les comportements inappropriés via le menu du profil
+6. Vous devez avoir au moins 18 ans pour utiliser l'application
+7. Le contenu sexuel impliquant des mineurs (CSAM), le grooming ou toute forme d'exploitation d'enfants sont strictement interdits et seront signalés aux autorités
+8. Il est interdit de se faire passer pour un mineur ou de chercher à contacter des mineurs
+
+La violation de ces règles peut entraîner une suspension temporaire ou permanente de Røket.
+
+# Sécurité des enfants
+
+Røket applique une politique stricte de tolérance zéro envers l'abus et l'exploitation sexuels des enfants (CSAE). Les infractions entraîneront une suspension permanente immédiate et un signalement aux autorités compétentes.
+
+# Strictement interdit
+
+\u2022 Télécharger, partager ou stocker du contenu sexuel impliquant des mineurs (CSAM)
+\u2022 Le grooming ou toute forme de contact avec des mineurs à des fins sexuelles
+\u2022 Se faire passer pour un mineur
+\u2022 Toute forme d'exploitation, d'abus ou de harcèlement de mineurs
+
+# Nos mesures
+
+Røket est exclusivement destiné aux utilisateurs âgés de 18 ans et plus. Tout le contenu est automatiquement analysé pour détecter le matériel inapproprié. Le contenu suspect est signalé aux autorités compétentes.
+
+# Signaler des préoccupations
+
+Si vous découvrez du contenu impliquant l'exploitation de mineurs, ou soupçonnez qu'un utilisateur a moins de 18 ans, signalez-le immédiatement via la fonction de signalement de l'application ou contactez-nous directement : support@roketapp.eu
+
+Røket coopère pleinement avec les autorités en matière de sécurité des enfants.`,
+
+  pt: `Regras da comunidade
+
+Para garantir uma experiência segura e respeitosa para todos, segue estas regras:
+
+1. Sê respeitoso com outros utilizadores
+2. Não partilhes informações pessoais como a tua morada ou número de telefone
+3. As fotos de perfil não devem conter nudez, violência ou conteúdo ofensivo
+4. Assédio, ameaças, assédio sexual, discurso de ódio e discriminação não são tolerados
+5. Denuncia comportamento inapropriado através do menu do perfil
+6. Deves ter pelo menos 18 anos para usar a app
+7. Conteúdo sexual envolvendo menores (CSAM), grooming ou qualquer forma de exploração infantil são estritamente proibidos e serão denunciados às autoridades
+8. É proibido fazer-se passar por menor ou procurar contacto com menores
+
+A violação destas regras pode resultar em suspensão temporária ou permanente do Røket.
+
+# Segurança infantil
+
+O Røket tem uma política estrita de tolerância zero em relação ao abuso e exploração sexual de crianças (CSAE). As infrações resultarão em suspensão permanente imediata e denúncia às autoridades competentes.
+
+# Estritamente proibido
+
+\u2022 Carregar, partilhar ou armazenar conteúdo sexual envolvendo menores (CSAM)
+\u2022 Grooming ou qualquer forma de contacto com menores para fins sexuais
+\u2022 Fazer-se passar por menor
+\u2022 Qualquer forma de exploração, abuso ou assédio de menores
+
+# As nossas medidas
+
+O Røket destina-se exclusivamente a utilizadores com 18 anos ou mais. Todo o conteúdo é automaticamente analisado em busca de material inapropriado. Conteúdo suspeito é denunciado às autoridades competentes.
+
+# Denunciar preocupações
+
+Se descobrires conteúdo envolvendo a exploração de menores, ou suspeitares que um utilizador tem menos de 18 anos, denuncia imediatamente através da função de denúncia da app ou contacta-nos diretamente: support@roketapp.eu
+
+O Røket coopera plenamente com as autoridades em matérias de segurança infantil.`,
 };

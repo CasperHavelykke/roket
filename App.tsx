@@ -14,6 +14,7 @@ import { ThemeContext, useThemeProvider } from './src/theme';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
+import WelcomeScreen from './src/screens/WelcomeScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProfileViewScreen from './src/screens/ProfileViewScreen';
 import ChatScreen from './src/screens/ChatScreen';
@@ -36,6 +37,7 @@ mobileAds().initialize();
 type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
+  Welcome: undefined;
   ProfileSetup: undefined;
   Home: undefined;
   ProfileView: { userId: string };
@@ -94,30 +96,37 @@ function App() {
           .onSnapshot(doc => {
             if (doc.exists()) {
               const data = doc.data();
+              const fromCache = doc.metadata.fromCache;
+              const t = theme.t;
 
-              // Tjek om brugeren er banned
-              if (data?.banned) {
-                Alert.alert(
-                  'Konto deaktiveret',
-                  'Din konto er blevet permanent deaktiveret for overtrædelse af retningslinjerne.',
-                  [{ text: 'OK', onPress: () => auth().signOut() }],
-                  { cancelable: false },
-                );
-                return;
-              }
-
-              // Tjek om brugeren er suspenderet
-              if (data?.suspendedUntil) {
-                const suspendedUntil = data.suspendedUntil.toDate?.() ?? new Date(data.suspendedUntil);
-                if (suspendedUntil > new Date()) {
-                  const dateStr = suspendedUntil.toLocaleDateString();
+              // Kun håndhæv ban/suspension på server-bekræftet data
+              // (Firestores offline cache kan have forældet suspendedUntil/banned)
+              if (!fromCache) {
+                // Tjek om brugeren er banned
+                if (data?.banned) {
                   Alert.alert(
-                    'Konto suspenderet',
-                    `Din konto er midlertidigt suspenderet indtil ${dateStr}.`,
-                    [{ text: 'OK', onPress: () => auth().signOut() }],
+                    t.accountBannedTitle,
+                    t.accountBannedMessage,
+                    [{ text: t.ok, onPress: () => auth().signOut() }],
                     { cancelable: false },
                   );
                   return;
+                }
+
+                // Tjek om brugeren er suspenderet
+                if (data?.suspendedUntil) {
+                  const suspendedUntil = data.suspendedUntil.toDate?.() ?? new Date(data.suspendedUntil);
+                  if (suspendedUntil > new Date()) {
+                    const locale = theme.language === 'da' ? 'da-DK' : theme.language === 'de' ? 'de-DE' : theme.language === 'es' ? 'es-ES' : theme.language === 'fr' ? 'fr-FR' : theme.language === 'pt' ? 'pt-PT' : 'en-US';
+                    const dateStr = suspendedUntil.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+                    Alert.alert(
+                      t.accountSuspendedTitle,
+                      t.accountSuspendedMessage(dateStr),
+                      [{ text: t.ok, onPress: () => auth().signOut() }],
+                      { cancelable: false },
+                    );
+                    return;
+                  }
                 }
               }
 
@@ -126,10 +135,10 @@ function App() {
               const warningsSeen = data?.warningsSeen || 0;
               if (warnings > warningsSeen) {
                 Alert.alert(
-                  'Advarsel',
-                  `Du har modtaget ${warnings - warningsSeen === 1 ? 'en advarsel' : `${warnings - warningsSeen} advarsler`} for overtrædelse af retningslinjerne. Yderligere overtrædelser kan føre til suspendering eller permanent deaktivering af din konto.`,
+                  t.accountWarningTitle,
+                  t.accountWarningMessage(warnings - warningsSeen),
                   [{
-                    text: 'Forstået',
+                    text: t.accountWarningOk,
                     onPress: () => {
                       firestore()
                         .collection('users')
@@ -158,19 +167,8 @@ function App() {
               };
               initNotifications().catch(console.error);
             } else {
-              // Profildokument eksisterer ikke — nyt signup eller slettet af admin?
-              const creationTime = user.metadata.creationTime;
-              const accountAge = creationTime
-                ? Date.now() - new Date(creationTime).getTime()
-                : Infinity;
-
-              if (accountAge < 10 * 60 * 1000) {
-                // Ny bruger (< 10 min siden signup) — vis profil-setup
-                setAuthState('setup');
-              } else {
-                // Gammel konto uden profil — slettet af admin, log ud
-                auth().signOut().catch(console.error);
-              }
+              // Profildokument eksisterer ikke — vis velkomst + profil-setup
+              setAuthState('setup');
             }
             setInitializing(false);
           });
@@ -350,7 +348,10 @@ function App() {
                 <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
               </>
             ) : authState === 'setup' ? (
-              <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+              <>
+                <Stack.Screen name="Welcome" component={WelcomeScreen} />
+                <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+              </>
             ) : (
               <>
                 <Stack.Screen name="Home" component={HomeScreen} />

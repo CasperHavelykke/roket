@@ -24,15 +24,19 @@ import ProfileIcon from '../assets/profile.svg';
 import MessagesIcon from '../assets/messages.svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CardCarousel from '../components/CardCarousel';
+import ProfilePreviewModal from '../components/ProfilePreviewModal';
 import RoketLogo from '../assets/roket-logo-3.svg';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 
-const BANNER_AD_ID = Platform.select({
-  android: 'ca-app-pub-3274880494665608/1274892218',
-  ios: 'ca-app-pub-3274880494665608/3956537086',
-}) as string;
+const BANNER_AD_ID = __DEV__
+  ? TestIds.ADAPTIVE_BANNER
+  : (Platform.select({
+      android: 'ca-app-pub-3274880494665608/1274892218',
+      ios: 'ca-app-pub-3274880494665608/3956537086',
+    }) as string);
 
-const AD_AFTER_ROWS = 3; // Vis annonce efter 3 rækker
+const AD_FIRST: Record<number, number> = { 1: 3, 2: 3, 3: 6, 4: 6 };
+const AD_REPEAT: Record<number, number> = { 1: 6, 2: 6, 3: 12, 4: 12 };
 
 type GridRow = { type: 'users'; users: User[]; key: string } | { type: 'ad'; key: string };
 
@@ -53,6 +57,7 @@ interface User {
   sexuality?: string;
   photos?: string[];
   testAccount?: boolean;
+  datingOnly?: boolean;
 }
 
 const INACTIVE_HOURS = 24; // Skjul profiler der ikke har været online i X timer
@@ -89,6 +94,7 @@ export default function HomeScreen({ navigation }: any) {
   const [visibleCount, setVisibleCount] = useState(12);
   const [showLocationDisclosure, setShowLocationDisclosure] = useState(false);
   const [locationDenied, setLocationDenied] = useState(false);
+  const [previewUser, setPreviewUser] = useState<User | null>(null);
   const { width: screenWidth } = useWindowDimensions();
   const numColumns = (gridColumns >= 1 && gridColumns <= 4) ? gridColumns : 2;
   const locationDisclosureResolve = useRef<((v: boolean) => void) | null>(null);
@@ -236,12 +242,16 @@ export default function HomeScreen({ navigation }: any) {
         longitude: myLocData.location.longitude,
       };
       const blockedUsers: string[] = currentUserData?.blockedUsers ?? [];
+      const matchTag: string | undefined = currentUserData?.matchTag;
 
-      // Hent alle andre brugere og deres lokationer
+      // Hent brugere filtreret efter matchTag (eller alle som fallback)
+      const usersQuery = matchTag
+        ? firestore().collection('users')
+            .where('visibleTo', 'array-contains', matchTag)
+        : firestore().collection('users');
+
       const [usersSnapshot, locationsSnapshot] = await Promise.all([
-        firestore().collection('users')
-          .where(firestore.FieldPath.documentId(), '!=', currentUser.uid)
-          .get(),
+        usersQuery.get(),
         firestore().collection('userLocations').get(),
       ]);
 
@@ -260,7 +270,7 @@ export default function HomeScreen({ navigation }: any) {
         const theirLoc = locationMap.get(doc.id);
         const lastSeenDate = data.lastSeen?.toDate?.();
         const isInactive = !lastSeenDate || (Date.now() - lastSeenDate.getTime() > INACTIVE_HOURS * 60 * 60 * 1000);
-        if (theirLoc && !isInactive && !blockedUsers.includes(doc.id) && !theirBlockedUsers.includes(currentUser.uid) && !data.banned && !(data.suspendedUntil?.toDate?.() > new Date())) {
+        if (doc.id !== currentUser.uid && theirLoc && !isInactive && !blockedUsers.includes(doc.id) && !theirBlockedUsers.includes(currentUser.uid) && !data.banned && !(data.suspendedUntil?.toDate?.() > new Date())) {
           const distance = calculateDistance(
             myLocation.latitude,
             myLocation.longitude,
@@ -282,6 +292,7 @@ export default function HomeScreen({ navigation }: any) {
             sexuality: data.sexuality && data.showSexuality !== false ? data.sexuality : undefined,
             photos: data.photos ?? [],
             testAccount: data.testAccount ?? false,
+            datingOnly: data.datingOnly ?? false,
           });
         }
       });
@@ -368,12 +379,16 @@ export default function HomeScreen({ navigation }: any) {
   const gridRows = React.useMemo((): GridRow[] => {
     const visible = users.slice(0, visibleCount);
     const rows: GridRow[] = [];
-    let adInserted = false;
+    const firstAd = AD_FIRST[numColumns] || 3;
+    const repeatAd = AD_REPEAT[numColumns] || 6;
+    let nextAdAt = firstAd;
     let rowCount = 0;
+    let adCount = 0;
     for (let i = 0; i < visible.length; i += numColumns) {
-      if (rowCount >= AD_AFTER_ROWS && !adInserted) {
-        rows.push({ type: 'ad', key: '__ad__' });
-        adInserted = true;
+      if (rowCount >= nextAdAt) {
+        adCount++;
+        rows.push({ type: 'ad', key: `__ad_${adCount}__` });
+        nextAdAt = rowCount + repeatAd;
       }
       rows.push({ type: 'users', users: visible.slice(i, i + numColumns), key: `row-${i}` });
       rowCount++;
@@ -381,17 +396,27 @@ export default function HomeScreen({ navigation }: any) {
     return rows;
   }, [users, visibleCount, numColumns]);
 
+  const serializeUser = (item: User) => ({
+    ...item,
+    lastSeen: item.lastSeen?.getTime(),
+    distanceMode: item.distanceMode,
+    age: item.age,
+    gender: item.gender,
+    sexuality: item.sexuality,
+    photos: item.photos,
+    testAccount: item.testAccount,
+    datingOnly: item.datingOnly,
+  });
+
   const renderUserCard = (item: User) => {
     const allPhotos = [item.photoURL, ...(item.photos || [])].filter(Boolean) as string[];
 
-    const navigateToProfile = () => navigation.navigate('ProfileView', {
-      user: { ...item, lastSeen: item.lastSeen?.getTime(), distanceMode: item.distanceMode, age: item.age, gender: item.gender, sexuality: item.sexuality, photos: item.photos, testAccount: item.testAccount },
-    });
+    const navigateToProfile = () => navigation.navigate('ProfileView', { user: serializeUser(item) });
 
     return (
     <View
       key={item.id}
-      style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin }, isSingle && { aspectRatio: 1.2 }, unreadFromUsers.has(item.id) && { borderWidth: 3, borderColor: colors.primaryBlue }]}
+      style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin, backgroundColor: colors.background }, isSingle && { aspectRatio: 1.2 }]}
     >
       <CardCarousel
         photos={allPhotos}
@@ -399,6 +424,7 @@ export default function HomeScreen({ navigation }: any) {
         fallbackSource={fallbackSource}
         compact={isCompact}
         onPress={navigateToProfile}
+        onLongPress={() => setPreviewUser(item)}
       />
       <GradientView
         colors={['transparent', 'rgba(0,0,0,0.7)']}
@@ -416,10 +442,21 @@ export default function HomeScreen({ navigation }: any) {
           <Text style={styles.testBadgeText}>{t.testAccount}</Text>
         </View>
       )}
-      {unreadFromUsers.has(item.id) && !isCompact && (
-        <View style={styles.messageBadge}>
-          <MessagesIcon width={14} height={14} stroke="#fff" />
-        </View>
+      {unreadFromUsers.has(item.id) && (
+        <>
+          <View style={[styles.unreadBorder, { borderColor: colors.primaryBlue }]} pointerEvents="none" />
+          {!isCompact && (
+            <View
+              style={[styles.messageBadge, { backgroundColor: colors.primaryBlue }, isSingle && styles.messageBadgeSingle]}
+              onStartShouldSetResponder={() => true}
+              onResponderRelease={() => navigation.navigate('Chat', {
+                otherUser: { id: item.id, displayName: item.displayName, testAccount: item.testAccount },
+              })}
+            >
+              <MessagesIcon width={isSingle ? 28 : 22} height={isSingle ? 28 : 22} stroke="#fff" />
+            </View>
+          )}
+        </>
       )}
     </View>
   );
@@ -493,10 +530,8 @@ export default function HomeScreen({ navigation }: any) {
         end={{ x: 1, y: 0 }}
         style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={[styles.headerTitle, { color: colors.textWhite }]}>Røket</Text>
-          <RoketLogo width={28} height={28} />
-        </View>
+        <Text style={[styles.headerTitle, { color: colors.textWhite }]}>Røket</Text>
+        <RoketLogo width={28} height={28} />
       </GradientView>
 
       {users.length === 0 ? (
@@ -693,6 +728,23 @@ export default function HomeScreen({ navigation }: any) {
           locationDisclosureResolve.current?.(false);
         }}
       />
+      <ProfilePreviewModal
+        visible={!!previewUser}
+        user={previewUser}
+        onClose={() => setPreviewUser(null)}
+        onViewProfile={() => {
+          if (!previewUser) return;
+          const u = serializeUser(previewUser);
+          setPreviewUser(null);
+          navigation.navigate('ProfileView', { user: u });
+        }}
+        onSendMessage={() => {
+          if (!previewUser) return;
+          const { id, displayName, testAccount } = previewUser;
+          setPreviewUser(null);
+          navigation.navigate('Chat', { otherUser: { id, displayName, testAccount } });
+        }}
+      />
     </View>
   );
 }
@@ -868,24 +920,40 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
+  unreadBorder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 3,
+    borderRadius: 14,
+    zIndex: 5,
+  },
   messageBadge: {
     position: 'absolute',
-    bottom: 52,
-    left: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(67, 97, 238, 0.85)',
+    bottom: 8,
+    right: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
   },
+  messageBadgeSingle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    bottom: 10,
+    right: 10,
+  },
   messageBadgeCompact: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    bottom: 36,
-    left: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    bottom: 5,
+    right: 5,
   },
   columnPicker: {
     position: 'absolute',

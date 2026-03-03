@@ -50,7 +50,7 @@ export default function LoginScreen({ navigation }: any) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
       <View style={styles.logoContainer}>
-        <RoketLogo width={100} height={100} />
+        <RoketLogo width={100} height={100} fill="#fff" />
       </View>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{t.loginWelcome}</Text>

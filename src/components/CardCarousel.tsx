@@ -7,9 +7,10 @@ interface CardCarouselProps {
   fallbackSource: ImageSourcePropType;
   compact?: boolean;
   onPress?: () => void;
+  onLongPress?: () => void;
 }
 
-export default React.memo(function CardCarousel({ photos, width, fallbackSource, compact, onPress }: CardCarouselProps) {
+export default React.memo(function CardCarousel({ photos, width, fallbackSource, compact, onPress, onLongPress }: CardCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [height, setHeight] = useState(0);
 
@@ -24,7 +25,7 @@ export default React.memo(function CardCarousel({ photos, width, fallbackSource,
 
   if (photos.length === 0) {
     return (
-      <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.container}>
+      <TouchableOpacity activeOpacity={0.85} onPress={onPress} onLongPress={onLongPress} style={styles.container}>
         <Image source={fallbackSource} style={styles.image} />
       </TouchableOpacity>
     );
@@ -32,7 +33,7 @@ export default React.memo(function CardCarousel({ photos, width, fallbackSource,
 
   if (photos.length === 1) {
     return (
-      <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={styles.container}>
+      <TouchableOpacity activeOpacity={0.85} onPress={onPress} onLongPress={onLongPress} style={styles.container}>
         <Image source={{ uri: photos[0] }} style={styles.image} resizeMode="cover" />
       </TouchableOpacity>
     );
@@ -50,7 +51,7 @@ export default React.memo(function CardCarousel({ photos, width, fallbackSource,
           nestedScrollEnabled
         >
           {photos.map((uri, i) => (
-            <TouchableOpacity key={i} activeOpacity={0.85} onPress={onPress}>
+            <TouchableOpacity key={i} activeOpacity={0.85} onPress={onPress} onLongPress={onLongPress}>
               <Image source={{ uri }} style={{ width, height }} resizeMode="cover" />
             </TouchableOpacity>
           ))}

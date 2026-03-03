@@ -8,6 +8,13 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
     }
 
+    // Hjælpefunktion: er brugeren admin eller moderator?
+    function isStaff() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return request.auth != null &&
+             (userData.admin == true || userData.moderator == true);
+    }
+
     // Aldersvalidering: brugeren skal være mindst 18 år
     // Beregner ca. fødselstidspunkt + 18 år i millisekunder og sammenligner med request.time
     function isOldEnough(birthday) {
@@ -21,7 +28,7 @@ service cloud.firestore {
 
     // Feltvalidering
     function validDisplayName(name) {
-      return name is string && name.size() >= 2 && name.size() <= 50;
+      return name is string && name.size() <= 50;
     }
     function validBio(bio) {
       return bio is string && bio.size() <= 500;
@@ -47,8 +54,8 @@ service cloud.firestore {
                        (!('birthday' in resource.data) || request.resource.data.birthday == resource.data.birthday) &&
                        validUserData(request.resource.data);
 
-      // Admins kan opdatere enhver bruger (ban, suspend, warn)
-      allow update: if isAdmin();
+      // Admins og moderatorer kan opdatere enhver bruger (ban, suspend, warn)
+      allow update: if isStaff();
 
       // Ingen sletter profiler via klienten
       allow delete: if false;
@@ -69,9 +76,17 @@ service cloud.firestore {
                        request.resource.data.reporterId == request.auth.uid &&
                        (!('reason' in request.resource.data) || (request.resource.data.reason is string && request.resource.data.reason.size() <= 5000));
 
-      // Admins kan læse og opdatere rapporter
-      allow read, update: if isAdmin();
+      // Admins og moderatorer kan læse og opdatere rapporter
+      allow read, update: if isStaff();
 
+      allow delete: if false;
+    }
+
+    // Blokeringer
+    match /blocks/{blockId} {
+      allow create: if request.auth != null &&
+                       request.resource.data.blockerId == request.auth.uid;
+      allow read, update: if isStaff();
       allow delete: if false;
     }
 
@@ -85,7 +100,7 @@ service cloud.firestore {
       allow update: if request.auth != null &&
                        resource.data.userId == request.auth.uid &&
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageURL']);
-      allow read, update: if isAdmin();
+      allow read, update: if isStaff();
       allow delete: if isAdmin();
     }
 
@@ -98,13 +113,13 @@ service cloud.firestore {
 
     // Flagged content (fotomoderering)
     match /flaggedContent/{docId} {
-      allow read, update: if isAdmin();
+      allow read, update: if isStaff();
       allow create, delete: if false;
     }
 
-    // Collection group query: admin kan læse alle beskeder (Billeder-fanen)
+    // Collection group query: staff kan læse alle beskeder (Billeder/moderation)
     match /{path=**}/messages/{messageId} {
-      allow read: if isAdmin();
+      allow read: if isStaff();
     }
 
     // Chat-dokumenter
@@ -113,8 +128,8 @@ service cloud.firestore {
       allow read: if request.auth != null &&
                      request.auth.uid in resource.data.participants;
 
-      // Admins kan læse alle chats (til moderation)
-      allow read: if isAdmin();
+      // Admins og moderatorer kan læse alle chats (til moderation)
+      allow read: if isStaff();
 
       // Enhver indlogget bruger kan oprette en ny chat
       // (chatId er deterministisk og indeholder begge UIDs)
@@ -134,8 +149,8 @@ service cloud.firestore {
         allow read: if request.auth != null &&
                        request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
 
-        // Admins kan læse alle beskeder (til moderation)
-        allow read: if isAdmin();
+        // Admins og moderatorer kan læse alle beskeder (til moderation)
+        allow read: if isStaff();
 
         // Kun deltagere kan sende beskeder, og senderId skal matche den indloggede bruger
         allow create: if request.auth != null &&
@@ -144,8 +159,11 @@ service cloud.firestore {
                          (!('text' in request.resource.data) || (request.resource.data.text is string && request.resource.data.text.size() <= 2000));
 
         // Deltagere kan opdatere beskeder (likedBy, deleted)
+        // revealedBy kan kun sættes af modtageren (ikke afsenderen)
         allow update: if request.auth != null &&
-                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
+                         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['revealedBy']) ||
+                          request.auth.uid != resource.data.senderId);
 
         // Admins kan opdatere beskeder (moderation: slet beskeder)
         allow update: if isAdmin();

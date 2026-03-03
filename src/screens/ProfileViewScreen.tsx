@@ -119,12 +119,20 @@ export default function ProfileViewScreen({ route, navigation }: any) {
           text: t.profileBlockButton,
           style: 'destructive',
           onPress: async () => {
-            await firestore()
-              .collection('users')
-              .doc(currentUser.uid)
-              .update({
-                blockedUsers: firestore.FieldValue.arrayUnion(user.id),
-              });
+            await Promise.all([
+              firestore()
+                .collection('users')
+                .doc(currentUser.uid)
+                .update({
+                  blockedUsers: firestore.FieldValue.arrayUnion(user.id),
+                }),
+              firestore().collection('blocks').add({
+                blockerId: currentUser.uid,
+                blockedUserId: user.id,
+                createdAt: firestore.FieldValue.serverTimestamp(),
+                status: 'pending',
+              }),
+            ]);
             if (fromChat) {
               navigation.pop(2);
             } else {

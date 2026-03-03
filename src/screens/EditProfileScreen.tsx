@@ -12,7 +12,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
-  Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -25,9 +24,6 @@ import getFirebaseError from '../utils/getFirebaseError';
 import { useTheme } from '../theme';
 import CameraIcon from '../assets/camera.svg';
 
-type GenderKey = 'male' | 'female' | 'nonbinary' | 'trans' | '';
-type SexualityKey = 'straight' | 'gay' | 'bisexual' | 'pansexual' | 'other' | '';
-
 export default function EditProfileScreen({ navigation }: any) {
   const { colors, isDark, t } = useTheme();
   const insets = useSafeAreaInsets();
@@ -38,32 +34,23 @@ export default function EditProfileScreen({ navigation }: any) {
   const [saving, setSaving] = useState(false);
   const [showAge, setShowAge] = useState(true);
   const [hasBirthday, setHasBirthday] = useState(false);
-  const [gender, setGender] = useState<GenderKey>('');
+  const [gender, setGender] = useState('');
   const [showGender, setShowGender] = useState(true);
-  const [sexuality, setSexuality] = useState<SexualityKey>('');
+  const [sexuality, setSexuality] = useState('');
   const [showSexuality, setShowSexuality] = useState(true);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [pickerType, setPickerType] = useState<'gender' | 'sexuality' | null>(null);
+  const [datingOnly, setDatingOnly] = useState(false);
   const currentUser = auth().currentUser;
   const MAX_EXTRA_PHOTOS = 5;
 
-  const genderOptions: { key: GenderKey; label: string }[] = [
-    { key: 'male', label: t.genderMale },
-    { key: 'female', label: t.genderFemale },
-    { key: 'nonbinary', label: t.genderNonBinary },
-    { key: 'trans', label: t.genderTrans },
-  ];
-
-  const sexualityOptions: { key: SexualityKey; label: string }[] = [
-    { key: 'straight', label: t.sexualityStraight },
-    { key: 'gay', label: t.sexualityGay },
-    { key: 'bisexual', label: t.sexualityBisexual },
-    { key: 'pansexual', label: t.sexualityPansexual },
-    { key: 'other', label: t.sexualityOther },
-  ];
-
-  const genderLabel = (key: GenderKey) => genderOptions.find(o => o.key === key)?.label ?? '';
-  const sexualityLabel = (key: SexualityKey) => sexualityOptions.find(o => o.key === key)?.label ?? '';
+  const genderLabel = (key: string) => {
+    const map: Record<string, string> = { male: t.genderMale, female: t.genderFemale, nonbinary: t.genderNonBinary, trans: t.genderTrans };
+    return map[key] ?? '';
+  };
+  const sexualityLabel = (key: string) => {
+    const map: Record<string, string> = { straight: t.sexualityStraight, gay: t.sexualityGay, bisexual: t.sexualityBisexual };
+    return map[key] ?? '';
+  };
 
   useEffect(() => {
     if (!currentUser) return;
@@ -84,6 +71,7 @@ export default function EditProfileScreen({ navigation }: any) {
           setSexuality(data.sexuality ?? '');
           setShowSexuality(data.showSexuality !== false);
           setPhotos(data.photos ?? []);
+          setDatingOnly(data.datingOnly ?? false);
 
           // Vis alert hvis et billede blev afvist af moderation
           if (data.photoRejected) {
@@ -208,10 +196,9 @@ export default function EditProfileScreen({ navigation }: any) {
         displayName: trimmedName,
         bio: bio.trim(),
         showAge,
-        gender: gender || null,
         showGender,
-        sexuality: sexuality || null,
         showSexuality,
+        datingOnly,
       });
       navigation.goBack();
     } catch (error: any) {
@@ -330,19 +317,9 @@ export default function EditProfileScreen({ navigation }: any) {
             )}
           </View>
 
-          <View style={[styles.pickerSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileGender}</Text>
-            <TouchableOpacity
-              style={[styles.pickerButton, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}
-              onPress={() => setPickerType('gender')}
-            >
-              <Text style={[styles.pickerButtonText, gender ? { color: colors.textPrimary } : { color: colors.textMuted }]}>
-                {gender ? genderLabel(gender) : t.editProfileSelect}
-              </Text>
-              <Text style={{ color: colors.textMuted }}>▼</Text>
-            </TouchableOpacity>
-
-            {gender !== '' && (
+          {gender !== '' && (
+            <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
+              <Text style={[styles.toggleValueLabel, { color: colors.textPrimary }]}>{t.editProfileGender}: {genderLabel(gender)}</Text>
               <View style={[styles.toggleRow, { borderTopColor: colors.inputBorder }]}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileShowGender}</Text>
@@ -355,22 +332,12 @@ export default function EditProfileScreen({ navigation }: any) {
                   thumbColor="#fff"
                 />
               </View>
-            )}
-          </View>
+            </View>
+          )}
 
-          <View style={[styles.pickerSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileSexuality}</Text>
-            <TouchableOpacity
-              style={[styles.pickerButton, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}
-              onPress={() => setPickerType('sexuality')}
-            >
-              <Text style={[styles.pickerButtonText, sexuality ? { color: colors.textPrimary } : { color: colors.textMuted }]}>
-                {sexuality ? sexualityLabel(sexuality) : t.editProfileSelect}
-              </Text>
-              <Text style={{ color: colors.textMuted }}>▼</Text>
-            </TouchableOpacity>
-
-            {sexuality !== '' && (
+          {sexuality !== '' && (
+            <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
+              <Text style={[styles.toggleValueLabel, { color: colors.textPrimary }]}>{t.editProfileSexuality}: {sexualityLabel(sexuality)}</Text>
               <View style={[styles.toggleRow, { borderTopColor: colors.inputBorder }]}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileShowSexuality}</Text>
@@ -383,7 +350,22 @@ export default function EditProfileScreen({ navigation }: any) {
                   thumbColor="#fff"
                 />
               </View>
-            )}
+            </View>
+          )}
+
+          <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
+            <View style={[styles.toggleRow, { borderTopWidth: 0, marginTop: 0, paddingTop: 0 }]}>
+              <View style={styles.toggleInfo}>
+                <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileDatingOnly}</Text>
+                <Text style={[styles.toggleDesc, { color: colors.textMuted }]}>{t.editProfileDatingOnlyDesc}</Text>
+              </View>
+              <Switch
+                value={datingOnly}
+                onValueChange={setDatingOnly}
+                trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
+                thumbColor="#fff"
+              />
+            </View>
           </View>
 
           <TouchableOpacity
@@ -400,55 +382,6 @@ export default function EditProfileScreen({ navigation }: any) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Modal visible={pickerType !== null} transparent animationType="fade">
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setPickerType(null)}
-        >
-          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-              {pickerType === 'gender' ? t.editProfileGender : t.editProfileSexuality}
-            </Text>
-            {(pickerType === 'gender' ? gender !== '' : sexuality !== '') && (
-              <TouchableOpacity
-                style={[styles.modalOption, { borderBottomWidth: 1, borderBottomColor: colors.inputBorder, marginBottom: 8 }]}
-                onPress={() => {
-                  if (pickerType === 'gender') {
-                    setGender('');
-                  } else {
-                    setSexuality('');
-                  }
-                  setPickerType(null);
-                }}
-              >
-                <Text style={[styles.modalOptionText, { color: colors.primaryRed }]}>{t.remove}</Text>
-              </TouchableOpacity>
-            )}
-            {(pickerType === 'gender' ? genderOptions : sexualityOptions).map(option => {
-              const isActive = pickerType === 'gender' ? gender === option.key : sexuality === option.key;
-              return (
-                <TouchableOpacity
-                  key={option.key}
-                  style={[styles.modalOption, isActive && { backgroundColor: colors.primaryBlue }]}
-                  onPress={() => {
-                    if (pickerType === 'gender') {
-                      setGender(option.key as GenderKey);
-                    } else {
-                      setSexuality(option.key as SexualityKey);
-                    }
-                    setPickerType(null);
-                  }}
-                >
-                  <Text style={[styles.modalOptionText, { color: colors.textPrimary }, isActive && { color: '#fff' }]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -564,7 +497,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  pickerSection: {
+  toggleSection: {
     width: '100%',
     borderRadius: 12,
     padding: 16,
@@ -575,44 +508,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  pickerButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  pickerButtonText: {
+  toggleValueLabel: {
     fontSize: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  modalCard: {
-    width: '100%',
-    borderRadius: 16,
-    padding: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
-  modalOption: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    marginBottom: 4,
-  },
-  modalOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   saveButton: {
     width: '100%',

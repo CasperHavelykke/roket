@@ -12,13 +12,15 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import GradientView from '../components/GradientView';
 import { useTheme } from '../theme';
 import RoketLogo from '../assets/roket-logo-simpel.svg';
-import RoketStars from '../assets/roket-logo-stars-only.svg';
-import { RewardedAd, RewardedAdEventType, AdEventType } from 'react-native-google-mobile-ads';
+import SupportIcon from '../assets/support.svg';
+import { RewardedAd, RewardedAdEventType, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 
-const REWARDED_AD_ID = Platform.select({
-  android: 'ca-app-pub-3274880494665608/2491916759',
-  ios: 'ca-app-pub-3274880494665608/5022565538',
-}) as string;
+const REWARDED_AD_ID = __DEV__
+  ? TestIds.REWARDED
+  : (Platform.select({
+      android: 'ca-app-pub-3274880494665608/2491916759',
+      ios: 'ca-app-pub-3274880494665608/5022565538',
+    }) as string);
 
 export default function SupportScreen({ navigation }: any) {
   const { colors, t } = useTheme();
@@ -88,7 +90,6 @@ export default function SupportScreen({ navigation }: any) {
       });
       newAd.addAdEventListener(AdEventType.ERROR, () => {
         setLoading(false);
-        Alert.alert(t.supportAdNotReady);
       });
       newAd.load();
     }
@@ -112,7 +113,7 @@ export default function SupportScreen({ navigation }: any) {
       <View style={styles.content}>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           <View style={styles.cardContent}>
-            <RoketStars width={32} height={32} />
+            <SupportIcon width={32} height={32} color={colors.textPrimary} />
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{t.supportWatchAd}</Text>
             <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{t.supportWatchAdDesc}</Text>
           </View>
@@ -131,10 +132,13 @@ export default function SupportScreen({ navigation }: any) {
               {loading ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.buttonText}>{adLoaded ? t.supportWatchAd : t.supportAdNotReady}</Text>
+                <Text style={styles.buttonText}>{adLoaded ? t.supportWatchAd : t.supportRetry}</Text>
               )}
             </GradientView>
           </TouchableOpacity>
+          {!loading && !adLoaded && (
+            <Text style={[styles.adNotReady, { color: colors.textSecondary }]}>{t.supportAdNotReady}</Text>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -204,5 +208,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  adNotReady: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 20,
+    marginHorizontal: 24,
   },
 });

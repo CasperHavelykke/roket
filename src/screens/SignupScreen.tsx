@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -15,12 +16,27 @@ import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import getFirebaseError from '../utils/getFirebaseError';
 import RoketLogo from '../assets/roket-logo-2.svg';
 
-const months_da = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
-const months_en = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const monthsByLang: Record<string, string[]> = {
+  da: ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  es: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+  de: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+  fr: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
+  pt: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+};
+const placeholders: Record<string, { day: string; month: string; year: string }> = {
+  da: { day: 'Dag', month: 'Måned', year: 'År' },
+  en: { day: 'Day', month: 'Month', year: 'Year' },
+  es: { day: 'Día', month: 'Mes', year: 'Año' },
+  de: { day: 'Tag', month: 'Monat', year: 'Jahr' },
+  fr: { day: 'Jour', month: 'Mois', year: 'Année' },
+  pt: { day: 'Dia', month: 'Mês', year: 'Ano' },
+};
 
 function daysInMonth(month: number, year: number): number {
   if (!month || !year) return 31;
@@ -40,6 +56,7 @@ function getAge(day: number, month: number, year: number): number {
 
 export default function SignupScreen({ navigation }: any) {
   const { colors, t, language } = useTheme();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -49,8 +66,19 @@ export default function SignupScreen({ navigation }: any) {
   const [birthYear, setBirthYear] = useState('');
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
-  const months = language === 'da' ? months_da : months_en;
+  React.useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidHide', () => {
+      scrollRef.current?.scrollToEnd({ animated: false });
+      // Lille delay for at lade layoutet gendanne sig
+      setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), 50);
+    });
+    return () => sub.remove();
+  }, []);
+
+  const months = monthsByLang[language] || monthsByLang.en;
+  const ph = placeholders[language] || placeholders.en;
 
   const handleSignup = async () => {
     if (!email || !password || !confirmPassword) {
@@ -118,9 +146,9 @@ export default function SignupScreen({ navigation }: any) {
       style={styles.container}
     >
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + insets.bottom }]} keyboardShouldPersistTaps="handled">
         <View style={styles.logoContainer}>
-          <RoketLogo width={100} height={100} />
+          <RoketLogo width={100} height={100} fill="#fff" />
         </View>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t.signupTitle}</Text>
@@ -157,7 +185,7 @@ export default function SignupScreen({ navigation }: any) {
           <View style={styles.birthdayRow}>
             <TextInput
               style={[styles.birthdayInput, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.textPrimary }]}
-              placeholder={language === 'da' ? 'Dag' : 'Day'}
+              placeholder={ph.day}
               placeholderTextColor={colors.textMuted}
               value={birthDay}
               onChangeText={(v) => {
@@ -169,15 +197,15 @@ export default function SignupScreen({ navigation }: any) {
             />
             <TouchableOpacity
               style={[styles.monthPicker, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}
-              onPress={() => setShowMonthPicker(!showMonthPicker)}
+              onPress={() => { if (!showMonthPicker) Keyboard.dismiss(); setShowMonthPicker(!showMonthPicker); }}
             >
               <Text style={[styles.monthPickerText, birthMonth ? { color: colors.textPrimary } : { color: colors.textMuted }]}>
-                {birthMonth ? months[parseInt(birthMonth, 10) - 1] : (language === 'da' ? 'Måned' : 'Month')}
+                {birthMonth ? months[parseInt(birthMonth, 10) - 1] : ph.month}
               </Text>
             </TouchableOpacity>
             <TextInput
               style={[styles.birthdayInput, styles.yearInput, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.textPrimary }]}
-              placeholder={language === 'da' ? 'År' : 'Year'}
+              placeholder={ph.year}
               placeholderTextColor={colors.textMuted}
               value={birthYear}
               onChangeText={(v) => {

@@ -4,10 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   Alert,
   Linking,
-  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -16,9 +16,9 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme, ThemeMode, TimeFormat, Language, DistanceMode, DistanceUnit } from '../theme';
 import getFirebaseError from '../utils/getFirebaseError';
-import LocationService from '../services/LocationService';
 import RoketLogo from '../assets/roket-logo-simpel.svg';
 import RoketStars from '../assets/roket-logo-stars-only.svg';
+import SupportIcon from '../assets/support.svg';
 
 export default function SettingsScreen({ navigation }: any) {
   const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, releaseTag, t } = useTheme();
@@ -60,23 +60,6 @@ export default function SettingsScreen({ navigation }: any) {
 
 
   const handleDistanceModeChange = async (mode: DistanceMode) => {
-    if (mode === 'exact' && Platform.OS === 'android') {
-      const precision = await LocationService.checkCurrentPrecision();
-      if (precision === 'coarse') {
-        Alert.alert(
-          t.settingsDistanceNeedFine,
-          t.settingsDistanceNeedFineMessage,
-          [
-            { text: t.cancel, style: 'cancel' },
-            {
-              text: t.settingsDistanceOpenSettings,
-              onPress: () => Linking.openSettings(),
-            },
-          ],
-        );
-        return;
-      }
-    }
     setDistanceMode(mode);
   };
 
@@ -169,7 +152,7 @@ export default function SettingsScreen({ navigation }: any) {
           <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.settingsTitle}</Text>
-        <RoketLogo width={24} height={24} style={{ marginLeft: 'auto' }} />
+        <RoketLogo width={24} height={24} fillRule="evenodd" style={{ marginLeft: 'auto' }} />
       </GradientView>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -253,33 +236,37 @@ export default function SettingsScreen({ navigation }: any) {
         </View>
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsSupport}</Text>
-        <GradientView
-          colors={[colors.primaryBlue, colors.primaryRed]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.card}
-        >
-          <TouchableOpacity
-            style={[styles.row, { borderBottomColor: 'rgba(255,255,255,0.2)' }]}
-            onPress={() => navigation.navigate('Feedback')}
+        <View style={[styles.card, { backgroundColor: colors.white }]}>
+          <GradientView
+            colors={[colors.primaryBlue, colors.primaryRed]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <RoketStars width={20} height={20} />
-              <Text style={[styles.rowText, { color: colors.textWhite, fontWeight: '700' }]}>{t.settingsFeedback}</Text>
-            </View>
-            <Text style={[styles.rowArrow, { color: colors.textWhite, fontWeight: '700' }]}>→</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.row, { borderBottomColor: 'rgba(255,255,255,0.2)' }]}
+              onPress={() => navigation.navigate('Feedback')}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <RoketStars width={20} height={20} />
+                <Text style={[styles.rowText, { color: colors.textWhite, fontWeight: '700' }]}>{t.settingsFeedback}</Text>
+              </View>
+              <Text style={[styles.rowArrow, { color: colors.textWhite, fontWeight: '700' }]}>→</Text>
+            </TouchableOpacity>
+          </GradientView>
+          {/* Support knap. Skjult indtil videre. Skift "false" til "true" for at vise */}
+          {false && (
           <TouchableOpacity
-            style={styles.row}
+            style={[styles.row, { backgroundColor: colors.white, borderBottomWidth: 0 }]}
             onPress={() => navigation.navigate('Support')}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <RoketStars width={20} height={20} />
-              <Text style={[styles.rowText, { color: colors.textWhite, fontWeight: '700' }]}>{t.supportRoket}</Text>
+              <SupportIcon width={20} height={20} fill={colors.textPrimary} />
+              <Text style={[styles.rowText, { color: colors.textPrimary }]}>{t.supportRoket}</Text>
             </View>
-            <Text style={[styles.rowArrow, { color: colors.textWhite, fontWeight: '700' }]}>→</Text>
+            <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
           </TouchableOpacity>
-        </GradientView>
+          )}
+        </View>
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsAccount}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>

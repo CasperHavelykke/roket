@@ -29,6 +29,7 @@ import { useTheme } from '../theme';
 import getFirebaseError from '../utils/getFirebaseError';
 import CameraIcon from '../assets/camera.svg';
 import SendIcon from '../assets/send.svg';
+import RoketLogo from '../assets/roket-logo-2.svg';
 
 interface Message {
   id: string;
@@ -36,11 +37,13 @@ interface Message {
   text?: string;
   imageURL?: string;
   imageExpired?: boolean;
+  moderated?: boolean;
   timestamp: any;
   likedBy?: string[];
   deleted?: boolean;
   flagged?: boolean;
   flaggedReason?: string;
+  revealedBy?: string;
 }
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -175,6 +178,25 @@ function FullscreenZoomImage({ uri, onClose }: { uri: string; onClose: () => voi
   );
 }
 
+function BubbleGradient({ primaryBlue, primaryRed }: { primaryBlue: string; primaryRed: string }) {
+  const [width, setWidth] = useState(0);
+  const listPadding = 16;
+  const w = width || SCREEN_W * 0.5;
+  const left = SCREEN_W - listPadding - w;
+
+  return (
+    <LinearGradient
+      colors={[primaryBlue, primaryRed]}
+      start={{ x: -left / w, y: 0 }}
+      end={{ x: (SCREEN_W - left) / w, y: 0 }}
+      style={StyleSheet.absoluteFillObject}
+      onLayout={(e) => {
+        if (!width) setWidth(e.nativeEvent.layout.width);
+      }}
+    />
+  );
+}
+
 function getOrCreateChatId(uid1: string, uid2: string): string {
   // Deterministisk chat ID: altid samme uanset rækkefølge
   return [uid1, uid2].sort().join('_');
@@ -198,7 +220,8 @@ export default function ChatScreen({ route, navigation }: any) {
   const [blocked, setBlocked] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [pendingImages, setPendingImages] = useState<string[]>([]);
-  const [revealedImages, setRevealedImages] = useState<Set<string>>(new Set());
+  const [reportMessage, setReportMessage] = useState<Message | null>(null);
+  const [reportText, setReportText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const lastTapRef = useRef<{ id: string; time: number }>({ id: '', time: 0 });
 
@@ -249,10 +272,12 @@ export default function ChatScreen({ route, navigation }: any) {
             imageURL: doc.data().imageURL,
             timestamp: doc.data().timestamp,
             imageExpired: doc.data().imageExpired ?? false,
+            moderated: doc.data().moderated ?? true,
             likedBy: doc.data().likedBy ?? [],
             deleted: doc.data().deleted ?? false,
             flagged: doc.data().flagged ?? false,
             flaggedReason: doc.data().flaggedReason,
+            revealedBy: doc.data().revealedBy,
           }));
           msgs.sort((a, b) => {
             if (!a.timestamp) return -1;
@@ -334,6 +359,7 @@ export default function ChatScreen({ route, navigation }: any) {
         await messageRef.set({
           senderId: currentUser.uid,
           imageURL,
+          moderated: false,
           timestamp: firestore.FieldValue.serverTimestamp(),
         });
       }
@@ -366,13 +392,13 @@ export default function ChatScreen({ route, navigation }: any) {
   const isImageExpired = (timestamp: any): boolean => {
     if (!timestamp) return false;
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return Date.now() - date.getTime() > 24 * 60 * 60 * 1000;
+    return Date.now() - date.getTime() > 12 * 60 * 60 * 1000;
   };
 
   const getTimeRemaining = (timestamp: any): string => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    const msLeft = 24 * 60 * 60 * 1000 - (Date.now() - date.getTime());
+    const msLeft = 12 * 60 * 60 * 1000 - (Date.now() - date.getTime());
     if (msLeft <= 0) return '';
     const hoursLeft = Math.floor(msLeft / (60 * 60 * 1000));
     const minsLeft = Math.floor((msLeft % (60 * 60 * 1000)) / (60 * 1000));
@@ -444,10 +470,47 @@ export default function ChatScreen({ route, navigation }: any) {
       });
     }
 
+    // Rapporter (kun andres beskeder)
+    if (!isMe) {
+      buttons.push({
+        text: t.chatReportMessage,
+        style: 'destructive',
+        onPress: () => setReportMessage(message),
+      });
+    }
+
     if (buttons.length === 0) return;
 
-    buttons.push({ text: t.cancel, style: 'cancel' });
-    Alert.alert(undefined as any, undefined, buttons);
+    Alert.alert(t.chatMessageActions, undefined, [
+      { text: t.cancel, style: 'cancel' },
+      ...buttons,
+    ]);
+  };
+
+  const handleSendReport = () => {
+    if (!reportMessage) return;
+    const msg = reportMessage;
+    setReportMessage(null);
+    const reportData: any = {
+      reporterId: currentUser.uid,
+      reportedUserId: msg.senderId,
+      chatId,
+      messageId: msg.id,
+      messageText: msg.text || null,
+      messageImageURL: msg.imageURL || null,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    };
+    if (reportText.trim()) {
+      reportData.reason = reportText.trim();
+    }
+    firestore()
+      .collection('reports')
+      .add(reportData)
+      .then(() => {
+        setReportText('');
+        Alert.alert(t.chatReportSent, t.chatReportReceived);
+      })
+      .catch(err => Alert.alert(t.error, getFirebaseError(err, t)));
   };
 
   const handleRevealFlagged = (messageId: string) => {
@@ -458,7 +521,15 @@ export default function ChatScreen({ route, navigation }: any) {
         { text: t.cancel, style: 'cancel' },
         {
           text: t.chatFlaggedReveal,
-          onPress: () => setRevealedImages(prev => new Set(prev).add(messageId)),
+          onPress: () => {
+            firestore()
+              .collection('chats')
+              .doc(chatId)
+              .collection('messages')
+              .doc(messageId)
+              .update({ revealedBy: currentUser.uid })
+              .catch(err => console.warn('Reveal fejl:', err.message));
+          },
         },
       ],
     );
@@ -469,7 +540,7 @@ export default function ChatScreen({ route, navigation }: any) {
     const expired = item.imageExpired || (item.imageURL && isImageExpired(item.timestamp)) || (!item.text && !item.imageURL && !item.deleted);
     const isLiked = item.likedBy && item.likedBy.length > 0;
     const isFlaggedImage = item.flagged && item.imageURL && !expired && !item.deleted;
-    const isRevealed = revealedImages.has(item.id);
+    const isRevealed = !!item.revealedBy;
     return (
       <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowThem]}>
         <Pressable
@@ -480,12 +551,13 @@ export default function ChatScreen({ route, navigation }: any) {
           <View style={[
             styles.bubble,
             isMe
-              ? [styles.bubbleMe, { backgroundColor: item.deleted ? colors.bubbleReceived : colors.primaryBlue }]
+              ? [styles.bubbleMe, styles.bubbleGradient]
               : [styles.bubbleThem, { backgroundColor: colors.bubbleReceived }],
             item.imageURL && !expired && !item.deleted && styles.bubbleImage,
           ]}>
+            {isMe && <BubbleGradient primaryBlue={colors.primaryBlue} primaryRed={colors.primaryRed} />}
             {item.deleted ? (
-              <Text style={[styles.deletedText, { color: colors.textMuted }]}>
+              <Text style={[styles.deletedText, { color: isMe ? 'rgba(255,255,255,0.5)' : colors.textMuted }]}>
                 {t.chatDeleted}
               </Text>
             ) : (item.imageURL || expired) ? (
@@ -496,10 +568,15 @@ export default function ChatScreen({ route, navigation }: any) {
                 ]}>
                   {t.chatImageExpired}
                 </Text>
+              ) : !item.moderated ? (
+                <View style={[styles.chatImage, styles.pendingImageContainer]}>
+                  <ActivityIndicator size="small" color={isMe ? '#fff' : colors.textMuted} />
+                  <Text style={[styles.pendingImageText, { color: isMe ? '#fff' : colors.textMuted }]}>{t.chatImagePending}</Text>
+                </View>
               ) : (
                 <>
                   {isFlaggedImage && !isRevealed ? (
-                    <TouchableOpacity activeOpacity={0.85} onPress={() => handleRevealFlagged(item.id)}>
+                    isMe ? (
                       <View style={styles.chatImage}>
                         <Image source={{ uri: item.imageURL }} style={[styles.chatImage, { position: 'absolute' }]} resizeMode="cover" blurRadius={30} />
                         <View style={styles.flaggedOverlay}>
@@ -507,7 +584,17 @@ export default function ChatScreen({ route, navigation }: any) {
                           <Text style={styles.flaggedText}>{t.chatFlaggedLabel}</Text>
                         </View>
                       </View>
-                    </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity activeOpacity={0.85} onPress={() => handleRevealFlagged(item.id)}>
+                        <View style={styles.chatImage}>
+                          <Image source={{ uri: item.imageURL }} style={[styles.chatImage, { position: 'absolute' }]} resizeMode="cover" blurRadius={30} />
+                          <View style={styles.flaggedOverlay}>
+                            <Text style={styles.flaggedIcon}>!</Text>
+                            <Text style={styles.flaggedText}>{t.chatFlaggedLabel}</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    )
                   ) : (
                     <TouchableOpacity activeOpacity={0.85} onPress={() => setFullscreenImage(item.imageURL!)}>
                       <Image source={{ uri: item.imageURL }} style={styles.chatImage} resizeMode="cover" />
@@ -621,6 +708,9 @@ export default function ChatScreen({ route, navigation }: any) {
         behavior="padding"
         keyboardVerticalOffset={0}
       >
+        <View style={styles.watermark} pointerEvents="none">
+          <RoketLogo width={200} height={200} fill={colors.textMuted} />
+        </View>
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primaryBlueText} />
@@ -636,7 +726,14 @@ export default function ChatScreen({ route, navigation }: any) {
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t.chatSayHi(otherUser.displayName)}</Text>
+                <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{t.chatSayHi(otherUser.displayName)}</Text>
+                <View style={styles.tipsContainer}>
+                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipDoubleTap}</Text>
+                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipPhotos}</Text>
+                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipImageExpiry}</Text>
+                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipLongPress}</Text>
+                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipDeleted}</Text>
+                </View>
               </View>
             }
           />
@@ -689,8 +786,45 @@ export default function ChatScreen({ route, navigation }: any) {
         )}
       </KeyboardAvoidingView>
 
-      <Modal visible={!!fullscreenImage} transparent animationType="fade">
+      <Modal visible={!!fullscreenImage} transparent animationType="fade" onRequestClose={() => setFullscreenImage(null)}>
         <FullscreenZoomImage uri={fullscreenImage!} onClose={() => setFullscreenImage(null)} />
+      </Modal>
+
+      <Modal visible={!!reportMessage} transparent animationType="fade" onRequestClose={() => setReportMessage(null)}>
+        <View style={styles.reportOverlay}>
+          <View style={[styles.reportCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.reportTitle, { color: colors.textPrimary }]}>{t.chatReportConfirm}</Text>
+            <Text style={[styles.reportDesc, { color: colors.textSecondary }]}>{t.chatReportDescription}</Text>
+            <TextInput
+              style={[styles.reportInput, {
+                borderColor: colors.inputBorder,
+                backgroundColor: colors.inputBackground,
+                color: colors.textPrimary,
+              }]}
+              placeholder={t.profileReportPlaceholder}
+              placeholderTextColor={colors.textMuted}
+              value={reportText}
+              onChangeText={setReportText}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <View style={styles.reportButtons}>
+              <TouchableOpacity
+                style={[styles.reportButton, { backgroundColor: colors.backgroundLight }]}
+                onPress={() => { setReportMessage(null); setReportText(''); }}
+              >
+                <Text style={[styles.reportButtonText, { color: colors.textPrimary }]}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.reportButton, { backgroundColor: colors.primaryRed }]}
+                onPress={handleSendReport}
+              >
+                <Text style={[styles.reportButtonText, { color: '#FFF' }]}>{t.profileReportSend}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       <Modal visible={pendingImages.length > 0} transparent animationType="fade">
@@ -757,6 +891,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  watermark: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.08,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -806,10 +946,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 60,
   },
-  emptyText: {
+  emptyGreeting: {
     fontSize: 16,
+    marginBottom: 32,
+  },
+  tipsContainer: {
+    gap: 10,
+  },
+  tipText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
   messageRow: {
     marginBottom: 12,
@@ -831,6 +978,10 @@ const styles = StyleSheet.create({
   },
   bubbleMe: {
     borderBottomRightRadius: 4,
+  },
+  bubbleGradient: {
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
   },
   bubbleThem: {
     borderBottomLeftRadius: 4,
@@ -918,6 +1069,16 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 14,
     overflow: 'hidden',
+  },
+  pendingImageContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    gap: 8,
+  },
+  pendingImageText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   flaggedOverlay: {
     flex: 1,
@@ -1062,5 +1223,49 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  reportOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 30,
+  },
+  reportCard: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 24,
+  },
+  reportTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  reportDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  reportInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    minHeight: 100,
+    marginBottom: 20,
+  },
+  reportButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reportButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  reportButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -79,10 +79,10 @@ export default function BlockedUsersScreen({ navigation }: any) {
         {item.name}
       </Text>
       <TouchableOpacity
-        style={[styles.unblockButton, { borderColor: colors.primaryBlue }]}
+        style={[styles.unblockButton, { borderColor: colors.primaryBlueText }]}
         onPress={() => handleUnblock(item.id, item.name)}
       >
-        <Text style={[styles.unblockText, { color: colors.primaryBlue }]}>{t.remove}</Text>
+        <Text style={[styles.unblockText, { color: colors.primaryBlueText }]}>{t.remove}</Text>
       </TouchableOpacity>
     </View>
   );
