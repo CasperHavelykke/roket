@@ -769,7 +769,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    overflow: 'hidden',
+    ...Platform.select({ android: { overflow: 'hidden' as const } }),
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
