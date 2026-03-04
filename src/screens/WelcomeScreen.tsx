@@ -12,7 +12,7 @@ import { useTheme } from '../theme';
 import RoketLogo from '../assets/roket-logo-2.svg';
 import RoketIndicator from '../assets/roket-logo-simpel.svg';
 import MessagesIcon from '../assets/messages.svg';
-import PinMapIcon from '../assets/pin-map.svg';
+import PinMapIconWhite from '../assets/pin-map-white.svg';
 import ProfileIcon from '../assets/profile.svg';
 
 interface Page {
@@ -57,7 +57,7 @@ export default function WelcomeScreen({ navigation }: any) {
       case 'messages':
         return circle(<MessagesIcon width={48} height={48} stroke="#fff" />);
       case 'distance':
-        return circle(<PinMapIcon width={48} height={48} stroke="#fff" fill="none" />);
+        return circle(<PinMapIconWhite width={48} height={48} />);
       case 'guidelines':
         return circle(<ProfileIcon width={48} height={48} stroke="#fff" />);
     }
