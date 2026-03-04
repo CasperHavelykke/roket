@@ -358,6 +358,7 @@ exports.onUserDeleted = auth.user().onDelete(async (user) => {
 // Bruger v1 storage trigger (direkte Cloud Storage integration, ingen Eventarc)
 exports.moderateUploadedImage = v1
   .region('us-east1')
+  .runWith({ timeoutSeconds: 120 })
   .storage.bucket('roket-ac4de.firebasestorage.app')
   .object()
   .onFinalize(async (object) => {
@@ -381,15 +382,28 @@ exports.moderateUploadedImage = v1
     console.log(`Running SafeSearch on: ${gcsUri}`);
     let safeSearch;
     try {
-      const [result] = await visionClient.safeSearchDetection(gcsUri);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Vision API timeout (30s)')), 30000)
+      );
+      const [result] = await Promise.race([
+        visionClient.safeSearchDetection(gcsUri),
+        timeoutPromise,
+      ]);
       safeSearch = result.safeSearchAnnotation;
       console.log('SafeSearch result:', JSON.stringify(safeSearch));
     } catch (err) {
       console.error('Vision API error:', err.message || err);
+      // Ved fejl: flag chat-billeder så de ikke sidder fast på loading
+      if (isChatImage) {
+        await flagChatImageOnError(db, bucket, filePath, 'vision_api_error');
+      }
       return;
     }
     if (!safeSearch) {
       console.log('No safeSearch annotation returned');
+      if (isChatImage) {
+        await flagChatImageOnError(db, bucket, filePath, 'no_safesearch_result');
+      }
       return;
     }
 
@@ -496,6 +510,34 @@ async function handleProfilePhotoModeration(db, bucket, filePath, scores) {
     '🚫 Profilbillede afvist',
     `${displayName}s profilbillede blev automatisk fjernet (adult: ${scores.adult}, violence: ${scores.violence})`
   );
+}
+
+// Fallback: flag chat-billede når Vision API fejler, så det ikke sidder fast på loading
+async function flagChatImageOnError(db, bucket, filePath, reason) {
+  const parts = filePath.replace('chatImages/', '').split('/');
+  const chatId = parts[0];
+  const messageId = parts[1]?.replace('.jpg', '');
+  if (!chatId || !messageId) return;
+
+  const msgRef = db.collection('chats').doc(chatId).collection('messages').doc(messageId);
+  const msgDoc = await msgRef.get();
+  if (!msgDoc.exists) return;
+
+  await msgRef.update({ moderated: true, flagged: true, flaggedReason: reason });
+
+  const msgData = msgDoc.data();
+  const imageURL = await getDownloadURL(bucket, filePath);
+  await db.collection('flaggedContent').add({
+    type: 'chat_image',
+    status: 'pending',
+    imageURL,
+    storagePath: filePath,
+    senderId: msgData.senderId,
+    chatId,
+    messageId,
+    safeSearchScores: null,
+    createdAt: FieldValue.serverTimestamp(),
+  });
 }
 
 // Chat-billede-moderation: flag hvis NSFW (slet IKKE)

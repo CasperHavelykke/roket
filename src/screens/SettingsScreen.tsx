@@ -152,7 +152,9 @@ export default function SettingsScreen({ navigation }: any) {
           <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.settingsTitle}</Text>
-        <RoketLogo width={24} height={24} fillRule="evenodd" style={{ marginLeft: 'auto' }} />
+        <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
+          <RoketLogo width={24} height={24} fillRule="evenodd" />
+        </TouchableOpacity>
       </GradientView>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -289,7 +291,7 @@ export default function SettingsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.copyright}>© 2026 Røket · v1.0.7{releaseTag ? ` ${releaseTag}` : ''}</Text>
+        <Text style={styles.copyright}>© 2026 Røket · v1.0.8{releaseTag ? ` ${releaseTag}` : ''}</Text>
       </ScrollView>
     </SafeAreaView>
   );

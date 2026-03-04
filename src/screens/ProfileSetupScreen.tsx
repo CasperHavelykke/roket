@@ -297,7 +297,7 @@ export default function ProfileSetupScreen() {
             <View style={[styles.checkbox, datingOnly && styles.checkboxChecked]}>
               {datingOnly && <Text style={{ color: colors.primaryBlue, fontSize: 14, fontWeight: '700' }}>✓</Text>}
             </View>
-            <Text style={styles.checkboxLabel}>{t.setupDatingOnly}</Text>
+            <Text style={styles.checkboxLabel}>{t.setupDatingOnlyPre}<Text style={{ fontStyle: 'italic' }}>{t.setupDatingOnlyEmphasis}</Text>{t.setupDatingOnlyPost}</Text>
           </TouchableOpacity>
 
         </ScrollView>

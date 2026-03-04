@@ -19,6 +19,7 @@ import firestore from '@react-native-firebase/firestore';
 import LocationService from '../services/LocationService';
 import { useTheme } from '../theme';
 import DisclosureModal from '../components/DisclosureModal';
+import PinMapIcon from '../assets/pin-map.svg';
 import SettingsIcon from '../assets/settings.svg';
 import ProfileIcon from '../assets/profile.svg';
 import MessagesIcon from '../assets/messages.svg';
@@ -483,41 +484,24 @@ export default function HomeScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        {!showLocationDisclosure && (
-          <>
-            <ActivityIndicator size="large" color={colors.primaryRed} />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t.homeLoadingText}</Text>
-          </>
-        )}
-        {showLocationDisclosure && (
-          <View style={styles.disclosureOverlay}>
-            <View style={[styles.disclosureCard, { backgroundColor: colors.white }]}>
-              <Text style={{ fontSize: 40, marginBottom: 12 }}>📍</Text>
-              <Text style={[styles.disclosureTitle, { color: colors.textPrimary }]}>{t.disclosureLocationTitle}</Text>
-              <Text style={[styles.disclosureMessage, { color: colors.textSecondary }]}>{t.disclosureLocationMessage}</Text>
-              <View style={styles.disclosureButtons}>
-                <Pressable
-                  style={({ pressed }) => [styles.disclosureBtn, { borderWidth: 1.5, borderColor: colors.inputBorder, opacity: pressed ? 0.7 : 1 }]}
-                  onPress={() => {
-                    setShowLocationDisclosure(false);
-                    locationDisclosureResolve.current?.(false);
-                  }}
-                >
-                  <Text style={[styles.disclosureBtnText, { color: colors.textSecondary }]}>{t.cancel}</Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [styles.disclosureBtn, { backgroundColor: colors.primaryBlue, opacity: pressed ? 0.7 : 1 }]}
-                  onPress={() => {
-                    setShowLocationDisclosure(false);
-                    locationDisclosureResolve.current?.(true);
-                  }}
-                >
-                  <Text style={[styles.disclosureBtnText, { color: '#fff' }]}>{t.disclosureLocationAccept}</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        )}
+        <ActivityIndicator size="large" color={colors.primaryRed} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t.homeLoadingText}</Text>
+        <DisclosureModal
+          visible={showLocationDisclosure}
+          icon={<PinMapIcon width={32} height={64} />}
+          title={t.disclosureLocationTitle}
+          message={t.disclosureLocationMessage}
+          acceptLabel={t.disclosureLocationAccept}
+          cancelLabel={t.cancel}
+          onAccept={() => {
+            setShowLocationDisclosure(false);
+            locationDisclosureResolve.current?.(true);
+          }}
+          onCancel={() => {
+            setShowLocationDisclosure(false);
+            locationDisclosureResolve.current?.(false);
+          }}
+        />
       </View>
     );
   }
@@ -538,15 +522,16 @@ export default function HomeScreen({ navigation }: any) {
         <ScrollView
           contentContainerStyle={styles.centerContainer}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryRed} />
           }
         >
           {locationDenied ? (
             <>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t.homeLocationDenied}</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, paddingHorizontal: 40, fontWeight: '400' }]}>{t.homeLocationDenied}</Text>
               <TouchableOpacity
                 style={[styles.enableLocationButton, { backgroundColor: colors.primaryBlue }]}
                 onPress={() => { Linking.openSettings(); }}
+                activeOpacity={0.7}
               >
                 <Text style={styles.enableLocationText}>{t.homeEnableLocation}</Text>
               </TouchableOpacity>
@@ -571,7 +556,7 @@ export default function HomeScreen({ navigation }: any) {
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryRed} />
           }
         />
       )}
@@ -714,7 +699,7 @@ export default function HomeScreen({ navigation }: any) {
       })()}
       <DisclosureModal
         visible={showLocationDisclosure}
-        icon="📍"
+        icon={<PinMapIcon width={32} height={64} />}
         title={t.disclosureLocationTitle}
         message={t.disclosureLocationMessage}
         acceptLabel={t.disclosureLocationAccept}
@@ -994,56 +979,5 @@ const styles = StyleSheet.create({
   adBannerInline: {
     alignItems: 'center',
     marginVertical: 4,
-  },
-  disclosureOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-    zIndex: 100,
-  },
-  disclosureCard: {
-    borderRadius: 20,
-    padding: 28,
-    width: '100%',
-    maxWidth: 340,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  disclosureTitle: {
-    fontSize: 19,
-    fontWeight: '700',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  disclosureMessage: {
-    fontSize: 15,
-    lineHeight: 22,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  disclosureButtons: {
-    flexDirection: 'row',
-    gap: 10,
-    width: '100%',
-  },
-  disclosureBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  disclosureBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

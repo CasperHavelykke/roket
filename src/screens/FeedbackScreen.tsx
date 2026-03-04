@@ -25,7 +25,7 @@ import CameraIcon from '../assets/camera.svg';
 
 type Category = 'bug' | 'feature' | 'feedback';
 
-export default function FeedbackScreen({ navigation }: any) {
+export default function FeedbackScreen({ route, navigation }: any) {
   const { colors, t } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -35,7 +35,8 @@ export default function FeedbackScreen({ navigation }: any) {
     { value: 'feedback', label: t.feedbackCatFeedback, emoji: '?' },
   ];
   const currentUser = auth().currentUser;
-  const [category, setCategory] = useState<Category>('feedback');
+  const initialCategory = route.params?.category as Category | undefined;
+  const [category, setCategory] = useState<Category>(initialCategory ?? 'feedback');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);

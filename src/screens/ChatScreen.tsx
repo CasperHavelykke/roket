@@ -15,7 +15,6 @@ import {
   Dimensions,
   Pressable,
   Animated,
-  ScrollView,
   Clipboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +29,7 @@ import getFirebaseError from '../utils/getFirebaseError';
 import CameraIcon from '../assets/camera.svg';
 import SendIcon from '../assets/send.svg';
 import RoketLogo from '../assets/roket-logo-2.svg';
+import RoketLogoSimpel from '../assets/roket-logo-simpel.svg';
 
 interface Message {
   id: string;
@@ -203,7 +203,7 @@ function getOrCreateChatId(uid1: string, uid2: string): string {
 }
 
 export default function ChatScreen({ route, navigation }: any) {
-  const { colors, timeFormat, t, language, showTestBadges } = useTheme();
+  const { colors, timeFormat, t, showTestBadges } = useTheme();
   const insets = useSafeAreaInsets();
   const { otherUser, fromProfile } = route.params as {
     otherUser: { id: string; displayName: string; testAccount?: boolean };
@@ -219,7 +219,6 @@ export default function ChatScreen({ route, navigation }: any) {
   const [sendingImage, setSendingImage] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
-  const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [reportMessage, setReportMessage] = useState<Message | null>(null);
   const [reportText, setReportText] = useState('');
   const flatListRef = useRef<FlatList>(null);
@@ -330,38 +329,27 @@ export default function ChatScreen({ route, navigation }: any) {
 
   const handlePickImage = async () => {
     const uris = await pickImages(3);
-    if (uris.length > 0) setPendingImages(uris);
-  };
-
-  const handleAddMoreImages = async () => {
-    const remaining = 3 - pendingImages.length;
-    if (remaining <= 0) return;
-    const uris = await pickImages(remaining);
-    if (uris.length > 0) {
-      setPendingImages(prev => [...prev, ...uris].slice(0, 3));
-    }
-  };
-
-  const handleConfirmSendImages = async () => {
-    if (pendingImages.length === 0) return;
-    const uris = [...pendingImages];
-    setPendingImages([]);
+    if (uris.length === 0) return;
     setSendingImage(true);
     try {
       const chatRef = firestore().collection('chats').doc(chatId);
 
       for (const uri of uris) {
         const messageRef = chatRef.collection('messages').doc();
+
+        // Opret Firestore doc FØR upload, så Cloud Function kan finde den
+        await messageRef.set({
+          senderId: currentUser.uid,
+          moderated: false,
+          timestamp: firestore.FieldValue.serverTimestamp(),
+        });
+
         const ref = storage().ref(`chatImages/${chatId}/${messageRef.id}.jpg`);
         await ref.putFile(uri);
         const imageURL = await ref.getDownloadURL();
 
-        await messageRef.set({
-          senderId: currentUser.uid,
-          imageURL,
-          moderated: false,
-          timestamp: firestore.FieldValue.serverTimestamp(),
-        });
+        // Tilføj imageURL efter upload
+        await messageRef.update({ imageURL });
       }
 
       await chatRef.set(
@@ -537,7 +525,8 @@ export default function ChatScreen({ route, navigation }: any) {
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isMe = item.senderId === currentUser.uid;
-    const expired = item.imageExpired || (item.imageURL && isImageExpired(item.timestamp)) || (!item.text && !item.imageURL && !item.deleted);
+    const isUploading = !item.text && !item.imageURL && !item.deleted;
+    const expired = item.imageExpired || (item.imageURL && isImageExpired(item.timestamp));
     const isLiked = item.likedBy && item.likedBy.length > 0;
     const isFlaggedImage = item.flagged && item.imageURL && !expired && !item.deleted;
     const isRevealed = !!item.revealedBy;
@@ -560,6 +549,11 @@ export default function ChatScreen({ route, navigation }: any) {
               <Text style={[styles.deletedText, { color: isMe ? 'rgba(255,255,255,0.5)' : colors.textMuted }]}>
                 {t.chatDeleted}
               </Text>
+            ) : isUploading ? (
+              <View style={[styles.chatImage, styles.pendingImageContainer]}>
+                <ActivityIndicator size="small" color={isMe ? '#fff' : colors.textMuted} />
+                <Text style={[styles.pendingImageText, { color: isMe ? '#fff' : colors.textMuted }]}>{t.chatImagePending}</Text>
+              </View>
             ) : (item.imageURL || expired) ? (
               expired ? (
                 <Text style={[
@@ -701,6 +695,9 @@ export default function ChatScreen({ route, navigation }: any) {
             </View>
           </TouchableOpacity>
         )}
+        <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
+          <RoketLogoSimpel width={24} height={24} fillRule="evenodd" />
+        </TouchableOpacity>
       </GradientView>
 
       <KeyboardAvoidingView
@@ -728,11 +725,11 @@ export default function ChatScreen({ route, navigation }: any) {
               <View style={styles.emptyContainer}>
                 <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{t.chatSayHi(otherUser.displayName)}</Text>
                 <View style={styles.tipsContainer}>
-                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipDoubleTap}</Text>
                   <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipPhotos}</Text>
                   <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipImageExpiry}</Text>
-                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipLongPress}</Text>
                   <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipDeleted}</Text>
+                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipAutoScan}</Text>
+                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipBlurred}</Text>
                 </View>
               </View>
             }
@@ -791,98 +788,44 @@ export default function ChatScreen({ route, navigation }: any) {
       </Modal>
 
       <Modal visible={!!reportMessage} transparent animationType="fade" onRequestClose={() => setReportMessage(null)}>
-        <View style={styles.reportOverlay}>
-          <View style={[styles.reportCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.reportTitle, { color: colors.textPrimary }]}>{t.chatReportConfirm}</Text>
-            <Text style={[styles.reportDesc, { color: colors.textSecondary }]}>{t.chatReportDescription}</Text>
-            <TextInput
-              style={[styles.reportInput, {
-                borderColor: colors.inputBorder,
-                backgroundColor: colors.inputBackground,
-                color: colors.textPrimary,
-              }]}
-              placeholder={t.profileReportPlaceholder}
-              placeholderTextColor={colors.textMuted}
-              value={reportText}
-              onChangeText={setReportText}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-            <View style={styles.reportButtons}>
-              <TouchableOpacity
-                style={[styles.reportButton, { backgroundColor: colors.backgroundLight }]}
-                onPress={() => { setReportMessage(null); setReportText(''); }}
-              >
-                <Text style={[styles.reportButtonText, { color: colors.textPrimary }]}>{t.cancel}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.reportButton, { backgroundColor: colors.primaryRed }]}
-                onPress={handleSendReport}
-              >
-                <Text style={[styles.reportButtonText, { color: '#FFF' }]}>{t.profileReportSend}</Text>
-              </TouchableOpacity>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.reportOverlay}>
+            <View style={[styles.reportCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.reportTitle, { color: colors.textPrimary }]}>{t.chatReportConfirm}</Text>
+              <Text style={[styles.reportDesc, { color: colors.textSecondary }]}>{t.chatReportDescription}</Text>
+              <TextInput
+                style={[styles.reportInput, {
+                  borderColor: colors.inputBorder,
+                  backgroundColor: colors.inputBackground,
+                  color: colors.textPrimary,
+                }]}
+                placeholder={t.profileReportPlaceholder}
+                placeholderTextColor={colors.textMuted}
+                value={reportText}
+                onChangeText={setReportText}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+              <View style={styles.reportButtons}>
+                <TouchableOpacity
+                  style={[styles.reportButton, { backgroundColor: colors.backgroundLight }]}
+                  onPress={() => { setReportMessage(null); setReportText(''); }}
+                >
+                  <Text style={[styles.reportButtonText, { color: colors.textPrimary }]}>{t.cancel}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.reportButton, { backgroundColor: colors.primaryRed }]}
+                  onPress={handleSendReport}
+                >
+                  <Text style={[styles.reportButtonText, { color: '#FFF' }]}>{t.profileReportSend}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
-      <Modal visible={pendingImages.length > 0} transparent animationType="fade">
-        <View style={styles.previewOverlay}>
-          {pendingImages.length === 1 ? (
-            <View>
-              <Image
-                source={{ uri: pendingImages[0] }}
-                style={styles.previewImage}
-                resizeMode="contain"
-              />
-            </View>
-          ) : (
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              style={styles.previewScroll}
-              contentContainerStyle={styles.previewScrollContent}
-            >
-              {pendingImages.map((uri, i) => (
-                <View key={i} style={styles.previewSlide}>
-                  <Image source={{ uri }} style={styles.previewImage} resizeMode="contain" />
-                  <TouchableOpacity
-                    style={styles.previewRemoveBtn}
-                    onPress={() => setPendingImages(prev => prev.filter((_, idx) => idx !== i))}
-                  >
-                    <Text style={styles.previewRemoveText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
-          )}
-          <Text style={styles.previewCount}>{pendingImages.length}/3</Text>
-          <View style={styles.previewButtons}>
-            <TouchableOpacity
-              style={[styles.previewButton, styles.previewButtonCancel]}
-              onPress={() => setPendingImages([])}
-            >
-              <Text style={styles.previewButtonText}>{t.cancel}</Text>
-            </TouchableOpacity>
-            {pendingImages.length < 3 && (
-              <TouchableOpacity
-                style={[styles.previewButton, { backgroundColor: 'rgba(255,255,255,0.25)' }]}
-                onPress={handleAddMoreImages}
-              >
-                <Text style={styles.previewButtonText}>+ {language === 'da' ? 'Tilføj' : 'Add'}</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.previewButton, { backgroundColor: colors.primaryRed }]}
-              onPress={handleConfirmSendImages}
-            >
-              <Text style={styles.previewButtonText}>{t.send}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -1084,27 +1027,30 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     borderRadius: 14,
   },
   flaggedIcon: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '800',
-    width: 40,
-    height: 40,
-    lineHeight: 40,
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 20,
+    fontWeight: '700',
+    width: 36,
+    height: 36,
+    lineHeight: 36,
     textAlign: 'center',
-    backgroundColor: 'rgba(255,59,48,0.8)',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   flaggedText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '500',
     textAlign: 'center',
+    paddingHorizontal: 16,
   },
   deletedText: {
     fontSize: 14,
@@ -1162,67 +1108,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 28,
     fontWeight: 'bold',
-  },
-  previewOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewScroll: {
-    maxHeight: SCREEN_H * 0.7,
-    flexGrow: 0,
-  },
-  previewScrollContent: {
-    alignItems: 'center',
-  },
-  previewSlide: {
-    width: SCREEN_W,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previewImage: {
-    width: SCREEN_W * 0.9,
-    height: SCREEN_H * 0.6,
-  },
-  previewRemoveBtn: {
-    position: 'absolute',
-    top: 10,
-    right: SCREEN_W * 0.08,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewRemoveText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  previewCount: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-    marginTop: 8,
-  },
-  previewButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  previewButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 24,
-  },
-  previewButtonCancel: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  previewButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
   },
   reportOverlay: {
     flex: 1,

@@ -4,7 +4,7 @@ import { useTheme } from '../theme';
 
 interface DisclosureModalProps {
   visible: boolean;
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   message: string;
   acceptLabel: string;
@@ -29,7 +29,7 @@ export default function DisclosureModal({
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
-          {icon && <Text style={styles.icon}>{icon}</Text>}
+          {icon && <View style={styles.iconContainer}>{typeof icon === 'string' ? <Text style={styles.iconText}>{icon}</Text> : icon}</View>}
           <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
           <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
           <View style={styles.buttons}>
@@ -74,9 +74,11 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  icon: {
-    fontSize: 40,
+  iconContainer: {
     marginBottom: 12,
+  },
+  iconText: {
+    fontSize: 40,
   },
   title: {
     fontSize: 19,

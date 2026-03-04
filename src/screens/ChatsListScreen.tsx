@@ -96,7 +96,7 @@ function SwipeableRow({ children, onAction, actionLabel, actionColor }: {
 }
 
 export default function ChatsListScreen({ navigation }: any) {
-  const { colors, isDark, t, showTestBadges } = useTheme();
+  const { colors, isDark, t, showTestBadges, timeFormat } = useTheme();
   const insets = useSafeAreaInsets();
   const [chats, setChats] = useState<ChatPreview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,6 +121,8 @@ export default function ChatsListScreen({ navigation }: any) {
     const unsubscribe = firestore()
       .collection('chats')
       .where('participants', 'array-contains', currentUser.uid)
+      .orderBy('lastMessageTime', 'desc')
+      .limit(50)
       .onSnapshot(async snapshot => {
         const chatPreviews: ChatPreview[] = [];
 
@@ -254,7 +256,7 @@ export default function ChatsListScreen({ navigation }: any) {
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
     if (isToday) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' });
     }
     return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
   };
@@ -293,7 +295,7 @@ export default function ChatsListScreen({ navigation }: any) {
               {showTestBadges && item.otherUserTestAccount && <View style={styles.testTag}><Text style={styles.testTagText}>{t.testAccount}</Text></View>}
               <View style={styles.chatTopRight}>
                 {isPinned && <Text style={styles.pinIcon}>📌</Text>}
-                <Text style={[styles.chatTime, unread && { color: colors.primaryBlue, fontWeight: '600' }]}>
+                <Text style={[styles.chatTime, unread && { color: colors.primaryBlueText, fontWeight: '600' }]}>
                   {formatTime(item.lastMessageTime)}
                 </Text>
               </View>
@@ -341,7 +343,9 @@ export default function ChatsListScreen({ navigation }: any) {
           <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.chatsTitle}</Text>
-        <RoketLogo width={24} height={24} fillRule="evenodd" style={{ marginLeft: 'auto' }} />
+        <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
+          <RoketLogo width={24} height={24} fillRule="evenodd" />
+        </TouchableOpacity>
       </GradientView>
 
       {loading ? (

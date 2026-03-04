@@ -10,6 +10,7 @@ import NotificationService from './src/services/NotificationService';
 import LocationService from './src/services/LocationService';
 import NotificationBanner, { NotificationBannerRef, NotificationData } from './src/components/NotificationBanner';
 import DisclosureModal from './src/components/DisclosureModal';
+import BellIcon from './src/assets/bell.svg';
 import { ThemeContext, useThemeProvider } from './src/theme';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
@@ -378,7 +379,7 @@ function App() {
         )}
         <DisclosureModal
           visible={showNotifDisclosure}
-          icon="🔔"
+          icon={<BellIcon width={64} height={64} />}
           title={theme.t.disclosureNotificationTitle}
           message={theme.t.disclosureNotificationMessage}
           acceptLabel={theme.t.disclosureNotificationAccept}
