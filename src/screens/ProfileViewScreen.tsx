@@ -543,6 +543,9 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 32,
+    borderRadius: 32,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -550,14 +553,12 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   fabButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    overflow: 'hidden',
+    width: 61,
+    height: 61,
+    borderRadius: 31,
+    ...Platform.select({ android: { overflow: 'hidden' as const } }),
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
   },
   fabBadgeBlue: {
     position: 'absolute',
