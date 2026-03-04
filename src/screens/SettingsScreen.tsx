@@ -291,7 +291,7 @@ export default function SettingsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.copyright}>© 2026 Røket · v1.1.0{releaseTag ? ` ${releaseTag}` : ''}</Text>
+        <Text style={styles.copyright}>© 2026 Røket · v1.1.1{releaseTag ? ` ${releaseTag}` : ''}</Text>
       </ScrollView>
     </SafeAreaView>
   );
