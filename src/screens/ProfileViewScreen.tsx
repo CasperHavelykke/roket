@@ -103,10 +103,9 @@ export default function ProfileViewScreen({ route, navigation }: any) {
 
   if (!currentUser) return null;
 
-  const allPhotos = [
-    ...(user.photoURL ? [user.photoURL] : []),
-    ...(user.photos ?? []),
-  ];
+  const allPhotos = user.photoURL
+    ? [user.photoURL, ...(user.photos ?? [])]
+    : [];
 
   const handleBlockReport = () => setShowMenu(true);
 

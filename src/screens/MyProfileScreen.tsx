@@ -95,10 +95,7 @@ export default function MyProfileScreen({ navigation }: any) {
 
   if (!currentUser) return null;
 
-  const allPhotos = [
-    ...(photoURL ? [photoURL] : []),
-    ...photos,
-  ];
+  const allPhotos = photoURL ? [photoURL, ...photos] : [];
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>

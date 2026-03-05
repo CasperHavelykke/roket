@@ -725,11 +725,12 @@ export default function ChatScreen({ route, navigation }: any) {
               <View style={styles.emptyContainer}>
                 <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{t.chatSayHi(otherUser.displayName)}</Text>
                 <View style={styles.tipsContainer}>
-                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipPhotos}</Text>
                   <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipImageExpiry}</Text>
                   <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipDeleted}</Text>
                   <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipAutoScan}</Text>
                   <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipBlurred}</Text>
+                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipReportMessage}</Text>
+                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipReportProfile}</Text>
                 </View>
               </View>
             }

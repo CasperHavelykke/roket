@@ -410,7 +410,7 @@ export default function HomeScreen({ navigation }: any) {
   });
 
   const renderUserCard = (item: User) => {
-    const allPhotos = [item.photoURL, ...(item.photos || [])].filter(Boolean) as string[];
+    const allPhotos = item.photoURL ? [item.photoURL, ...(item.photos || [])] : [];
 
     const navigateToProfile = () => navigation.navigate('ProfileView', { user: serializeUser(item) });
 

@@ -31,6 +31,7 @@ export default function EditProfileScreen({ navigation }: any) {
   const [bio, setBio] = useState('');
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingExtra, setUploadingExtra] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showAge, setShowAge] = useState(true);
   const [hasBirthday, setHasBirthday] = useState(false);
@@ -144,7 +145,7 @@ export default function EditProfileScreen({ navigation }: any) {
     const uri = await pickImage();
     if (!uri) return;
 
-    setUploading(true);
+    setUploadingExtra(true);
     try {
       const index = photos.length;
       const ref = storage().ref(`profilePhotos/${currentUser.uid}_extra_${index}.jpg`);
@@ -159,7 +160,7 @@ export default function EditProfileScreen({ navigation }: any) {
     } catch (error: any) {
       Alert.alert(t.error, getFirebaseError(error, t));
     } finally {
-      setUploading(false);
+      setUploadingExtra(false);
     }
   };
 
@@ -169,7 +170,7 @@ export default function EditProfileScreen({ navigation }: any) {
         text: t.remove,
         style: 'destructive',
         onPress: async () => {
-          setUploading(true);
+          setUploadingExtra(true);
           try {
             const updated = photos.filter((_, i) => i !== index);
             await firestore().collection('users').doc(currentUser.uid).update({
@@ -179,7 +180,7 @@ export default function EditProfileScreen({ navigation }: any) {
           } catch (error: any) {
             Alert.alert(t.error, getFirebaseError(error, t));
           } finally {
-            setUploading(false);
+            setUploadingExtra(false);
           }
         },
       },
@@ -228,18 +229,17 @@ export default function EditProfileScreen({ navigation }: any) {
       >
         <ScrollView contentContainerStyle={styles.content}>
           <TouchableOpacity onPress={handleChangePhoto} style={styles.photoContainer}>
-            {uploading ? (
+            <Image
+              source={photoURL ? { uri: photoURL } : isDark ? require('../assets/missing-profile-pic.png') : require('../assets/missing-profile-pic-light.png')}
+              style={styles.photo}
+            />
+            {uploading && (
               <GradientView
                 colors={[colors.primaryBlue, colors.primaryRed]}
-                style={styles.photoPlaceholder}
+                style={[styles.photoPlaceholder, { position: 'absolute', opacity: 0.7 }]}
               >
                 <ActivityIndicator color={colors.textWhite} />
               </GradientView>
-            ) : (
-              <Image
-                source={photoURL ? { uri: photoURL } : isDark ? require('../assets/missing-profile-pic.png') : require('../assets/missing-profile-pic-light.png')}
-                style={styles.photo}
-              />
             )}
             <View style={[styles.editBadge, { backgroundColor: colors.white }]}>
               <CameraIcon width={16} height={16} fill={colors.primaryBlueText} />
@@ -253,6 +253,9 @@ export default function EditProfileScreen({ navigation }: any) {
             <Text style={[styles.label, { color: colors.textSecondary }]}>
               {t.editProfilePhotos} <Text style={{ fontWeight: '400' }}>({t.editProfilePhotosDesc(photos.length, MAX_EXTRA_PHOTOS)})</Text>
             </Text>
+            {!photoURL && photos.length > 0 && (
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 10 }}>{t.editProfilePhotosHidden}</Text>
+            )}
             <View style={styles.extraPhotosGrid}>
               {photos.map((url, i) => (
                 <TouchableOpacity key={i} onPress={() => handleRemoveExtraPhoto(i)} style={styles.extraPhotoSlot}>
@@ -266,7 +269,7 @@ export default function EditProfileScreen({ navigation }: any) {
                 <TouchableOpacity
                   onPress={handleAddExtraPhoto}
                   style={[styles.extraPhotoSlot, styles.addPhotoSlot, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}
-                  disabled={uploading}
+                  disabled={uploadingExtra}
                 >
                   <Text style={[styles.addPhotoIcon, { color: colors.textMuted }]}>+</Text>
                   <Text style={[styles.addPhotoLabel, { color: colors.textMuted }]}>{t.editProfileAddPhoto}</Text>
