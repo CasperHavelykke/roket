@@ -14,6 +14,7 @@ import {
   Pressable,
 } from 'react-native';
 import GradientView from '../components/GradientView';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import LocationService from '../services/LocationService';
@@ -157,6 +158,19 @@ export default function HomeScreen({ navigation }: any) {
   const updateLocationAndLoad = async () => {
     const currentUser = auth().currentUser;
     if (!currentUser) return;
+
+    // Vent på at notification disclosure er færdig (undgå to modaler samtidigt)
+    const notifShown = await AsyncStorage.getItem('@roket_notif_disclosure_shown');
+    if (!notifShown) {
+      await new Promise<void>(resolve => {
+        const check = setInterval(async () => {
+          const shown = await AsyncStorage.getItem('@roket_notif_disclosure_shown');
+          if (shown) { clearInterval(check); resolve(); }
+        }, 300);
+        // Timeout efter 15 sek hvis notification flow aldrig fuldfører
+        setTimeout(() => { clearInterval(check); resolve(); }, 15000);
+      });
+    }
 
     // Tjek om lokationstilladelse allerede er givet
     const currentPrecision = await LocationService.checkCurrentPrecision();

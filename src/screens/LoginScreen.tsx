@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import KeyboardAvoidingView from '../components/KeyboardAvoidingView';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
