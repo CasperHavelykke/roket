@@ -239,65 +239,81 @@ export default function ChatScreen({ route, navigation }: any) {
     checkBlock();
   }, []);
 
+  const unsubscribeRef = useRef<(() => void) | undefined>();
+  const chatCreatedRef = useRef(false);
+
+  const startListener = () => {
+    if (unsubscribeRef.current || !currentUser) return;
+    const chatRef = firestore().collection('chats').doc(chatId);
+    unsubscribeRef.current = chatRef
+      .collection('messages')
+      .onSnapshot(snapshot => {
+        if (!snapshot) {
+          setLoading(false);
+          return;
+        }
+        const msgs: Message[] = snapshot.docs.map(doc => ({
+          id: doc.id,
+          senderId: doc.data().senderId,
+          text: doc.data().text,
+          imageURL: doc.data().imageURL,
+          timestamp: doc.data().timestamp,
+          imageExpired: doc.data().imageExpired ?? false,
+          moderated: doc.data().moderated ?? true,
+          likedBy: doc.data().likedBy ?? [],
+          deleted: doc.data().deleted ?? false,
+          flagged: doc.data().flagged ?? false,
+          flaggedReason: doc.data().flaggedReason,
+          revealedBy: doc.data().revealedBy,
+        }));
+        msgs.sort((a, b) => {
+          if (!a.timestamp) return -1;
+          if (!b.timestamp) return 1;
+          const aTime = a.timestamp.toDate ? a.timestamp.toDate().getTime() : 0;
+          const bTime = b.timestamp.toDate ? b.timestamp.toDate().getTime() : 0;
+          return bTime - aTime;
+        });
+        setMessages(msgs);
+        setLoading(false);
+
+        chatRef.update({
+          [`lastRead.${currentUser.uid}`]: firestore.Timestamp.now(),
+        }).catch(() => {});
+      });
+  };
+
+  const ensureChatExists = async () => {
+    if (chatCreatedRef.current || !currentUser) return;
+    chatCreatedRef.current = true;
+    const chatRef = firestore().collection('chats').doc(chatId);
+    await chatRef.set(
+      {
+        participants: [currentUser.uid, otherUser.id],
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    startListener();
+  };
+
   useEffect(() => {
     if (!currentUser) return;
-    let unsubscribe: (() => void) | undefined;
 
     const setup = async () => {
-      // Opret chat-dokument først, så Firestore-regler tillader læsning af messages
-      const chatRef = firestore().collection('chats').doc(chatId);
-      await chatRef.set(
-        {
-          participants: [currentUser.uid, otherUser.id],
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      // Lyt til beskeder real-time
-      unsubscribe = firestore()
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .onSnapshot(snapshot => {
-          if (!snapshot) {
-            setLoading(false);
-            return;
-          }
-          const msgs: Message[] = snapshot.docs.map(doc => ({
-            id: doc.id,
-            senderId: doc.data().senderId,
-            text: doc.data().text,
-            imageURL: doc.data().imageURL,
-            timestamp: doc.data().timestamp,
-            imageExpired: doc.data().imageExpired ?? false,
-            moderated: doc.data().moderated ?? true,
-            likedBy: doc.data().likedBy ?? [],
-            deleted: doc.data().deleted ?? false,
-            flagged: doc.data().flagged ?? false,
-            flaggedReason: doc.data().flaggedReason,
-            revealedBy: doc.data().revealedBy,
-          }));
-          msgs.sort((a, b) => {
-            if (!a.timestamp) return -1;
-            if (!b.timestamp) return 1;
-            const aTime = a.timestamp.toDate ? a.timestamp.toDate().getTime() : 0;
-            const bTime = b.timestamp.toDate ? b.timestamp.toDate().getTime() : 0;
-            return bTime - aTime;
-          });
-          setMessages(msgs);
-          setLoading(false);
-
-          // Markér chatten som læst (brug Timestamp.now() så lokal cache opdateres straks)
-          chatRef.update({
-            [`lastRead.${currentUser.uid}`]: firestore.Timestamp.now(),
-          }).catch(() => {});
-        });
+      try {
+        const chatDoc = await firestore().collection('chats').doc(chatId).get();
+        if (chatDoc.exists) {
+          chatCreatedRef.current = true;
+          startListener();
+          return;
+        }
+      } catch {}
+      setLoading(false);
     };
 
     setup();
 
-    return () => unsubscribe?.();
+    return () => unsubscribeRef.current?.();
   }, [chatId]);
 
   if (!currentUser) return null;
@@ -307,6 +323,8 @@ export default function ChatScreen({ route, navigation }: any) {
     if (!text) return;
 
     setInputText('');
+
+    await ensureChatExists();
 
     const chatRef = firestore().collection('chats').doc(chatId);
     const messageRef = chatRef.collection('messages').doc();
@@ -332,6 +350,7 @@ export default function ChatScreen({ route, navigation }: any) {
     if (uris.length === 0) return;
     setSendingImage(true);
     try {
+      await ensureChatExists();
       const chatRef = firestore().collection('chats').doc(chatId);
 
       for (const uri of uris) {
@@ -392,6 +411,24 @@ export default function ChatScreen({ route, navigation }: any) {
     const minsLeft = Math.floor((msLeft % (60 * 60 * 1000)) / (60 * 1000));
     if (hoursLeft > 0) return t.chatExpiresHoursMinutes(hoursLeft, minsLeft);
     return t.chatExpiresMinutes(minsLeft);
+  };
+
+  const getDateKey = (timestamp: any): string => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  };
+
+  const formatDateLabel = (timestamp: any): string => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diff = today.getTime() - msgDay.getTime();
+    if (diff === 0) return t.chatDateToday;
+    if (diff === 86400000) return t.chatDateYesterday;
+    return date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
   };
 
   const handleDoubleTap = (messageId: string) => {
@@ -523,14 +560,24 @@ export default function ChatScreen({ route, navigation }: any) {
     );
   };
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderMessage = ({ item, index }: { item: Message; index: number }) => {
+    const nextMsg = messages[index + 1];
+    const showDateSeparator = !nextMsg || getDateKey(item.timestamp) !== getDateKey(nextMsg.timestamp);
     const isMe = item.senderId === currentUser.uid;
-    const isUploading = !item.text && !item.imageURL && !item.deleted;
+    const isUploading = !item.text && !item.imageURL && !item.deleted && !item.imageExpired;
     const expired = item.imageExpired || (item.imageURL && isImageExpired(item.timestamp));
     const isLiked = item.likedBy && item.likedBy.length > 0;
     const isFlaggedImage = item.flagged && item.imageURL && !expired && !item.deleted;
     const isRevealed = !!item.revealedBy;
     return (
+      <View>
+        {showDateSeparator && item.timestamp && (
+          <View style={styles.dateSeparator}>
+            <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dateLabel, { color: colors.textMuted }]}>{formatDateLabel(item.timestamp)}</Text>
+            <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
+          </View>
+        )}
       <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowThem]}>
         <Pressable
           style={styles.messagePressable}
@@ -621,6 +668,7 @@ export default function ChatScreen({ route, navigation }: any) {
             </View>
           )}
         </Pressable>
+      </View>
       </View>
     );
   };
@@ -1153,5 +1201,21 @@ const styles = StyleSheet.create({
   reportButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  dateSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+  },
+  dateLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  dateLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginHorizontal: 12,
   },
 });

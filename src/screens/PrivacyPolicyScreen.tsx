@@ -18,7 +18,7 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
   const policy = privacyPolicy[language] || privacyPolicy.en;
 
   return (
-    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
@@ -31,7 +31,7 @@ export default function PrivacyPolicyScreen({ navigation }: any) {
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.privacyPolicyTitle}</Text>
       </GradientView>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           <FormattedLegalText text={policy} textColor={colors.textPrimary} headingColor={colors.textPrimary} mutedColor={colors.textMuted} />
         </View>

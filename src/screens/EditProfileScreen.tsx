@@ -9,10 +9,9 @@ import {
   Alert,
   TextInput,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Switch,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
@@ -210,7 +209,7 @@ export default function EditProfileScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
@@ -225,9 +224,9 @@ export default function EditProfileScreen({ navigation }: any) {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior="padding"
       >
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 20 + insets.bottom }]}>
           <TouchableOpacity onPress={handleChangePhoto} style={styles.photoContainer}>
             <Image
               source={photoURL ? { uri: photoURL } : isDark ? require('../assets/missing-profile-pic.png') : require('../assets/missing-profile-pic-light.png')}

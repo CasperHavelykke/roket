@@ -88,7 +88,7 @@ export default function BlockedUsersScreen({ navigation }: any) {
   );
 
   return (
-    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
@@ -116,7 +116,7 @@ export default function BlockedUsersScreen({ navigation }: any) {
           data={blockedUsers}
           renderItem={renderItem}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: 16 + insets.bottom }]}
         />
       )}
     </SafeAreaView>

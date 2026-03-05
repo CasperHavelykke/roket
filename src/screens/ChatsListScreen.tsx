@@ -332,7 +332,7 @@ export default function ChatsListScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.white }]}>
+    <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.white }]}>
       <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
@@ -363,6 +363,7 @@ export default function ChatsListScreen({ navigation }: any) {
           renderItem={renderChat}
           keyExtractor={item => item.chatId}
           extraData={showTestBadges}
+          contentContainerStyle={{ paddingBottom: insets.bottom }}
         />
       )}
     </SafeAreaView>

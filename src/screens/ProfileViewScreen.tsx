@@ -186,7 +186,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={[styles.backButtonText, { color: isDark ? colors.textWhite : colors.primaryBlue }]}>{t.profileBack}</Text>
@@ -196,7 +196,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}>
         <View style={styles.photoContainer}>
           {allPhotos.length > 1 ? (
             <View style={[styles.photoCarousel, { width: photoSize, height: photoSize }]}>

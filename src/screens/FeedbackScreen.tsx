@@ -8,10 +8,9 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Image,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
@@ -100,7 +99,7 @@ export default function FeedbackScreen({ route, navigation }: any) {
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.feedbackTitle}</Text>
       </GradientView>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.feedbackCategory}</Text>
           <View style={styles.categories}>

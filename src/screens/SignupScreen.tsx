@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,10 @@ import {
   ActivityIndicator,
   ScrollView,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
+  Animated,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
@@ -68,14 +69,21 @@ export default function SignupScreen({ navigation }: any) {
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  React.useEffect(() => {
-    const sub = Keyboard.addListener('keyboardDidHide', () => {
-      scrollRef.current?.scrollToEnd({ animated: false });
-      // Lille delay for at lade layoutet gendanne sig
-      setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: false }), 50);
-    });
-    return () => sub.remove();
-  }, []);
+  const monthAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(monthAnim, {
+      toValue: showMonthPicker ? 1 : 0,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  }, [showMonthPicker]);
+
+  const monthGridHeight = monthAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 180],
+  });
+
 
   const months = monthsByLang[language] || monthsByLang.en;
   const ph = placeholders[language] || placeholders.en;
@@ -145,7 +153,7 @@ export default function SignupScreen({ navigation }: any) {
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + insets.bottom }]} keyboardShouldPersistTaps="handled">
         <View style={styles.logoContainer}>
           <RoketLogo width={100} height={100} fill="#fff" />
@@ -217,7 +225,7 @@ export default function SignupScreen({ navigation }: any) {
             />
           </View>
 
-          {showMonthPicker && (
+          <Animated.View style={{ height: monthGridHeight, overflow: 'hidden', opacity: monthAnim }}>
             <View style={[styles.monthGrid, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
               {months.map((m, i) => (
                 <TouchableOpacity
@@ -241,7 +249,7 @@ export default function SignupScreen({ navigation }: any) {
                 </TouchableOpacity>
               ))}
             </View>
-          )}
+          </Animated.View>
 
           <TouchableOpacity
             style={styles.privacyRow}

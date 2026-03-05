@@ -18,7 +18,7 @@ export default function TermsConditionsScreen({ navigation }: any) {
   const terms = termsConditions[language] || termsConditions.en;
 
   return (
-    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
@@ -31,7 +31,7 @@ export default function TermsConditionsScreen({ navigation }: any) {
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.termsTitle}</Text>
       </GradientView>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           <FormattedLegalText text={terms} textColor={colors.textPrimary} headingColor={colors.textPrimary} mutedColor={colors.textMuted} />
         </View>

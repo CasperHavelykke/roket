@@ -96,7 +96,7 @@ export default function SupportScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
@@ -110,7 +110,7 @@ export default function SupportScreen({ navigation }: any) {
         <RoketLogo width={24} height={24} style={{ marginLeft: 'auto' }} />
       </GradientView>
 
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingBottom: 20 + insets.bottom }]}>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           <View style={styles.cardContent}>
             <SupportIcon width={32} height={32} color={colors.textPrimary} />

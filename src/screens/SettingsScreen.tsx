@@ -141,7 +141,7 @@ export default function SettingsScreen({ navigation }: any) {
   );
 
   return (
-    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
@@ -157,7 +157,7 @@ export default function SettingsScreen({ navigation }: any) {
         </TouchableOpacity>
       </GradientView>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom }]}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsLanguage}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           {renderSelector(languages, language, setLanguage, 3)}

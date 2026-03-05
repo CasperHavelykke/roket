@@ -18,7 +18,7 @@ export default function CommunityGuidelinesScreen({ navigation }: any) {
   const text = communityGuidelines[language] || communityGuidelines.en;
 
   return (
-    <SafeAreaView edges={['bottom']} style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <GradientView
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
@@ -31,7 +31,7 @@ export default function CommunityGuidelinesScreen({ navigation }: any) {
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.guidelinesTitle}</Text>
       </GradientView>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           <FormattedLegalText text={text} textColor={colors.textPrimary} headingColor={colors.textPrimary} mutedColor={colors.textMuted} />
         </View>
