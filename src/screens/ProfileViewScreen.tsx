@@ -11,10 +11,10 @@ import {
   Modal,
   Pressable,
   TextInput,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
@@ -323,7 +323,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
       )}
 
       <Modal visible={showReportModal} transparent animationType="fade">
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
               {t.profileReportConfirm(user.displayName)}

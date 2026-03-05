@@ -6,7 +6,6 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Image,
@@ -18,6 +17,7 @@ import {
   Clipboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
 import auth from '@react-native-firebase/auth';
@@ -789,7 +789,7 @@ export default function ChatScreen({ route, navigation }: any) {
       </Modal>
 
       <Modal visible={!!reportMessage} transparent animationType="fade" onRequestClose={() => setReportMessage(null)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <View style={styles.reportOverlay}>
             <View style={[styles.reportCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.reportTitle, { color: colors.textPrimary }]}>{t.chatReportConfirm}</Text>

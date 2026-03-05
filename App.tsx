@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, StatusBar, Alert, AppState, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { NavigationContainer, DefaultTheme, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import auth from '@react-native-firebase/auth';
@@ -337,6 +338,7 @@ function App() {
 
   return (
     <SafeAreaProvider>
+      <KeyboardProvider>
       <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceMode: theme.distanceMode, setDistanceMode: theme.setDistanceMode, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, gridColumns: theme.gridColumns, setGridColumns: theme.setGridColumns, showTestBadges: theme.showTestBadges, loginTestInfo: theme.loginTestInfo, releaseTag: theme.releaseTag, t: theme.t }}>
         <NavigationContainer ref={navigationRef} theme={navTheme}>
@@ -389,6 +391,7 @@ function App() {
           }}
         />
       </ThemeContext.Provider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }
