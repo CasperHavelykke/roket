@@ -182,30 +182,8 @@ export default function ChatsListScreen({ navigation }: any) {
           const theirBlockedUsers: string[] = otherUserData?.blockedUsers ?? [];
           if (theirBlockedUsers.includes(currentUser.uid)) continue;
 
-          // Tæl ulæste beskeder
-          const lastRead = data.lastRead?.[currentUser.uid];
-          const lastMessageSenderId = data.lastMessageSenderId;
-          const isUnread =
-            lastMessageSenderId !== currentUser.uid &&
-            (!lastRead ||
-              (data.lastMessageTime &&
-                lastRead.toMillis() < data.lastMessageTime.toMillis()));
-
-          let unreadCount = 0;
-          if (isUnread) {
-            let msgQuery = firestore()
-              .collection('chats')
-              .doc(doc.id)
-              .collection('messages') as any;
-            if (lastRead) {
-              msgQuery = msgQuery.where('timestamp', '>', lastRead);
-            }
-            const unreadSnap = await msgQuery.limit(100).get();
-            unreadCount = unreadSnap.docs.filter(
-              (d: any) => d.data().senderId !== currentUser.uid && !d.data().deleted
-            ).length;
-            if (unreadCount === 0) unreadCount = 1; // mindst 1 hvis isUnread
-          }
+          // Læs ulæste beskeder fra unreadCount-feltet
+          const unreadCount = data.unreadCount?.[currentUser.uid] ?? 0;
 
           chatPreviews.push({
             chatId: doc.id,

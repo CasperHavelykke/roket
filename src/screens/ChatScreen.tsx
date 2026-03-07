@@ -278,6 +278,7 @@ export default function ChatScreen({ route, navigation }: any) {
 
         chatRef.update({
           [`lastRead.${currentUser.uid}`]: firestore.Timestamp.now(),
+          [`unreadCount.${currentUser.uid}`]: 0,
         }).catch(() => {});
       });
   };
@@ -340,6 +341,7 @@ export default function ChatScreen({ route, navigation }: any) {
         lastMessage: text.slice(0, 500),
         lastMessageTime: firestore.FieldValue.serverTimestamp(),
         lastMessageSenderId: currentUser.uid,
+        unreadCount: { [otherUser.id]: firestore.FieldValue.increment(1) },
       },
       { merge: true }
     );
@@ -376,6 +378,7 @@ export default function ChatScreen({ route, navigation }: any) {
           lastMessage: t.chatPhotoLabel,
           lastMessageTime: firestore.FieldValue.serverTimestamp(),
           lastMessageSenderId: currentUser.uid,
+          unreadCount: { [otherUser.id]: firestore.FieldValue.increment(uris.length) },
         },
         { merge: true }
       );

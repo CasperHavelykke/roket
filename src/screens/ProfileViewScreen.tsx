@@ -25,6 +25,7 @@ import LocationService from '../services/LocationService';
 import PhotoGalleryModal from '../components/PhotoGalleryModal';
 import MessageIcon from '../assets/message.svg';
 import MessagesIcon from '../assets/messages.svg';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 interface RouteParams {
   user: {
@@ -78,26 +79,22 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
   const [hasConversation, setHasConversation] = useState(false);
-  const [hasUnread, setHasUnread] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const photoSize = Dimensions.get('window').width - 40;
 
   useFocusEffect(
     useCallback(() => {
       if (!currentUser) return;
       const chatId = [currentUser.uid, user.id].sort().join('_');
-      firestore().collection('chats').doc(chatId).get().then(snap => {
+      const unsub = firestore().collection('chats').doc(chatId).onSnapshot(snap => {
         if (!snap.exists) return;
         setHasConversation(true);
         const data = snap.data();
         if (!data) return;
-        const lastRead = data.lastRead?.[currentUser.uid];
-        const isUnread =
-          data.lastMessageSenderId !== currentUser.uid &&
-          (!lastRead ||
-            (data.lastMessageTime &&
-              lastRead.toMillis() < data.lastMessageTime.toMillis()));
-        setHasUnread(!!isUnread);
-      }).catch(() => {});
+        const count = data.unreadCount?.[currentUser.uid] ?? 0;
+        setUnreadCount(count);
+      });
+      return () => unsub();
     }, [currentUser, user.id])
   );
 
@@ -307,18 +304,46 @@ export default function ProfileViewScreen({ route, navigation }: any) {
             })
           }
         >
-          <GradientView
-            colors={[colors.primaryBlue, colors.primaryRed]}
-            start={{ x: -(Dimensions.get('window').width - 32 - 64) / 64, y: 0 }}
-            end={{ x: (32 + 64) / 64, y: 0 }}
-            style={styles.fabButton}
-          >
-            {hasConversation
-              ? <MessagesIcon width={30} height={30} stroke="#fff" />
-              : <MessageIcon width={30} height={30} stroke="#fff" />
-            }
-          </GradientView>
-          {hasUnread && <View style={styles.fabBadgeBlue} />}
+          {unreadCount > 0 ? (
+            <View style={[styles.fabButton, { backgroundColor: '#fff' }]}>
+              <MaskedView
+                style={{ width: 30, height: 30 }}
+                maskElement={hasConversation
+                  ? <MessagesIcon width={30} height={30} stroke="#000" fill="none" />
+                  : <MessageIcon width={30} height={30} stroke="#000" fill="none" />
+                }
+              >
+                <GradientView
+                  colors={[colors.primaryBlue, colors.primaryRed]}
+                  start={{ x: -(Dimensions.get('window').width - 32 - 64) / 64, y: 0 }}
+                  end={{ x: (32 + 64) / 64, y: 0 }}
+                  style={{ width: 30, height: 30 }}
+                />
+              </MaskedView>
+            </View>
+          ) : (
+            <GradientView
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: -(Dimensions.get('window').width - 32 - 64) / 64, y: 0 }}
+              end={{ x: (32 + 64) / 64, y: 0 }}
+              style={styles.fabButton}
+            >
+              {hasConversation
+                ? <MessagesIcon width={30} height={30} stroke="#fff" />
+                : <MessageIcon width={30} height={30} stroke="#fff" />
+              }
+            </GradientView>
+          )}
+          {unreadCount > 0 && (
+            <GradientView
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: -(Dimensions.get('window').width - 32 - 64) / 20, y: 0 }}
+              end={{ x: (32 + 64) / 20, y: 0 }}
+              style={styles.fabUnreadBadge}
+            >
+              <Text style={styles.fabUnreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </GradientView>
+          )}
         </TouchableOpacity>
       )}
 
@@ -559,18 +584,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fabBadgeBlue: {
+  fabUnreadBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 20,
+    top: -4,
+    right: -4,
+    minWidth: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#4A90FF',
-    shadowColor: '#4A90FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    paddingHorizontal: 5,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  fabUnreadBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800' as const,
     elevation: 4,
   },
   modalOverlay: {

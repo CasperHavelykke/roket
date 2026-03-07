@@ -94,6 +94,7 @@ export default function HomeScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [unreadFromUsers, setUnreadFromUsers] = useState<Set<string>>(new Set());
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const [needsProfile, setNeedsProfile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(12);
   const [showLocationDisclosure, setShowLocationDisclosure] = useState(false);
@@ -142,18 +143,29 @@ export default function HomeScreen({ navigation }: any) {
       .where('participants', 'array-contains', currentUser.uid)
       .onSnapshot(snapshot => {
         const unreadUserIds = new Set<string>();
+        let total = 0;
         snapshot.docs.forEach(doc => {
           const data = doc.data();
           if (!data.lastMessage || data.lastMessageSenderId === currentUser.uid) return;
-          const lastRead = data.lastRead?.[currentUser.uid];
-          const isUnread = !lastRead || (data.lastMessageTime && lastRead.toMillis() < data.lastMessageTime.toMillis());
-          if (isUnread) {
+          const count = data.unreadCount?.[currentUser.uid] ?? 0;
+          if (count > 0) {
             const otherUserId = data.participants.find((id: string) => id !== currentUser.uid);
             if (otherUserId) unreadUserIds.add(otherUserId);
+            total += count;
+          } else {
+            // Fallback: tjek lastRead for chats uden unreadCount (eksisterende chats)
+            const lastRead = data.lastRead?.[currentUser.uid];
+            const isUnread = !lastRead || (data.lastMessageTime && lastRead.toMillis() < data.lastMessageTime.toMillis());
+            if (isUnread) {
+              const otherUserId = data.participants.find((id: string) => id !== currentUser.uid);
+              if (otherUserId) unreadUserIds.add(otherUserId);
+              total += 1;
+            }
           }
         });
         setHasUnread(unreadUserIds.size > 0);
         setUnreadFromUsers(unreadUserIds);
+        setTotalUnreadCount(total);
       });
 
     return () => unsubscribe();
@@ -610,7 +622,16 @@ export default function HomeScreen({ navigation }: any) {
 
         const fabButtons = [
           { icon: <ProfileIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <Animated.View style={[styles.fabPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0.15] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] }) }] }]} /> },
-          { icon: <MessagesIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: null, inverted: hasUnread },
+          { icon: <MessagesIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread ? (btnLeft: number) => (
+            <GradientView
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: -btnLeft / 20, y: 0 }}
+              end={{ x: (screenWidth - btnLeft) / 20, y: 0 }}
+              style={styles.fabUnreadBadge}
+            >
+              <Text style={styles.fabUnreadBadgeText}>{totalUnreadCount > 9 ? '9+' : totalUnreadCount}</Text>
+            </GradientView>
+          ) : null, inverted: hasUnread },
           { icon: <SettingsIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null },
         ];
 
@@ -734,7 +755,7 @@ export default function HomeScreen({ navigation }: any) {
                         {btn.icon}
                       </GradientView>
                     )}
-                    {btn.badge}
+                    {typeof btn.badge === 'function' ? btn.badge(btnLeft) : btn.badge}
                   </TouchableOpacity>
                 </View>
               );
@@ -1006,5 +1027,23 @@ const styles = StyleSheet.create({
   adBannerInline: {
     alignItems: 'center',
     marginVertical: 4,
+  },
+  fabUnreadBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  fabUnreadBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '800',
   },
 });
