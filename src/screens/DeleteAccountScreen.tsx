@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../components/GradientView';
@@ -69,7 +70,8 @@ export default function DeleteAccountScreen({ navigation }: any) {
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.deleteAccountTitle}</Text>
       </GradientView>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]} keyboardShouldPersistTaps="handled">
         <View style={[styles.warningCard, { backgroundColor: colors.white }]}>
           <Text style={[styles.warningTitle, { color: colors.darkRed }]}>
             {t.deleteAccountWhat}
@@ -114,6 +116,7 @@ export default function DeleteAccountScreen({ navigation }: any) {
           )}
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

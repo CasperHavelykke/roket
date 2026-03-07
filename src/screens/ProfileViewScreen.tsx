@@ -322,7 +322,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
         </TouchableOpacity>
       )}
 
-      <Modal visible={showReportModal} transparent animationType="fade">
+      <Modal visible={showReportModal} transparent animationType="fade" onRequestClose={() => setShowReportModal(false)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>

@@ -18,7 +18,7 @@ import { useTheme, ThemeMode, TimeFormat, Language, DistanceMode, DistanceUnit }
 import getFirebaseError from '../utils/getFirebaseError';
 import RoketLogo from '../assets/roket-logo-simpel.svg';
 import RoketStars from '../assets/roket-logo-stars-only.svg';
-import SupportIcon from '../assets/support.svg';
+
 
 export default function SettingsScreen({ navigation }: any) {
   const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, releaseTag, t } = useTheme();
@@ -255,19 +255,6 @@ export default function SettingsScreen({ navigation }: any) {
               <Text style={[styles.rowArrow, { color: colors.textWhite, fontWeight: '700' }]}>→</Text>
             </TouchableOpacity>
           </GradientView>
-          {/* Support knap. Skjult indtil videre. Skift "false" til "true" for at vise */}
-          {false && (
-          <TouchableOpacity
-            style={[styles.row, { backgroundColor: colors.white, borderBottomWidth: 0 }]}
-            onPress={() => navigation.navigate('Support')}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <SupportIcon width={20} height={20} fill={colors.textPrimary} />
-              <Text style={[styles.rowText, { color: colors.textPrimary }]}>{t.supportRoket}</Text>
-            </View>
-            <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
-          </TouchableOpacity>
-          )}
         </View>
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsAccount}</Text>

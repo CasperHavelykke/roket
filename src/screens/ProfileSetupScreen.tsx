@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,9 @@ import {
   Alert,
   ActivityIndicator,
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   TextInput,
+  Animated,
 } from 'react-native';
 import GradientView from '../components/GradientView';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +18,7 @@ import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme';
 import getFirebaseError from '../utils/getFirebaseError';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import RoketLogo from '../assets/roket-logo-2.svg';
 
 type SimpleGender = 'male' | 'female' | '';
@@ -48,6 +48,18 @@ export default function ProfileSetupScreen() {
   const [birthMonth, setBirthMonth] = useState('');
   const [birthYear, setBirthYear] = useState('');
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const monthAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(monthAnim, {
+      toValue: showMonthPicker ? 1 : 0,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+  }, [showMonthPicker]);
+  const monthGridHeight = monthAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 180],
+  });
   const monthsByLang: Record<string, string[]> = {
     da: ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
     en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -172,7 +184,7 @@ export default function ProfileSetupScreen() {
     >
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior="padding"
       >
         <ScrollView
           contentContainerStyle={styles.content}
@@ -214,7 +226,7 @@ export default function ProfileSetupScreen() {
                   maxLength={4}
                 />
               </View>
-              {showMonthPicker && (
+              <Animated.View style={{ height: monthGridHeight, overflow: 'hidden', opacity: monthAnim }}>
                 <View style={styles.monthGrid}>
                   {monthNames.map((m, i) => {
                     const isSelected = parseInt(birthMonth, 10) === i + 1;
@@ -237,7 +249,7 @@ export default function ProfileSetupScreen() {
                     );
                   })}
                 </View>
-              )}
+              </Animated.View>
             </>
           )}
 

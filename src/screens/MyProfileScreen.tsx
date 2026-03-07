@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -37,6 +38,19 @@ export default function MyProfileScreen({ navigation }: any) {
   const photoSize = Dimensions.get('window').width - 40;
   const [testAccount, setTestAccount] = useState(false);
   const currentUser = auth().currentUser;
+
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (photoURL) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [photoURL]);
 
   useEffect(() => {
     LocationService.checkCurrentPrecision().then(p => setLocationGranted(p !== 'denied'));
@@ -205,7 +219,17 @@ export default function MyProfileScreen({ navigation }: any) {
           </View>
         )}
 
-        <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
+        <TouchableOpacity onPress={() => navigation.navigate('EditProfile')} style={{ position: 'relative' }}>
+          {!photoURL && (
+            <Animated.View style={[styles.editPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0.1] }), transform: [{ scaleX: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }, { scaleY: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] }) }] }]}>
+              <GradientView
+                colors={[colors.primaryBlue, colors.primaryRed]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.editPulseGradient}
+              />
+            </Animated.View>
+          )}
           <GradientView
             colors={[colors.primaryBlue, colors.primaryRed]}
             start={{ x: 0, y: 0 }}
@@ -359,6 +383,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  editPulseRing: {
+    position: 'absolute',
+    top: 20,
+    left: 16,
+    right: 16,
+    bottom: -4,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  editPulseGradient: {
+    flex: 1,
+    borderRadius: 18,
   },
   editButton: {
     marginHorizontal: 20,

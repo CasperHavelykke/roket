@@ -257,6 +257,7 @@ const da = {
   feedbackImageRemove: 'Fjern',
   feedbackImageAdd: 'Tilføj skærmbillede (valgfrit)',
   feedbackSend: 'Send',
+  or: 'eller',
 
   // EditProfileScreen - age
   editProfileShowAge: 'Vis alder',
@@ -645,6 +646,7 @@ const en: typeof da = {
   feedbackImageRemove: 'Remove',
   feedbackImageAdd: 'Add screenshot (optional)',
   feedbackSend: 'Send',
+  or: 'or',
 
   // EditProfileScreen - age
   editProfileShowAge: 'Show age',
@@ -1039,6 +1041,7 @@ const es: typeof da = {
   feedbackImageRemove: 'Quitar',
   feedbackImageAdd: 'Añadir captura (opcional)',
   feedbackSend: 'Enviar',
+  or: 'o',
 
   // EditProfileScreen - age
   editProfileShowAge: 'Mostrar edad',
@@ -1430,6 +1433,7 @@ const de: typeof da = {
   feedbackImageRemove: 'Entfernen',
   feedbackImageAdd: 'Screenshot hinzufügen (optional)',
   feedbackSend: 'Senden',
+  or: 'oder',
 
   // EditProfileScreen - age
   editProfileShowAge: 'Alter anzeigen',
@@ -1821,6 +1825,7 @@ const fr: typeof da = {
   feedbackImageRemove: 'Retirer',
   feedbackImageAdd: "Ajouter une capture d'écran (facultatif)",
   feedbackSend: 'Envoyer',
+  or: 'ou',
 
   // EditProfileScreen - age
   editProfileShowAge: "Afficher l'âge",
@@ -2212,6 +2217,7 @@ const pt: typeof da = {
   feedbackImageRemove: 'Remover',
   feedbackImageAdd: 'Adicionar captura de ecrã (opcional)',
   feedbackSend: 'Enviar',
+  or: 'ou',
 
   // EditProfileScreen - age
   editProfileShowAge: 'Mostrar idade',

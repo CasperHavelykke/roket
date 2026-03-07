@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TextInput,
   ScrollView,
   Switch,
+  Animated,
 } from 'react-native';
 import KeyboardAvoidingView from '../components/KeyboardAvoidingView';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +23,9 @@ import pickImage from '../utils/pickImage';
 import getFirebaseError from '../utils/getFirebaseError';
 import { useTheme } from '../theme';
 import CameraIcon from '../assets/camera.svg';
+import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export default function EditProfileScreen({ navigation }: any) {
   const { colors, isDark, t } = useTheme();
@@ -42,6 +46,51 @@ export default function EditProfileScreen({ navigation }: any) {
   const [datingOnly, setDatingOnly] = useState(false);
   const currentUser = auth().currentUser;
   const MAX_EXTRA_PHOTOS = 5;
+
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (photoURL) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [photoURL]);
+
+  const profileCompletion = (photoURL ? 1 : 0) + (displayName.trim() ? 1 : 0) + (bio.trim() ? 1 : 0);
+
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(progressAnim, { toValue: profileCompletion, duration: 500, useNativeDriver: false }).start();
+  }, [profileCompletion]);
+
+  const fieldPulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (displayName.trim() && bio.trim()) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(fieldPulse, { toValue: 1, duration: 1500, useNativeDriver: true }),
+        Animated.timing(fieldPulse, { toValue: 0, duration: 1500, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [!!displayName.trim(), !!bio.trim()]);
+
+  const nameHighlight = useRef(new Animated.Value(0)).current;
+  const bioHighlight = useRef(new Animated.Value(0)).current;
+  const dataLoaded = useRef(false);
+  useEffect(() => {
+    if (!dataLoaded.current) return;
+    Animated.timing(nameHighlight, { toValue: displayName.trim() ? 0 : 1, duration: 400, useNativeDriver: true }).start();
+  }, [!!displayName.trim()]);
+  useEffect(() => {
+    if (!dataLoaded.current) return;
+    Animated.timing(bioHighlight, { toValue: bio.trim() ? 0 : 1, duration: 400, useNativeDriver: true }).start();
+  }, [!!bio.trim()]);
 
   const genderLabel = (key: string) => {
     const map: Record<string, string> = { male: t.genderMale, female: t.genderFemale, nonbinary: t.genderNonBinary, trans: t.genderTrans };
@@ -72,6 +121,11 @@ export default function EditProfileScreen({ navigation }: any) {
           setShowSexuality(data.showSexuality !== false);
           setPhotos(data.photos ?? []);
           setDatingOnly(data.datingOnly ?? false);
+
+          dataLoaded.current = true;
+          nameHighlight.setValue((data.displayName ?? '').trim() ? 0 : 1);
+          bioHighlight.setValue((data.bio ?? '').trim() ? 0 : 1);
+          progressAnim.setValue((data.photoURL ? 1 : 0) + ((data.displayName ?? '').trim() ? 1 : 0) + ((data.bio ?? '').trim() ? 1 : 0));
 
           // Vis alert hvis et billede blev afvist af moderation
           if (data.photoRejected) {
@@ -228,6 +282,40 @@ export default function EditProfileScreen({ navigation }: any) {
       >
         <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 20 + insets.bottom }]}>
           <TouchableOpacity onPress={handleChangePhoto} style={styles.photoContainer}>
+            {(() => {
+              const size = 134;
+              const strokeW = 3.5;
+              const r = (size - strokeW) / 2;
+              const circumference = 2 * Math.PI * r;
+              const animatedOffset = progressAnim.interpolate({
+                inputRange: [0, 3],
+                outputRange: [circumference, 0],
+              });
+              return (
+                <Svg width={size} height={size} style={styles.progressRing}>
+                  <Defs>
+                    <SvgGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                      <Stop offset="0" stopColor={colors.primaryBlue} />
+                      <Stop offset="1" stopColor={colors.primaryRed} />
+                    </SvgGradient>
+                  </Defs>
+                  <Circle
+                    cx={size / 2} cy={size / 2} r={r}
+                    stroke={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)'}
+                    strokeWidth={strokeW} fill="none"
+                  />
+                  <AnimatedCircle
+                    cx={size / 2} cy={size / 2} r={r}
+                    stroke="url(#ringGrad)"
+                    strokeWidth={strokeW} fill="none"
+                    strokeDasharray={`${circumference}`}
+                    strokeDashoffset={animatedOffset}
+                    strokeLinecap="round"
+                    rotation="-90" origin={`${size / 2}, ${size / 2}`}
+                  />
+                </Svg>
+              );
+            })()}
             <Image
               source={photoURL ? { uri: photoURL } : isDark ? require('../assets/missing-profile-pic.png') : require('../assets/missing-profile-pic-light.png')}
               style={styles.photo}
@@ -241,6 +329,9 @@ export default function EditProfileScreen({ navigation }: any) {
               </GradientView>
             )}
             <View style={[styles.editBadge, { backgroundColor: colors.white }]}>
+              {!photoURL && (
+                <Animated.View style={[styles.cameraPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0.15] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] }) }] }]} />
+              )}
               <CameraIcon width={16} height={16} fill={colors.primaryBlueText} />
             </View>
           </TouchableOpacity>
@@ -279,28 +370,46 @@ export default function EditProfileScreen({ navigation }: any) {
 
           <View style={styles.form}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileNameLabel}</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.white, borderColor: colors.inputBorder, color: colors.textPrimary }]}
-              value={displayName}
-              onChangeText={setDisplayName}
-              placeholder={t.editProfileNamePlaceholder}
-              placeholderTextColor={colors.textMuted}
-              maxLength={50}
-              autoCorrect={false}
-            />
+            <View style={styles.inputWrap}>
+              <Animated.View style={[styles.inputHighlightBorder, { opacity: Animated.multiply(nameHighlight, fieldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] })) }]} pointerEvents="none">
+                <GradientView
+                  colors={[colors.primaryBlue, colors.primaryRed]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={styles.inputHighlightFill}
+                />
+              </Animated.View>
+              <TextInput
+                style={[styles.input, { marginBottom: 0, backgroundColor: colors.white, borderColor: displayName.trim() ? colors.inputBorder : 'transparent', color: colors.textPrimary }]}
+                value={displayName}
+                onChangeText={setDisplayName}
+                placeholder={t.editProfileNamePlaceholder}
+                placeholderTextColor={colors.textMuted}
+                maxLength={50}
+                autoCorrect={false}
+              />
+            </View>
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileBioLabel}</Text>
-            <TextInput
-              style={[styles.input, styles.bioInput, { backgroundColor: colors.white, borderColor: colors.inputBorder, color: colors.textPrimary }]}
-              value={bio}
-              onChangeText={setBio}
-              placeholder={t.editProfileBioPlaceholder}
-              placeholderTextColor={colors.textMuted}
-              multiline
-              numberOfLines={4}
-              maxLength={200}
-              textAlignVertical="top"
-            />
+            <View style={styles.inputWrap}>
+              <Animated.View style={[styles.inputHighlightBorder, { opacity: Animated.multiply(bioHighlight, fieldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] })) }]} pointerEvents="none">
+                <GradientView
+                  colors={[colors.primaryBlue, colors.primaryRed]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={styles.inputHighlightFill}
+                />
+              </Animated.View>
+              <TextInput
+                style={[styles.input, styles.bioInput, { marginBottom: 0, backgroundColor: colors.white, borderColor: bio.trim() ? colors.inputBorder : 'transparent', color: colors.textPrimary }]}
+                value={bio}
+                onChangeText={setBio}
+                placeholder={t.editProfileBioPlaceholder}
+                placeholderTextColor={colors.textMuted}
+                multiline
+                numberOfLines={4}
+                maxLength={200}
+                textAlignVertical="top"
+              />
+            </View>
             <Text style={styles.charCount}>{bio.length}/200</Text>
 
             {hasBirthday && (
@@ -417,6 +526,21 @@ const styles = StyleSheet.create({
   photoContainer: {
     position: 'relative',
     marginBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressRing: {
+    position: 'absolute',
+  },
+  cameraPulseRing: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 21,
+    borderWidth: 2.5,
+    borderColor: '#fff',
   },
   photo: {
     width: 120,
@@ -470,6 +594,23 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     marginBottom: 16,
+  },
+  inputWrap: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  inputHighlightBorder: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  inputHighlightFill: {
+    flex: 1,
+    borderRadius: 12,
   },
   bioInput: {
     height: 100,

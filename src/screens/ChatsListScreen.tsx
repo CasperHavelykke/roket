@@ -33,34 +33,55 @@ interface ChatPreview {
 
 const SWIPE_THRESHOLD = 70;
 
-function SwipeableRow({ children, onAction, actionLabel, actionColor }: {
+function SwipeableRow({ children, onAction, actionLabel, actionColor, rowBackground }: {
   children: React.ReactNode;
   onAction: () => void;
   actionLabel: string;
   actionColor: string;
+  rowBackground: string;
 }) {
   const translateX = useRef(new Animated.Value(0)).current;
+  const startOffset = useRef(0);
+  const lastValue = useRef(0);
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) =>
         Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dx < 0) {
-          translateX.setValue(Math.max(gestureState.dx, -100));
-        }
+      onPanResponderGrant: () => {
+        translateX.stopAnimation((value) => {
+          startOffset.current = value;
+          lastValue.current = value;
+        });
       },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -SWIPE_THRESHOLD) {
+      onPanResponderMove: (_, gestureState) => {
+        const target = startOffset.current + gestureState.dx;
+        let value: number;
+        if (target > 0) {
+          value = target * 0.3;
+        } else if (target > -100) {
+          value = target;
+        } else {
+          value = -100 + (target + 100) * 0.3;
+        }
+        lastValue.current = value;
+        translateX.setValue(value);
+      },
+      onPanResponderRelease: () => {
+        if (lastValue.current < -SWIPE_THRESHOLD) {
+          startOffset.current = -100;
           Animated.spring(translateX, {
             toValue: -100,
             useNativeDriver: true,
-            friction: 8,
+            tension: 60,
+            friction: 9,
           }).start();
         } else {
+          startOffset.current = 0;
           Animated.spring(translateX, {
             toValue: 0,
             useNativeDriver: true,
-            friction: 8,
+            tension: 60,
+            friction: 9,
           }).start();
         }
       },
@@ -68,10 +89,12 @@ function SwipeableRow({ children, onAction, actionLabel, actionColor }: {
   ).current;
 
   const handleAction = () => {
+    startOffset.current = 0;
     Animated.spring(translateX, {
       toValue: 0,
       useNativeDriver: true,
-      friction: 8,
+      tension: 60,
+      friction: 9,
     }).start();
     onAction();
   };
@@ -86,7 +109,7 @@ function SwipeableRow({ children, onAction, actionLabel, actionColor }: {
         <Text style={styles.swipeActionText}>{actionLabel}</Text>
       </TouchableOpacity>
       <Animated.View
-        style={{ transform: [{ translateX }], backgroundColor: '#fff' }}
+        style={{ transform: [{ translateX }], marginLeft: -20, paddingLeft: 20, backgroundColor: rowBackground }}
         {...panResponder.panHandlers}
       >
         {children}
@@ -270,6 +293,7 @@ export default function ChatsListScreen({ navigation }: any) {
         onAction={() => togglePin(item.chatId)}
         actionLabel={isPinned ? t.chatsUnpinChat : t.chatsPinChat}
         actionColor={isPinned ? colors.textMuted : colors.primaryBlue}
+        rowBackground={colors.white}
       >
         <TouchableOpacity
           activeOpacity={1}
@@ -419,9 +443,10 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    width: 100,
+    width: 200,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-end',
+    paddingRight: 25,
   },
   swipeActionText: {
     color: '#fff',

@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Linking,
 } from 'react-native';
 import KeyboardAvoidingView from '../components/KeyboardAvoidingView';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -196,8 +197,17 @@ export default function FeedbackScreen({ route, navigation }: any) {
               <Text style={[styles.sendButtonText, { color: colors.textWhite }]}>{t.feedbackSend}</Text>
             )}
           </TouchableOpacity>
+
         </ScrollView>
       </KeyboardAvoidingView>
+      <View style={[styles.emailLink, { paddingBottom: insets.bottom + 12 }]}>
+        <Text style={[styles.emailOrText, { color: colors.textMuted }]}>{t.or}</Text>
+        <TouchableOpacity onPress={() => Linking.openURL('mailto:support@roketapp.eu')}>
+          <Text style={[styles.emailLinkText, { color: colors.primaryBlueText }]}>
+            support@roketapp.eu
+          </Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -315,5 +325,17 @@ const styles = StyleSheet.create({
   sendButtonText: {
     fontSize: 17,
     fontWeight: '700',
+  },
+  emailLink: {
+    paddingTop: 12,
+    alignItems: 'center',
+    gap: 4,
+  },
+  emailOrText: {
+    fontSize: 13,
+  },
+  emailLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

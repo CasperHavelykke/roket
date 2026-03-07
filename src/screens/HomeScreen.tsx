@@ -12,6 +12,7 @@ import {
   useWindowDimensions,
   Platform,
   Pressable,
+  Animated,
 } from 'react-native';
 import GradientView from '../components/GradientView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,6 +26,7 @@ import SettingsIcon from '../assets/settings.svg';
 import ProfileIcon from '../assets/profile.svg';
 import MessagesIcon from '../assets/messages.svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MaskedView from '@react-native-masked-view/masked-view';
 import CardCarousel from '../components/CardCarousel';
 import ProfilePreviewModal from '../components/ProfilePreviewModal';
 import RoketLogo from '../assets/roket-logo-3.svg';
@@ -100,6 +102,19 @@ export default function HomeScreen({ navigation }: any) {
   const { width: screenWidth } = useWindowDimensions();
   const numColumns = (gridColumns >= 1 && gridColumns <= 4) ? gridColumns : 2;
   const locationDisclosureResolve = useRef<((v: boolean) => void) | null>(null);
+
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!needsProfile) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [needsProfile]);
 
   // Tjek om bruger mangler profil (intet displayName)
   useEffect(() => {
@@ -594,8 +609,8 @@ export default function HomeScreen({ navigation }: any) {
         };
 
         const fabButtons = [
-          { icon: <ProfileIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <View style={styles.fabBadgeRed} /> },
-          { icon: <MessagesIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread && <View style={styles.fabBadgeBlue} /> },
+          { icon: <ProfileIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <Animated.View style={[styles.fabPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0.15] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] }) }] }]} /> },
+          { icon: <MessagesIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: null, inverted: hasUnread },
           { icon: <SettingsIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null },
         ];
 
@@ -695,14 +710,30 @@ export default function HomeScreen({ navigation }: any) {
               return (
                 <View key={i}>
                   <TouchableOpacity onPress={btn.onPress} activeOpacity={0.8} style={styles.fabShadow}>
-                    <GradientView
-                      colors={[colors.primaryBlue, colors.primaryRed]}
-                      start={{ x: -btnLeft / fabSize, y: 0 }}
-                      end={{ x: (screenWidth - btnLeft) / fabSize, y: 0 }}
-                      style={styles.fabButton}
-                    >
-                      {btn.icon}
-                    </GradientView>
+                    {btn.inverted ? (
+                      <View style={[styles.fabButton, { backgroundColor: '#fff' }]}>
+                        <MaskedView
+                          style={{ width: 30, height: 30 }}
+                          maskElement={<MessagesIcon width={30} height={30} stroke="#000" fill="none" />}
+                        >
+                          <GradientView
+                            colors={[colors.primaryBlue, colors.primaryRed]}
+                            start={{ x: -btnLeft / fabSize, y: 0 }}
+                            end={{ x: (screenWidth - btnLeft) / fabSize, y: 0 }}
+                            style={{ flex: 1 }}
+                          />
+                        </MaskedView>
+                      </View>
+                    ) : (
+                      <GradientView
+                        colors={[colors.primaryBlue, colors.primaryRed]}
+                        start={{ x: -btnLeft / fabSize, y: 0 }}
+                        end={{ x: (screenWidth - btnLeft) / fabSize, y: 0 }}
+                        style={styles.fabButton}
+                      >
+                        {btn.icon}
+                      </GradientView>
+                    )}
                     {btn.badge}
                   </TouchableOpacity>
                 </View>
@@ -789,33 +820,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fabBadgeRed: {
+  fabPulseRing: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#E63946',
-    shadowColor: '#E63946',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  fabBadgeBlue: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#4A90FF',
-    shadowColor: '#4A90FF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
-    elevation: 4,
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 35,
+    borderWidth: 2.5,
+    borderColor: '#fff',
   },
   headerTitle: {
     fontSize: 28,

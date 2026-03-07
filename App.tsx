@@ -33,7 +33,6 @@ import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import TermsConditionsScreen from './src/screens/TermsConditionsScreen';
 import CommunityGuidelinesScreen from './src/screens/CommunityGuidelinesScreen';
 import ChildSafetyScreen from './src/screens/ChildSafetyScreen';
-import SupportScreen from './src/screens/SupportScreen';
 import mobileAds from 'react-native-google-mobile-ads';
 
 mobileAds().initialize();
@@ -57,7 +56,6 @@ type RootStackParamList = {
   TermsConditions: undefined;
   CommunityGuidelines: undefined;
   ChildSafety: undefined;
-  Support: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -373,7 +371,6 @@ function App() {
                 <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
                 <Stack.Screen name="CommunityGuidelines" component={CommunityGuidelinesScreen} />
                 <Stack.Screen name="ChildSafety" component={ChildSafetyScreen} />
-                <Stack.Screen name="Support" component={SupportScreen} />
               </>
             )}
           </Stack.Navigator>
