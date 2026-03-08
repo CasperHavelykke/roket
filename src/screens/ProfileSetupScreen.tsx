@@ -18,7 +18,7 @@ import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme';
 import getFirebaseError from '../utils/getFirebaseError';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import KeyboardAvoidingView from '../components/KeyboardAvoidingView';
 import RoketLogo from '../assets/roket-logo-2.svg';
 
 type SimpleGender = 'male' | 'female' | '';

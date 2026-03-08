@@ -87,7 +87,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
       if (!currentUser) return;
       const chatId = [currentUser.uid, user.id].sort().join('_');
       const unsub = firestore().collection('chats').doc(chatId).onSnapshot(snap => {
-        if (!snap.exists) return;
+        if (!snap || !snap.exists) return;
         setHasConversation(true);
         const data = snap.data();
         if (!data) return;
