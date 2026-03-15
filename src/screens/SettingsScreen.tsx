@@ -21,7 +21,7 @@ import RoketStars from '../assets/roket-logo-stars-only.svg';
 
 
 export default function SettingsScreen({ navigation }: any) {
-  const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, releaseTag, t } = useTheme();
+  const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, t } = useTheme();
   const insets = useSafeAreaInsets();
   const currentUser = auth().currentUser;
 
@@ -278,7 +278,7 @@ export default function SettingsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.copyright}>© 2026 Røket · v1.1.4{releaseTag ? ` ${releaseTag}` : ''}</Text>
+        <Text style={styles.copyright}>© 2026 Røket · v1.1.5 Beta</Text>
       </ScrollView>
     </SafeAreaView>
   );
