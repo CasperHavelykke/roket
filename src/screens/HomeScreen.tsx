@@ -994,7 +994,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: 64,
     borderRadius: 32,
-    overflow: 'hidden',
+    ...Platform.select({ android: { overflow: 'hidden' as const } }),
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
     paddingTop: 4,
