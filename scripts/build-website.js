@@ -1,4 +1,4 @@
-// Build script: reads legal texts from src/legal/texts.ts and embeds them
+// Build script: reads legal texts from src/features/legal/texts.ts and embeds them
 // into website HTML files, replacing Firestore SDK + fetch logic.
 //
 // Usage: node scripts/build-website.js
@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const TEXTS_FILE = path.join(ROOT, 'src', 'legal', 'texts.ts');
+const TEXTS_FILE = path.join(ROOT, 'src', 'features', 'legal', 'texts.ts');
 const WEBSITE_DIR = path.join(ROOT, 'website');
 
 // --- Parse texts.ts ---
@@ -121,7 +121,7 @@ function serializeTexts(texts) {
 }
 
 // --- Main ---
-console.log('Loading texts from src/legal/texts.ts...');
+console.log('Loading texts from src/features/legal/texts.ts...');
 const { privacyPolicy, termsConditions, deleteAccount } = loadTexts();
 console.log(`  privacyPolicy: ${Object.keys(privacyPolicy).length} languages`);
 console.log(`  termsConditions: ${Object.keys(termsConditions).length} languages`);

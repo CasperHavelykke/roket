@@ -1,0 +1,123 @@
+.signup-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: linear-gradient(180deg, #7B2FF7 0%, var(--primaryRed) 100%);
+  min-height: 100dvh;
+}
+
+.signup-logo {
+  width: 80px;
+  height: 80px;
+  filter: brightness(0) invert(1);
+  margin-bottom: 12px;
+}
+
+.signup-page h1 {
+  font-size: 28px;
+  color: var(--textPrimary);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.signup-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+  background: #1a1a1a;
+  padding: 32px 24px;
+  border-radius: 24px;
+}
+
+.signup-page input[type="email"],
+.signup-page input[type="password"] {
+  padding: 14px 16px;
+  border: 1px solid #333;
+  border-radius: 12px;
+  font-size: 16px;
+  background: #2a2a2a;
+  color: #fff;
+  outline: none;
+}
+
+.signup-page input::placeholder {
+  color: #888;
+}
+
+.birthday-label {
+  color: #aaa;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.birthday-row {
+  display: flex;
+  gap: 8px;
+}
+
+.birthday-input {
+  flex: 1;
+  padding: 14px 12px;
+  border: 1px solid #333;
+  border-radius: 12px;
+  font-size: 16px;
+  background: #2a2a2a;
+  color: #fff;
+  outline: none;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.birthday-input::-webkit-outer-spin-button,
+.birthday-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.privacy-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #aaa;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.privacy-label input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.privacy-label a {
+  color: var(--primaryBlueText);
+  text-decoration: underline;
+}
+
+.signup-page button[type="submit"] {
+  padding: 14px;
+  background: var(--primaryBlue);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.signup-page button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.signup-page .link {
+  background: none;
+  border: none;
+  color: var(--primaryRed);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 0;
+}

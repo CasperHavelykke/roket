@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "roket-ac4de"
+  },
+  "targets": {
+    "roket-ac4de": {
+      "hosting": {
+        "admin": ["roket-ac4de"],
+        "web": ["roket-web"]
+      }
+    }
   }
 }

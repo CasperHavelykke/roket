@@ -1,0 +1,53 @@
+.fab-group {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 20;
+}
+
+.fab-btn {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  outline: 1.5px solid rgba(255,255,255,0.3);
+  outline-offset: 0px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+  transition: transform 0.15s ease;
+}
+
+.fab-btn:hover {
+  transform: scale(1.08);
+}
+
+.fab-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 1.5px solid #fff;
+}
