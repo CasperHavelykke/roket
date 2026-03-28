@@ -34,7 +34,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --primaryRed: #C1121F;
     --primaryBlue: #3A0CA3;
     --primaryBlueText: #5717ed;
@@ -52,6 +52,25 @@
     --offline: #666666;
     --shadow: #000000;
   }
+}
+
+:root[data-theme="dark"] {
+  --primaryRed: #C1121F;
+  --primaryBlue: #3A0CA3;
+  --primaryBlueText: #5717ed;
+  --background: #121212;
+  --backgroundLight: #1E1E1E;
+  --backgroundBlueLight: #1A1A2E;
+  --card: #1E1E1E;
+  --border: #2A2A2A;
+  --borderLight: #252525;
+  --inputBorder: #333333;
+  --inputBackground: #2A2A2A;
+  --textPrimary: #E0E0E0;
+  --textSecondary: #AAAAAA;
+  --textMuted: #777777;
+  --offline: #666666;
+  --shadow: #000000;
 }
 
 body {
@@ -74,6 +93,8 @@ body {
   margin: 0 auto;
   min-height: 100dvh;
   position: relative;
+  background: var(--background);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 52px);
 }
 
 .empty {
@@ -92,16 +113,20 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
   background: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  max-width: 600px;
+  margin: 0 auto;
   z-index: 10;
 }
 
 .navbar h1 {
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 700;
   flex: 1;
   color: #fff;
 }

@@ -1,19 +1,18 @@
 .fab-group {
   position: fixed;
   bottom: 24px;
-  right: 24px;
+  right: max(32px, calc(50% - 300px + 32px));
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  gap: 10px;
   z-index: 20;
 }
 
 .fab-btn {
   position: relative;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
   color: #fff;
   display: flex;
   align-items: center;
@@ -30,8 +29,8 @@
 }
 
 .fab-btn svg {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
 }
 
 .fab-badge {

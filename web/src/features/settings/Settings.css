@@ -1,15 +1,183 @@
-.settings-list {
+.settings-content {
+  padding: 20px;
+  padding-bottom: 40px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--textSecondary);
+  margin-bottom: 8px;
+  margin-top: 16px;
+  margin-left: 4px;
+}
+
+.settings-card {
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.selector {
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+}
+
+.selector-wrap {
+  flex-wrap: wrap;
+}
+
+.selector-btn-third {
+  flex: 0 0 calc(33.33% - 7px);
+}
+
+.selector-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--inputBorder);
+  background: none;
+  color: var(--textPrimary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.selector-btn.active {
+  background: var(--primaryBlue);
+  border-color: var(--primaryBlue);
+  color: #fff;
+}
+
+.setting-desc {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--textMuted);
+  padding: 2px 14px 14px;
+}
+
+.settings-row.gradient-row {
+  background: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
+  color: #fff;
+  font-weight: 700;
+}
+
+.settings-row.gradient-row:hover {
+  background: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
+}
+
+.gradient-row span {
+  color: #fff;
+}
+
+.gradient-row .row-arrow {
+  color: #fff;
+  font-weight: 700;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 16px;
+  border-bottom: 1px solid var(--borderLight);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--textPrimary);
+  cursor: pointer;
+  text-decoration: none;
+  text-align: left;
+}
+
+.settings-row:hover {
+  background: var(--backgroundLight);
+}
+
+.settings-row.last {
+  border-bottom: none;
+}
+
+.row-arrow {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--textMuted);
+}
+
+.text-red {
+  color: var(--primaryRed);
+}
+
+.text-dark-red {
+  color: var(--darkRed);
+}
+
+.delete-confirm {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.delete-confirm p {
+  font-size: 14px;
+  color: var(--textSecondary);
+  margin-bottom: 12px;
+}
+
+.delete-confirm input {
+  width: 100%;
+  padding: 12px;
+  border: 1.5px solid var(--inputBorder);
+  border-radius: 10px;
+  background: var(--inputBackground);
+  color: var(--textPrimary);
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.delete-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.cancel-btn {
+  flex: 1;
+  padding: 12px;
+  border: 1.5px solid var(--inputBorder);
+  border-radius: 10px;
+  background: none;
+  color: var(--textPrimary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .danger-btn {
-  width: 100%;
-  padding: 14px;
-  background: var(--primaryRed);
-  color: #fff;
+  flex: 1;
+  padding: 12px;
   border: none;
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: 10px;
+  background: var(--darkRed);
+  color: #fff;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.copyright {
+  text-align: center;
+  color: var(--textMuted);
+  font-size: 13px;
+  margin-top: 24px;
 }

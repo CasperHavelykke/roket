@@ -1,0 +1,50 @@
+.blocked-list {
+  padding: 16px;
+}
+
+.blocked-row {
+  display: flex;
+  align-items: center;
+  padding: 14px;
+  background: var(--card);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.blocked-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primaryBlue);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.blocked-name {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--textPrimary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unblock-btn {
+  border: 1.5px solid var(--primaryBlueText, var(--primaryBlue));
+  border-radius: 8px;
+  padding: 7px 14px;
+  background: none;
+  color: var(--primaryBlueText, var(--primaryBlue));
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}

@@ -8,6 +8,8 @@ import Chat from './features/chat/Chat';
 import ChatsList from './features/chat/ChatsList';
 import Profile from './features/profile/Profile';
 import Settings from './features/settings/Settings';
+import BlockedUsers from './features/settings/BlockedUsers';
+import Feedback from './features/settings/Feedback';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -31,6 +33,8 @@ export default function App() {
         <Route path="/chat/:chatId" element={user ? <Chat /> : <Navigate to="/login" />} />
         <Route path="/profile/:userId" element={user ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
+        <Route path="/settings/blocked" element={user ? <BlockedUsers /> : <Navigate to="/login" />} />
+        <Route path="/settings/feedback" element={user ? <Feedback /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   );
