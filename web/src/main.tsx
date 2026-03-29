@@ -9,6 +9,11 @@ if (savedTheme === 'dark' || savedTheme === 'light') {
   document.documentElement.setAttribute('data-theme', savedTheme);
 }
 
+// Set theme-color meta to match primaryBlue for current mode
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark) || (savedTheme !== 'light' && prefersDark);
+document.querySelector('meta[name="theme-color"]')?.setAttribute('content', isDark ? '#3A0CA3' : '#4361EE');
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

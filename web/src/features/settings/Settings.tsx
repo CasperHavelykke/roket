@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signOut, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { doc, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
+import { signOut, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import translations, { Language } from '@shared/translations';
 import './Settings.css';
@@ -38,10 +38,6 @@ export default function Settings() {
   const [timeFormat, setTimeFormat] = useState<TimeFormat>(() => load('roket-timeFormat', '24h', ['12h', '24h']));
   const [distanceMode, setDistanceMode] = useState<DistanceMode>(() => load('roket-distanceMode', 'exact', ['exact', 'fuzzy', 'hidden']));
   const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>(() => load('roket-distanceUnit', 'km', ['km', 'mi']));
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [error, setError] = useState('');
-
   const t = translations[language];
 
   // Load settings from Firestore on mount
@@ -83,27 +79,6 @@ export default function Settings() {
     if (!confirm(t.settingsLogoutConfirm)) return;
     await signOut(auth);
     navigate('/login');
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!user) return;
-    setError('');
-    try {
-      if (deletePassword && user.email) {
-        const credential = EmailAuthProvider.credential(user.email, deletePassword);
-        await reauthenticateWithCredential(user, credential);
-      }
-      await deleteDoc(doc(db, 'users', user.uid));
-      await deleteUser(user);
-      navigate('/login');
-    } catch (e: any) {
-      if (e.code === 'auth/requires-recent-login' || e.code === 'auth/wrong-password') {
-        setShowDeleteConfirm(true);
-        setError(e.code === 'auth/wrong-password' ? t.settingsDeleteErrorWrongPassword : t.settingsDeleteText);
-      } else {
-        setError(e.message);
-      }
-    }
   };
 
   const distanceDesc =
@@ -238,27 +213,10 @@ export default function Settings() {
           <button className="settings-row" onClick={handleLogout}>
             <span className="text-red">{t.settingsLogout}</span><span className="row-arrow">→</span>
           </button>
-          <button className="settings-row last" onClick={() => setShowDeleteConfirm(true)}>
+          <Link to="/settings/delete" className="settings-row last">
             <span className="text-dark-red">{t.settingsDeleteAccount}</span><span className="row-arrow">→</span>
-          </button>
+          </Link>
         </div>
-
-        {showDeleteConfirm && (
-          <div className="delete-confirm">
-            <p>{t.settingsDeleteText}</p>
-            {error && <p className="error">{error}</p>}
-            <input
-              type="password"
-              placeholder={t.settingsDeletePasswordPlaceholder}
-              value={deletePassword}
-              onChange={e => setDeletePassword(e.target.value)}
-            />
-            <div className="delete-actions">
-              <button className="cancel-btn" onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setError(''); }}>{t.cancel}</button>
-              <button className="danger-btn" onClick={handleDeleteAccount}>{t.settingsDeleteButton}</button>
-            </div>
-          </div>
-        )}
 
         <p className="copyright">&copy; 2026 Røket</p>
       </div>

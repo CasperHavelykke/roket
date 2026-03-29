@@ -1,0 +1,92 @@
+.deleteaccount-content {
+  padding: 20px;
+  padding-bottom: 40px;
+}
+
+.deleteaccount-warning {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.deleteaccount-warning-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--darkRed);
+  margin-bottom: 16px;
+}
+
+.deleteaccount-bullet {
+  display: flex;
+  margin-bottom: 12px;
+  padding-right: 8px;
+}
+
+.deleteaccount-bullet-dot {
+  font-size: 18px;
+  line-height: 22px;
+  margin-right: 10px;
+  color: var(--darkRed);
+}
+
+.deleteaccount-bullet-text {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--textPrimary);
+  flex: 1;
+}
+
+.deleteaccount-confirm {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.deleteaccount-confirm-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--textSecondary);
+  margin-bottom: 10px;
+}
+
+.deleteaccount-input {
+  width: 100%;
+  border: 1px solid var(--inputBorder);
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 16px;
+  background: var(--inputBackground);
+  color: var(--textPrimary);
+  font-family: inherit;
+}
+
+.deleteaccount-input::placeholder {
+  color: var(--textMuted);
+}
+
+.deleteaccount-error {
+  color: var(--primaryRed);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.deleteaccount-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 12px;
+  background: var(--darkRed);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.deleteaccount-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

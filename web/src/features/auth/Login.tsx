@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase';
 import translations from '@shared/translations';
@@ -6,10 +6,6 @@ import SignUp from './SignUp';
 import './Login.css';
 
 export default function Login() {
-  useEffect(() => {
-    document.documentElement.classList.add('auth-bg');
-    return () => document.documentElement.classList.remove('auth-bg');
-  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);

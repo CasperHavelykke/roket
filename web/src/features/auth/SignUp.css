@@ -4,8 +4,8 @@
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
-  background: linear-gradient(180deg, #7B2FF7 0%, #E63946 100%);
+  padding-bottom: 24px;
+  background: linear-gradient(180deg, var(--primaryBlue) 0%, var(--primaryRed) 100%);
   min-height: 100dvh;
   max-width: 600px;
   margin: 0 auto;
@@ -20,7 +20,7 @@
 
 .signup-page h1 {
   font-size: 28px;
-  color: #fff;
+  color: var(--textPrimary);
   text-align: center;
   margin-bottom: 12px;
 }
@@ -31,7 +31,7 @@
   gap: 12px;
   width: 100%;
   max-width: 480px;
-  background: #1a1a1a;
+  background: var(--card);
   padding: 32px 24px;
   border-radius: 24px;
 }
@@ -39,20 +39,20 @@
 .signup-page input[type="email"],
 .signup-page input[type="password"] {
   padding: 14px 16px;
-  border: 1px solid #333;
+  border: 1px solid var(--inputBorder);
   border-radius: 12px;
   font-size: 16px;
-  background: #2a2a2a;
-  color: #fff;
+  background: var(--inputBackground);
+  color: var(--textPrimary);
   outline: none;
 }
 
 .signup-page input::placeholder {
-  color: #888;
+  color: var(--textMuted);
 }
 
 .birthday-label {
-  color: #aaa;
+  color: var(--textSecondary);
   font-size: 14px;
   margin-top: 4px;
 }
@@ -65,11 +65,11 @@
 .birthday-input {
   flex: 1;
   padding: 14px 12px;
-  border: 1px solid #333;
+  border: 1px solid var(--inputBorder);
   border-radius: 12px;
   font-size: 16px;
-  background: #2a2a2a;
-  color: #fff;
+  background: var(--inputBackground);
+  color: var(--textPrimary);
   outline: none;
   text-align: center;
   -moz-appearance: textfield;
@@ -85,7 +85,7 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  color: #aaa;
+  color: var(--textSecondary);
   font-size: 13px;
   line-height: 1.4;
 }
