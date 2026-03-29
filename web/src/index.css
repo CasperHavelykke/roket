@@ -80,6 +80,14 @@ body {
   min-height: 100dvh;
 }
 
+html.auth-bg {
+  background: linear-gradient(180deg, #7B2FF7 50%, #E63946 50%);
+}
+
+html.auth-bg body {
+  background: transparent;
+}
+
 .loading {
   display: flex;
   align-items: center;

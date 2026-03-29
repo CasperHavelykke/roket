@@ -93,7 +93,7 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
   };
 
   return (
-    <div className="page signup-page">
+    <div className="signup-page">
       <img src="/logo.svg" alt="Røket" className="signup-logo" />
       <form onSubmit={handleSignUp}>
         <h1>{t.signupTitle}</h1>

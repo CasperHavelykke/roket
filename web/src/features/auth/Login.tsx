@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase';
 import translations from '@shared/translations';
@@ -6,6 +6,10 @@ import SignUp from './SignUp';
 import './Login.css';
 
 export default function Login() {
+  useEffect(() => {
+    document.documentElement.classList.add('auth-bg');
+    return () => document.documentElement.classList.remove('auth-bg');
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
@@ -29,7 +33,7 @@ export default function Login() {
   };
 
   return (
-    <div className="page login-page">
+    <div className="login-page">
       <img src="/logo.svg" alt="Røket" className="login-logo" />
       <form onSubmit={handleSubmit}>
         <h1>{t.loginWelcome}</h1>
