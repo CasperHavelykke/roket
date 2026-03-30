@@ -13,6 +13,12 @@ import Settings from './features/settings/Settings';
 import BlockedUsers from './features/settings/BlockedUsers';
 import Feedback from './features/settings/Feedback';
 import DeleteAccount from './features/settings/DeleteAccount';
+import Welcome from './features/auth/Welcome';
+import ProfileSetup from './features/profile/ProfileSetup';
+import ChildSafety from './features/legal/ChildSafety';
+import CommunityGuidelines from './features/legal/CommunityGuidelines';
+import PrivacyPolicy from './features/legal/PrivacyPolicy';
+import TermsConditions from './features/legal/TermsConditions';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -41,6 +47,12 @@ export default function App() {
         <Route path="/settings/blocked" element={user ? <BlockedUsers /> : <Navigate to="/login" />} />
         <Route path="/settings/feedback" element={user ? <Feedback /> : <Navigate to="/login" />} />
         <Route path="/settings/delete" element={user ? <DeleteAccount /> : <Navigate to="/login" />} />
+        <Route path="/welcome" element={user ? <Welcome /> : <Navigate to="/login" />} />
+        <Route path="/profile/setup" element={user ? <ProfileSetup /> : <Navigate to="/login" />} />
+        <Route path="/legal/child-safety" element={<ChildSafety />} />
+        <Route path="/legal/community-guidelines" element={<CommunityGuidelines />} />
+        <Route path="/legal/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/legal/terms-conditions" element={<TermsConditions />} />
       </Routes>
     </BrowserRouter>
   );

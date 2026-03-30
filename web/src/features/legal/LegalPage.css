@@ -1,0 +1,31 @@
+.legal-content {
+  padding: 20px;
+  padding-bottom: 40px;
+}
+
+.legal-content h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--textPrimary);
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+.legal-content p {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--textSecondary);
+  margin-bottom: 12px;
+}
+
+.legal-content ul {
+  margin: 0 0 12px 0;
+  padding-left: 20px;
+}
+
+.legal-content li {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--textSecondary);
+  margin-bottom: 6px;
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import BackButton from '../../components/BackButton';
 import { deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
@@ -53,7 +54,7 @@ export default function DeleteAccount() {
   return (
     <div className="page">
       <nav className="navbar">
-        <Link to="/settings" className="back">{'\u2190'}</Link>
+        <BackButton>{'\u2190'}</BackButton>
         <h1>{t.deleteAccountTitle}</h1>
       </nav>
 

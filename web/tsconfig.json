@@ -19,5 +19,5 @@
       "@shared/*": ["../src/*"]
     }
   },
-  "include": ["src", "../src/translations.ts"]
+  "include": ["src", "../src/translations.ts", "../src/features/legal/texts.ts"]
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import BackButton from '../../components/BackButton';
 import { doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import translations, { Language } from '@shared/translations';
@@ -53,7 +53,7 @@ export default function BlockedUsers() {
   return (
     <div className="page">
       <nav className="navbar">
-        <Link to="/settings" className="back">{t.back}</Link>
+        <BackButton>{t.back}</BackButton>
         <h1>{t.blockedTitle}</h1>
       </nav>
 

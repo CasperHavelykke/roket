@@ -428,7 +428,28 @@ export default function EditProfileScreen({ navigation }: any) {
             )}
           </View>
 
-          {gender !== '' && (
+          <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
+            <View style={[styles.toggleRow, { borderTopWidth: 0, marginTop: 0, paddingTop: 0 }]}>
+              <View style={styles.toggleInfo}>
+                <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileDatingOnly}</Text>
+                <Text style={[styles.toggleDesc, { color: colors.textMuted }]}>{t.editProfileDatingOnlyDesc}</Text>
+              </View>
+              <Switch
+                value={datingOnly}
+                onValueChange={(val) => {
+                  setDatingOnly(val);
+                  if (!val) {
+                    setShowGender(false);
+                    setShowSexuality(false);
+                  }
+                }}
+                trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+
+          {datingOnly && gender !== '' && (
             <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
               <Text style={[styles.toggleValueLabel, { color: colors.textPrimary }]}>{t.editProfileGender}: {genderLabel(gender)}</Text>
               <View style={[styles.toggleRow, { borderTopColor: colors.inputBorder }]}>
@@ -446,7 +467,7 @@ export default function EditProfileScreen({ navigation }: any) {
             </View>
           )}
 
-          {sexuality !== '' && (
+          {datingOnly && sexuality !== '' && (
             <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
               <Text style={[styles.toggleValueLabel, { color: colors.textPrimary }]}>{t.editProfileSexuality}: {sexualityLabel(sexuality)}</Text>
               <View style={[styles.toggleRow, { borderTopColor: colors.inputBorder }]}>
@@ -463,21 +484,6 @@ export default function EditProfileScreen({ navigation }: any) {
               </View>
             </View>
           )}
-
-          <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
-            <View style={[styles.toggleRow, { borderTopWidth: 0, marginTop: 0, paddingTop: 0 }]}>
-              <View style={styles.toggleInfo}>
-                <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileDatingOnly}</Text>
-                <Text style={[styles.toggleDesc, { color: colors.textMuted }]}>{t.editProfileDatingOnlyDesc}</Text>
-              </View>
-              <Switch
-                value={datingOnly}
-                onValueChange={setDatingOnly}
-                trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
-                thumbColor="#fff"
-              />
-            </View>
-          </View>
 
           <TouchableOpacity
             style={[styles.saveButton, { backgroundColor: colors.primaryRed }, saving && styles.saveButtonDisabled]}

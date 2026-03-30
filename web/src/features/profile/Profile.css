@@ -1,42 +1,189 @@
-.profile-photos {
+.profile-page {
+  padding-top: 0 !important;
+}
+
+.profile-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 8px;
+}
+
+.profile-back {
+  color: var(--primaryBlue);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .profile-back {
+    color: var(--textWhite);
+  }
+}
+
+:root[data-theme="dark"] .profile-back {
+  color: var(--textWhite);
+}
+
+/* Photo */
+.profile-photo-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 20px 24px;
+}
+
+.profile-carousel {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.profile-carousel-scroll {
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  height: 100%;
 }
 
-.profile-photo {
+.profile-carousel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-carousel-scroll img {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
   flex-shrink: 0;
   scroll-snap-align: start;
-  aspect-ratio: 3/4;
-  object-fit: cover;
 }
 
-.profile-info {
-  padding: 16px;
-}
-
-.profile-info .age {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.profile-info .bio {
-  color: var(--textMuted);
-  line-height: 1.5;
-}
-
-.primary-btn {
-  display: block;
-  width: calc(100% - 32px);
-  margin: 16px;
-  padding: 14px;
-  background: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
+.profile-photo-count {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
   color: #fff;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.profile-single-photo {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+/* Info card */
+.profile-info-card {
+  margin: 0 20px;
+  padding: 20px;
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.profile-name {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--textPrimary);
+  margin-bottom: 6px;
+}
+
+.profile-status {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.profile-status.online {
+  color: var(--online);
+}
+
+.profile-status.offline {
+  color: var(--offline);
+}
+
+.profile-distance {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primaryRed);
+  margin-bottom: 12px;
+}
+
+.profile-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.profile-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--inputBorder);
+  background: var(--backgroundLight);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--textSecondary);
+}
+
+.profile-bio-section {
+  border-top: 1px solid var(--borderLight);
+  padding-top: 16px;
+}
+
+.profile-bio-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--textMuted);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.profile-bio-text {
+  font-size: 17px;
+  line-height: 26px;
+  color: var(--textPrimary);
+}
+
+.profile-bio-empty {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--textMuted);
+}
+
+/* Message FAB */
+.profile-message-fab {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  right: max(32px, calc(50% - 300px + 32px));
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  background-image: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
+  background-size: 600px 100%;
+  background-position-x: right;
+  border: none;
+  outline: 1.5px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  z-index: 20;
+}
+
+.profile-message-fab svg {
+  width: 30px;
+  height: 30px;
 }

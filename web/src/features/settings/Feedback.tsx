@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import BackButton from '../../components/BackButton';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import translations, { Language } from '@shared/translations';
@@ -62,7 +63,7 @@ export default function Feedback() {
   return (
     <div className="page">
       <nav className="navbar">
-        <Link to="/settings" className="back">{t.back}</Link>
+        <BackButton>{t.back}</BackButton>
         <h1>{t.feedbackTitle}</h1>
       </nav>
 

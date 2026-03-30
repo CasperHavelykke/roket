@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import BackButton from '../../components/BackButton';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../../firebase';
 import translations, { Language } from '@shared/translations';
+import { placeholderPic } from '../../utils/theme';
 import './EditProfile.css';
 
 export default function EditProfile() {
@@ -151,14 +153,14 @@ export default function EditProfile() {
   return (
     <div className="page">
       <nav className="navbar">
-        <Link to="/profile/me" className="back">{'\u2190'}</Link>
+        <BackButton>{'\u2190'}</BackButton>
         <h1>{t.editProfileTitle}</h1>
       </nav>
 
       <div className="editprofile-content">
         <div className="editprofile-photo-container" onClick={() => photoInputRef.current?.click()}>
           <img
-            src={photoURL || '/missing-profile-pic.png'}
+            src={photoURL || placeholderPic()}
             alt=""
             className="editprofile-photo"
           />

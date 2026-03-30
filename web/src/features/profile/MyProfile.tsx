@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import BackButton from '../../components/BackButton';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import translations, { Language } from '@shared/translations';
+import { placeholderPic } from '../../utils/theme';
 import './MyProfile.css';
 
 export default function MyProfile() {
@@ -76,9 +78,9 @@ export default function MyProfile() {
   };
 
   return (
-    <div className="page" style={{ paddingTop: 0 }}>
-      <div className="myprofile-back">
-        <Link to="/">{t.myProfileBack}</Link>
+    <div className="page profile-page" style={{ paddingTop: 0 }}>
+      <div className="profile-topbar">
+        <BackButton className="profile-back">{t.myProfileBack}</BackButton>
       </div>
 
       <div className="myprofile-content">
@@ -100,7 +102,7 @@ export default function MyProfile() {
             </div>
           ) : (
             <img
-              src={photoURL || '/missing-profile-pic.png'}
+              src={photoURL || placeholderPic()}
               alt=""
               className="myprofile-single-photo"
             />

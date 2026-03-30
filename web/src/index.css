@@ -64,6 +64,7 @@
   --primaryRed: #C1121F;
   --primaryBlue: #3A0CA3;
   --primaryBlueText: #5717ed;
+  --white: #1A1A1A;
   --background: #121212;
   --backgroundLight: #1E1E1E;
   --backgroundBlueLight: #1A1A2E;
@@ -76,6 +77,8 @@
   --textSecondary: #AAAAAA;
   --textMuted: #777777;
   --offline: #666666;
+  --bubbleReceived: #2A2A2A;
+  --bubbleReceivedText: #E0E0E0;
   --shadow: #000000;
 }
 
@@ -116,12 +119,12 @@ body {
   font-size: 14px;
 }
 
-/* Navbar */
+/* Navbar — default is compact (sub-pages) */
 .navbar {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 14px;
   background: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
   position: fixed;
   top: 0;
@@ -133,16 +136,16 @@ body {
 }
 
 .navbar h1 {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   flex: 1;
   color: #fff;
 }
 
 .navbar img.navbar-logo {
-  width: 28px;
-  height: 28px;
-  filter: brightness(0) invert(1);
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
 }
 
 .navbar .back {

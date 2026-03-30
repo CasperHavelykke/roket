@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import BackButton from '../../components/BackButton';
 import { signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
@@ -92,10 +93,11 @@ export default function Settings() {
   ];
 
   return (
-    <div className="page">
+    <div className="page settings-page">
       <nav className="navbar">
-        <Link to="/" className="back">{t.back}</Link>
+        <BackButton>{t.back}</BackButton>
         <h1>{t.settingsTitle}</h1>
+        <img src="/logo-simpel.svg" alt="" className="navbar-logo" />
       </nav>
 
       <div className="settings-content">
@@ -184,18 +186,18 @@ export default function Settings() {
           <Link to="/settings/blocked" className="settings-row">
             <span>{t.settingsBlockedUsers}</span><span className="row-arrow">→</span>
           </Link>
-          <a href="https://roket-ac4de.web.app/community-guidelines" target="_blank" rel="noreferrer" className="settings-row">
+          <Link to="/legal/community-guidelines" className="settings-row">
             <span>{t.settingsGuidelines}</span><span className="row-arrow">→</span>
-          </a>
-          <a href="https://roket-ac4de.web.app/privacy" target="_blank" rel="noreferrer" className="settings-row">
+          </Link>
+          <Link to="/legal/privacy-policy" className="settings-row">
             <span>{t.settingsPrivacyPolicy}</span><span className="row-arrow">→</span>
-          </a>
-          <a href="https://roket-ac4de.web.app/terms" target="_blank" rel="noreferrer" className="settings-row">
+          </Link>
+          <Link to="/legal/terms-conditions" className="settings-row">
             <span>{t.settingsTerms}</span><span className="row-arrow">→</span>
-          </a>
-          <a href="https://roket-ac4de.web.app/child-safety" target="_blank" rel="noreferrer" className="settings-row last">
+          </Link>
+          <Link to="/legal/child-safety" className="settings-row last">
             <span>{t.settingsChildSafety}</span><span className="row-arrow">→</span>
-          </a>
+          </Link>
         </div>
 
         <h3 className="section-title">{t.settingsSupport}</h3>

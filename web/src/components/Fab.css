@@ -1,6 +1,6 @@
 .fab-group {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
   right: max(32px, calc(50% - 300px + 32px));
   display: flex;
   flex-direction: row;
@@ -22,6 +22,9 @@
   outline-offset: 0px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.25);
   transition: transform 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .fab-btn:hover {
