@@ -30,6 +30,8 @@ import CameraIcon from '../../assets/camera.svg';
 import SendIcon from '../../assets/send.svg';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoSimpel from '../../assets/roket-logo-simpel.svg';
+import RoketStars from '../../assets/roket-logo-stars-only.svg';
+import RoketStarsDark from '../../assets/roket-logo-stars-dark.svg';
 
 interface Message {
   id: string;
@@ -203,7 +205,7 @@ function getOrCreateChatId(uid1: string, uid2: string): string {
 }
 
 export default function ChatScreen({ route, navigation }: any) {
-  const { colors, timeFormat, t, showTestBadges } = useTheme();
+  const { colors, isDark, timeFormat, t, showTestBadges } = useTheme();
   const insets = useSafeAreaInsets();
   const { otherUser, fromProfile } = route.params as {
     otherUser: { id: string; displayName: string; testAccount?: boolean };
@@ -218,6 +220,8 @@ export default function ChatScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [sendingImage, setSendingImage] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [showLogoMenu, setShowLogoMenu] = useState(false);
+  const [showChatInfo, setShowChatInfo] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [reportMessage, setReportMessage] = useState<Message | null>(null);
   const [reportText, setReportText] = useState('');
@@ -746,10 +750,26 @@ export default function ChatScreen({ route, navigation }: any) {
             </View>
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
+        <TouchableOpacity onPress={() => setShowLogoMenu(!showLogoMenu)} style={{ marginLeft: 'auto' }}>
           <RoketLogoSimpel width={24} height={24} fillRule="evenodd" />
         </TouchableOpacity>
       </GradientView>
+
+      {showLogoMenu && (
+        <>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowLogoMenu(false)} />
+          <View style={[styles.logoMenu, { backgroundColor: colors.card }]}>
+            <TouchableOpacity style={styles.logoMenuItem} onPress={() => { setShowLogoMenu(false); navigation.navigate('Feedback', { category: 'bug' }); }}>
+              {isDark ? <RoketStars width={16} height={16} /> : <RoketStarsDark width={16} height={16} color={colors.textPrimary} />}
+              <Text style={[styles.logoMenuText, { color: colors.textPrimary }]}>{t.settingsFeedback}</Text>
+            </TouchableOpacity>
+            <View style={[styles.logoMenuDivider, { backgroundColor: colors.borderLight }]} />
+            <TouchableOpacity style={styles.logoMenuItem} onPress={() => { setShowLogoMenu(false); setShowChatInfo(true); }}>
+              <Text style={[styles.logoMenuText, { color: colors.textPrimary }]}>Info</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -775,14 +795,6 @@ export default function ChatScreen({ route, navigation }: any) {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{t.chatSayHi(otherUser.displayName)}</Text>
-                <View style={styles.tipsContainer}>
-                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipImageExpiry}</Text>
-                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipDeleted}</Text>
-                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipAutoScan}</Text>
-                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipBlurred}</Text>
-                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipReportMessage}</Text>
-                  <Text style={[styles.tipText, { color: colors.textMuted }]}>- {t.chatTipReportProfile}</Text>
-                </View>
               </View>
             }
           />
@@ -837,6 +849,23 @@ export default function ChatScreen({ route, navigation }: any) {
 
       <Modal visible={!!fullscreenImage} transparent animationType="fade" onRequestClose={() => setFullscreenImage(null)}>
         <FullscreenZoomImage uri={fullscreenImage!} onClose={() => setFullscreenImage(null)} />
+      </Modal>
+
+      <Modal visible={showChatInfo} transparent animationType="fade" onRequestClose={() => setShowChatInfo(false)}>
+        <View style={styles.reportOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowChatInfo(false)} />
+          <View style={[styles.reportCard, { backgroundColor: colors.card }]}>
+            <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipImageExpiry}</Text>
+            <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipDeleted}</Text>
+            <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipAutoScan}</Text>
+            <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipBlurred}</Text>
+            <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipReportMessage}</Text>
+            <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 12 }]}>- {t.chatTipReportProfile}</Text>
+            <TouchableOpacity style={[styles.reportButton, { backgroundColor: colors.primaryBlue }]} onPress={() => setShowChatInfo(false)}>
+              <Text style={[styles.reportButtonText, { color: '#fff' }]}>{t.ok}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       <Modal visible={!!reportMessage} transparent animationType="fade" onRequestClose={() => setReportMessage(null)}>
@@ -1160,6 +1189,34 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 28,
     fontWeight: 'bold',
+  },
+  logoMenu: {
+    position: 'absolute',
+    top: 90,
+    right: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+    minWidth: 180,
+    zIndex: 50,
+    overflow: 'hidden',
+  },
+  logoMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 14,
+    paddingHorizontal: 18,
+  },
+  logoMenuText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  logoMenuDivider: {
+    height: 1,
   },
   reportOverlay: {
     flex: 1,

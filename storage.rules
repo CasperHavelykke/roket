@@ -9,15 +9,13 @@ service firebase.storage {
 
     // Profilbilleder: skriveregler for profilePhotos/{uid}.jpg og profilePhotos/{uid}_extra_{0-4}.jpg
     match /profilePhotos/{fileName} {
-      // Kun brugeren selv kan uploade — filnavn skal starte med brugerens uid
+      // Alle autentificerede kan uploade (bruger uploader egne, admin uploader for testkonti)
       allow create, update: if request.auth != null &&
-                      fileName.matches(request.auth.uid + '.*') &&
                       request.resource.contentType.matches('image/.*') &&
                       request.resource.size < 5 * 1024 * 1024; // Maks 5 MB
 
-      // Brugeren selv kan slette sine billeder
-      allow delete: if request.auth != null &&
-                       fileName.matches(request.auth.uid + '.*');
+      // Alle autentificerede kan slette (egen bruger + admin via admin-panelet)
+      allow delete: if request.auth != null;
     }
 
     // Chat-billeder: læsning + listing (til admin-panelet med listAll)

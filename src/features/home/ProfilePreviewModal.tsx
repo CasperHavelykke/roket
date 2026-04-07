@@ -11,11 +11,14 @@ import {
 } from 'react-native';
 import GradientView from '../../components/GradientView';
 import { useTheme } from '../../theme';
+import MessageIcon from '../../assets/message.svg';
+import MessagesIcon from '../../assets/messages.svg';
 
 interface PreviewUser {
   id: string;
   displayName: string;
   bio: string;
+  status?: string;
   photoURL: string | null;
   distance?: number;
   lastSeen?: Date;
@@ -91,104 +94,43 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
       <View style={styles.overlay}>
         <Pressable style={styles.overlayBackground} onPress={onClose} />
         <View style={[styles.card, { backgroundColor: colors.white }]}>
-          {/* Photo */}
-          <View style={styles.photoContainer}>
-            {allPhotos.length > 1 ? (
-              <>
-                <ScrollView
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  bounces={false}
-                  onMomentumScrollEnd={(e) => {
-                    setPhotoIndex(Math.round(e.nativeEvent.contentOffset.x / CARD_WIDTH));
-                  }}
-                >
-                  {allPhotos.map((uri, i) => (
-                    <Image key={i} source={{ uri }} style={styles.photo} resizeMode="cover" />
-                  ))}
-                </ScrollView>
-                <View style={styles.photoCountBadge} pointerEvents="none">
-                  <Text style={styles.photoCountText}>{photoIndex + 1}/{allPhotos.length}</Text>
-                </View>
-              </>
-            ) : allPhotos.length === 1 ? (
-              <Image source={{ uri: allPhotos[0] }} style={styles.photo} resizeMode="cover" />
-            ) : (
+          {/* Header: thumbnail (tappable) + status */}
+          <View style={styles.header}>
+            <Pressable onPress={onViewProfile}>
               <Image
-                source={isDark ? require('../../assets/missing-profile-pic.png') : require('../../assets/missing-profile-pic-light.png')}
-                style={styles.photo}
-                resizeMode="cover"
+                source={allPhotos.length > 0 ? { uri: allPhotos[0] } : (isDark ? require('../../assets/missing-profile-pic.png') : require('../../assets/missing-profile-pic-light.png'))}
+                style={styles.thumbnail}
               />
-            )}
-            {isOnline && <View style={[styles.onlineDot, { backgroundColor: colors.online }]} />}
+            </Pressable>
+            <View style={styles.headerText}>
+              {user.status ? (
+                <Text style={[styles.statusText, { color: colors.textPrimary }]}>{user.status}</Text>
+              ) : null}
+            </View>
           </View>
 
-          {/* Info */}
+          {/* Description */}
           <View style={styles.info}>
-            <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
-              {user.displayName || ''}{user.displayName && user.age ? `, ${user.age}` : user.age ? `${user.age}` : ''}
-            </Text>
-
-            {user.lastSeen && (
-              <Text style={[styles.status, { color: isOnline ? colors.online : colors.offline }]}>
-                {isOnline ? '● ' : '○ '}{formatLastSeen()}
-              </Text>
-            )}
-
-            {distStr !== '' && (
-              <Text style={[styles.distance, { color: colors.primaryRed }]}>📍 {distStr}</Text>
-            )}
-
-            {(user.gender || user.sexuality) && (
-              <View style={styles.chips}>
-                {user.gender && (
-                  <View style={[styles.chip, { backgroundColor: colors.backgroundLight, borderColor: colors.inputBorder }]}>
-                    <Text style={[styles.chipText, { color: colors.textSecondary }]}>{genderLabels[user.gender] ?? user.gender}</Text>
-                  </View>
-                )}
-                {user.sexuality && (
-                  <View style={[styles.chip, { backgroundColor: colors.backgroundLight, borderColor: colors.inputBorder }]}>
-                    <Text style={[styles.chipText, { color: colors.textSecondary }]}>{sexualityLabels[user.sexuality] ?? user.sexuality}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
             {user.bio ? (
-              <Text style={[styles.bio, { color: colors.textPrimary }]} numberOfLines={3}>{user.bio}</Text>
+              <Text style={[styles.bio, { color: colors.textSecondary }]}>{user.bio}</Text>
             ) : (
               <Text style={[styles.bio, { color: colors.textMuted }]}>{t.profileNoBio}</Text>
             )}
 
-            <View style={styles.buttons}>
-              <Pressable
-                onPress={onViewProfile}
-                style={({ pressed }) => [styles.actionButton, { opacity: pressed ? 0.8 : 1 }]}
+            <Pressable
+              onPress={onSendMessage}
+              style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}
+            >
+              <GradientView
+                colors={[colors.primaryBlue, colors.primaryRed]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.sendButton}
               >
-                <GradientView
-                  colors={[colors.primaryBlue, colors.primaryRed]}
-                  start={{ x: -BTN1_LEFT / BUTTON_WIDTH, y: 0 }}
-                  end={{ x: (SCREEN_WIDTH - BTN1_LEFT) / BUTTON_WIDTH, y: 0 }}
-                  style={styles.actionButtonGradient}
-                >
-                  <Text style={styles.actionButtonText}>{t.previewViewProfile}</Text>
-                </GradientView>
-              </Pressable>
-              <Pressable
-                onPress={onSendMessage}
-                style={({ pressed }) => [styles.actionButton, { opacity: pressed ? 0.8 : 1 }]}
-              >
-                <GradientView
-                  colors={[colors.primaryBlue, colors.primaryRed]}
-                  start={{ x: -BTN2_LEFT / BUTTON_WIDTH, y: 0 }}
-                  end={{ x: (SCREEN_WIDTH - BTN2_LEFT) / BUTTON_WIDTH, y: 0 }}
-                  style={styles.actionButtonGradient}
-                >
-                  <Text style={styles.actionButtonText}>{t.profileSendMessage}</Text>
-                </GradientView>
-              </Pressable>
-            </View>
+                <MessageIcon width={20} height={20} stroke="#fff" />
+                <Text style={styles.actionButtonText}>{t.profileSendMessage}</Text>
+              </GradientView>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -216,40 +158,28 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  photoContainer: {
-    width: CARD_WIDTH,
-    height: CARD_WIDTH,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 14,
   },
-  photo: {
-    width: CARD_WIDTH,
-    height: CARD_WIDTH,
+  thumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
-  photoCountBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  headerText: {
+    flex: 1,
   },
-  photoCountText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  onlineDot: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#fff',
+  statusText: {
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 26,
   },
   info: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     gap: 6,
   },
   name: {
@@ -284,20 +214,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 4,
   },
-  buttons: {
+  sendButton: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  actionButtonGradient: {
-    paddingVertical: 13,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
     borderRadius: 12,
+    marginTop: 12,
   },
   actionButtonText: {
     color: '#fff',

@@ -82,11 +82,15 @@
   --shadow: #000000;
 }
 
+html {
+  background: var(--background);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--background);
   color: var(--textPrimary);
-  min-height: 100dvh;
+  min-height: 100vh;
 }
 
 
@@ -94,14 +98,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100dvh;
+  height: 100vh;
   color: var(--textMuted);
 }
 
 .page {
   max-width: 600px;
   margin: 0 auto;
-  min-height: 100dvh;
+  min-height: 100vh;
   position: relative;
   background: var(--background);
   padding-top: calc(env(safe-area-inset-top, 0px) + 52px);

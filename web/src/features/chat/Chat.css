@@ -1,17 +1,26 @@
 .page.chat-page {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: 100vh;
+  min-height: 0;
   padding-top: 0;
   padding-bottom: 0;
+  overflow: hidden;
 }
 
 .chat-page .navbar {
-  position: relative;
+  position: fixed;
+  top: 0;
   left: 0;
   right: 0;
-  max-width: none;
-  margin: 0;
+  max-width: 600px;
+  margin: 0 auto;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.chat-page .chat-spacer {
+  height: calc(env(safe-area-inset-top, 0px) + 52px);
   flex-shrink: 0;
 }
 
@@ -59,6 +68,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  justify-content: flex-end;
 }
 
 .message-row {
@@ -196,4 +206,151 @@
 .chat-send-btn:disabled {
   background: var(--textMuted);
   cursor: not-allowed;
+}
+
+/* Message bubble: prevent text selection on long-press */
+.message {
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Deleted message text */
+.message-deleted {
+  font-style: italic;
+  opacity: 0.55;
+}
+
+/* Chat image inside bubble */
+.message-image {
+  max-width: 220px;
+  border-radius: 12px;
+  display: block;
+  cursor: pointer;
+}
+
+/* Expired image */
+.message-image-expired {
+  font-style: italic;
+  opacity: 0.55;
+  font-size: 14px;
+}
+
+.message-image-wrap {
+  position: relative;
+}
+
+.message-image-timer {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+/* Action menu overlay */
+.message-action-menu {
+  position: fixed;
+  z-index: 1000;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  min-width: 160px;
+  overflow: hidden;
+}
+
+.message-action-menu button {
+  display: block;
+  width: 100%;
+  padding: 12px 18px;
+  background: none;
+  border: none;
+  font-size: 15px;
+  text-align: left;
+  color: var(--textPrimary);
+  cursor: pointer;
+}
+
+.message-action-menu button:active,
+.message-action-menu button:hover {
+  background: var(--background);
+}
+
+.message-action-menu button.destructive {
+  color: var(--primaryRed);
+}
+
+/* Camera button */
+.chat-camera-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: var(--textMuted);
+}
+
+.chat-camera-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.chat-camera-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--textMuted);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.chat-info-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.chat-info-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 360px;
+  width: 100%;
+}
+
+.chat-info-tips {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-info-tips p {
+  font-size: 14px;
+  color: var(--textSecondary);
+  line-height: 1.4;
+}
+
+.chat-info-close {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--primaryBlue);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
 }

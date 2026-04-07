@@ -1,17 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   collection, doc, getDocs, getDoc, setDoc, deleteDoc,
-  serverTimestamp, GeoPoint, query, where,
+  serverTimestamp, GeoPoint, query, where, onSnapshot, type Unsubscribe,
 } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import translations, { Language } from '@shared/translations';
 import Fab from '../../components/Fab';
 import { ProfileIcon, MessagesIcon, SettingsIcon } from '../../components/icons';
+import MessagesSvg from '@shared/assets/messages.svg?react';
 import { placeholderPic } from '../../utils/theme';
+import CardCarousel from './CardCarousel';
+import ProfilePreviewModal from './ProfilePreviewModal';
 import './Home.css';
 
-const INACTIVE_HOURS = 72;
+const INACTIVE_HOURS = 24;
 
 interface UserProfile {
   id: string;
@@ -19,11 +22,14 @@ interface UserProfile {
   photoURL?: string;
   photos?: string[];
   bio?: string;
+  status?: string;
   age?: number;
   distance?: number;
   distanceMode?: string;
   lastSeen?: Date;
   datingOnly?: boolean;
+  gender?: string;
+  sexuality?: string;
 }
 
 function getLang(): Language {
@@ -79,10 +85,12 @@ function formatDistance(distance: number | undefined, otherDistanceMode: string 
 function getCurrentPosition(): Promise<{ latitude: number; longitude: number } | null> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) { resolve(null); return; }
+    // Fallback timeout in case geolocation hangs
+    const fallback = setTimeout(() => resolve(null), 10000);
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+      (pos) => { clearTimeout(fallback); resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }); },
+      () => { clearTimeout(fallback); resolve(null); },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 },
     );
   });
 }
@@ -94,12 +102,26 @@ function getGridColumns(): GridColumns {
   return (v >= 1 && v <= 4 ? v : 2) as GridColumns;
 }
 
+// Module-level cache so user list survives navigation
+const cache: {
+  users: UserProfile[];
+  timestamp: number;
+} = { users: [], timestamp: 0 };
+const CACHE_MAX_AGE = 60_000; // 1 minute
+
 export default function Home() {
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const hasFreshCache = cache.users.length > 0 && (Date.now() - cache.timestamp < CACHE_MAX_AGE);
+  const [users, setUsers] = useState<UserProfile[]>(hasFreshCache ? cache.users : []);
+  const [loading, setLoading] = useState(!hasFreshCache);
   const [locationDenied, setLocationDenied] = useState(false);
   const [gridColumns, setGridColumnsState] = useState<GridColumns>(getGridColumns);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [unreadFromUsers, setUnreadFromUsers] = useState<Set<string>>(new Set());
+  const [totalUnreadCount, setTotalUnreadCount] = useState(0);
+  const [previewUser, setPreviewUser] = useState<UserProfile | null>(null);
+  const [needsProfile, setNeedsProfile] = useState(false);
+  const [showLocationHow, setShowLocationHow] = useState(false);
+  const navigate = useNavigate();
   const t = translations[getLang()];
 
   const setGridColumns = (cols: GridColumns) => {
@@ -110,20 +132,27 @@ export default function Home() {
     if (uid) setDoc(doc(db, 'users', uid), { settings: { gridColumns: String(cols) } }, { merge: true }).catch(() => {});
   };
 
-  const updateLocationAndLoad = useCallback(async () => {
+  const updateLocationAndLoad = useCallback(async (force = false) => {
     const uid = auth.currentUser?.uid;
-    if (!uid) return;
+    if (!uid) { setLoading(false); return; }
 
     const position = await getCurrentPosition();
     if (position) {
       setLocationDenied(false);
-      await Promise.all([
+      // Always update location + lastSeen
+      Promise.all([
         setDoc(doc(db, 'userLocations', uid), {
           location: new GeoPoint(position.latitude, position.longitude),
           updatedAt: serverTimestamp(),
         }),
         setDoc(doc(db, 'users', uid), { lastSeen: serverTimestamp() }, { merge: true }),
       ]).catch(() => {});
+
+      // Skip heavy user reload if cache is fresh
+      if (!force && cache.users.length > 0 && (Date.now() - cache.timestamp < CACHE_MAX_AGE)) {
+        setLoading(false);
+        return;
+      }
 
       await loadUsers(position);
     } else {
@@ -139,13 +168,15 @@ export default function Home() {
     if (!uid) return;
 
     try {
-      const [currentUserDoc, usersSnapshot, locationsSnapshot] = await Promise.all([
-        getDoc(doc(db, 'users', uid)),
+      const currentUserDoc = await getDoc(doc(db, 'users', uid));
+      const currentUserData = currentUserDoc.data();
+
+      // Fetch ALL users — matchTag filtering removed for social discovery pivot
+      const [usersSnapshot, locationsSnapshot] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'userLocations')),
       ]);
 
-      const currentUserData = currentUserDoc.data();
       const blockedUsers: string[] = currentUserData?.blockedUsers ?? [];
 
       const locationMap = new Map<string, { latitude: number; longitude: number }>();
@@ -181,16 +212,21 @@ export default function Home() {
             photoURL: data.photoURL,
             photos: data.photos ?? [],
             bio: data.bio || '',
+            status: data.status || '',
             distance,
             distanceMode: data.distanceMode ?? 'exact',
             lastSeen: lastSeenDate,
             age: data.birthday && data.showAge !== false ? getAge(data.birthday) : undefined,
             datingOnly: data.datingOnly ?? false,
+            gender: data.gender && data.showGender !== false ? data.gender : undefined,
+            sexuality: data.sexuality && data.showSexuality !== false ? data.sexuality : undefined,
           });
         }
       });
 
       list.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+      cache.users = list;
+      cache.timestamp = Date.now();
       setUsers(list);
     } catch (e) {
       console.error('Error loading users:', e);
@@ -203,11 +239,55 @@ export default function Home() {
     updateLocationAndLoad();
   }, [updateLocationAndLoad]);
 
+  // Check if user needs profile photo
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const unsub: Unsubscribe = onSnapshot(doc(db, 'users', uid), (snap) => {
+      const data = snap.data();
+      setNeedsProfile(!data?.photoURL);
+    });
+    return () => unsub();
+  }, []);
+
+  // Listen for unread messages
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    const q = query(collection(db, 'chats'), where('participants', 'array-contains', uid));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const unreadUserIds = new Set<string>();
+      let total = 0;
+      snapshot.docs.forEach((d) => {
+        const data = d.data();
+        if (!data.lastMessage || data.lastMessageSenderId === uid) return;
+        const count = data.unreadCount?.[uid] ?? 0;
+        if (count > 0) {
+          const otherUserId = data.participants.find((id: string) => id !== uid);
+          if (otherUserId) unreadUserIds.add(otherUserId);
+          total += count;
+        } else {
+          const lastRead = data.lastRead?.[uid];
+          const isUnread = !lastRead || (data.lastMessageTime && lastRead.toMillis() < data.lastMessageTime.toMillis());
+          if (isUnread) {
+            const otherUserId = data.participants.find((id: string) => id !== uid);
+            if (otherUserId) unreadUserIds.add(otherUserId);
+            total += 1;
+          }
+        }
+      });
+      setUnreadFromUsers(unreadUserIds);
+      setTotalUnreadCount(total);
+    });
+    return () => unsub();
+  }, []);
+
   // Re-fetch location when app comes back to foreground
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        updateLocationAndLoad();
+        updateLocationAndLoad(true);
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
@@ -224,33 +304,49 @@ export default function Home() {
       </nav>
 
       {locationDenied ? (
-        <div className="empty">
-          <p>{t.homeLocationDenied}</p>
-          <button className="location-btn" onClick={updateLocationAndLoad}>
+        <div className="location-denied">
+          <p className="location-denied-text">{t.homeLocationDenied}</p>
+          <button className="location-denied-btn" onClick={() => window.location.reload()}>
             {t.homeEnableLocation}
           </button>
+          <p className="location-denied-hint">{t.homeLocationHint}</p>
+          <button className="location-denied-how" onClick={() => setShowLocationHow(!showLocationHow)}>
+            {t.homeLocationHow}
+          </button>
+          {showLocationHow && (
+            <div className="location-how-box">
+              <p>{t.homeLocationHowAndroid}</p>
+              <p>{t.homeLocationHowIOS}</p>
+            </div>
+          )}
         </div>
       ) : users.length === 0 ? (
         <div className="empty">{t.homeEmpty}</div>
       ) : (
         <div className="user-grid" data-cols={gridColumns} style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
           {users.map((user) => {
-            const dist = formatDistance(user.distance, user.distanceMode, t);
-            const isOnline = user.lastSeen && (Date.now() - user.lastSeen.getTime() < 5 * 60 * 1000);
+            const allPhotos = [user.photoURL, ...(user.photos || [])].filter(Boolean) as string[];
             return (
-              <Link to={`/profile/${user.id}`} key={user.id} className="user-card">
-                <img
-                  src={user.photoURL || placeholderPic()}
-                  alt={user.displayName}
+              <div key={user.id} className={'user-card' + (unreadFromUsers.has(user.id) ? ' has-unread' : '')}>
+                <CardCarousel
+                  photos={allPhotos}
+                  fallbackSrc={placeholderPic()}
+                  compact={gridColumns >= 3}
+                  onClick={() => navigate(`/profile/${user.id}`)}
+                  onLongPress={() => setPreviewUser(user)}
                 />
-                <div className="user-card-info">
-                  <span className="user-name">
-                    {user.displayName}{user.age ? `, ${user.age}` : ''}
-                  </span>
-                  {dist && <span className="user-distance">{dist}</span>}
-                </div>
-                {isOnline && <div className="online-dot" />}
-              </Link>
+                {(user.status || unreadFromUsers.has(user.id)) && (
+                  <div className={'user-card-overlay' + (unreadFromUsers.has(user.id) ? ' unread' : '')}>
+                    {user.status && <span className="user-status">{user.status}</span>}
+                    {user.status && user.bio && gridColumns === 1 && <span className="user-bio">{user.bio}</span>}
+                  </div>
+                )}
+                {unreadFromUsers.has(user.id) && gridColumns <= 2 && (
+                  <div className="unread-badge" onClick={(e) => { e.stopPropagation(); const uid = auth.currentUser?.uid; if (!uid) return; const chatId = [uid, user.id].sort().join('_'); navigate(`/chat/${chatId}`, { state: { otherUserName: user.displayName, otherUserId: user.id } }); }}>
+                    <MessagesSvg width={gridColumns === 1 ? 24 : 18} height={gridColumns === 1 ? 24 : 18} stroke="#fff" style={{ display: 'block' }} />
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -260,10 +356,16 @@ export default function Home() {
         <div className="column-picker-backdrop" onClick={() => setShowColumnPicker(false)} />
       )}
 
+      <ProfilePreviewModal
+        visible={!!previewUser}
+        user={previewUser}
+        onClose={() => setPreviewUser(null)}
+      />
+
       <Fab
         items={[
-          { to: '/profile/me', icon: ProfileIcon },
-          { to: '/chats', icon: MessagesIcon },
+          { to: '/profile/me', icon: ProfileIcon, pulse: needsProfile },
+          { to: '/chats', icon: MessagesIcon, badge: totalUnreadCount, unread: totalUnreadCount > 0 },
           { to: '/settings', icon: SettingsIcon, onLongPress: () => setShowColumnPicker(true) },
         ]}
         overlay={showColumnPicker ? (gradStyle: React.CSSProperties) => (

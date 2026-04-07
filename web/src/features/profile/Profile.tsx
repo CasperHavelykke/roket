@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import BackButton from '../../components/BackButton';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, addDoc, collection, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../firebase';
 import translations, { Language } from '@shared/translations';
+import MessageSvg from '@shared/assets/message.svg?react';
 import MessagesSvg from '@shared/assets/messages.svg?react';
 import { placeholderPic } from '../../utils/theme';
+import PhotoGalleryModal from './PhotoGalleryModal';
 import './Profile.css';
 
 function getLang(): Language {
@@ -25,6 +27,7 @@ interface UserData {
   photoURL?: string;
   photos?: string[];
   bio?: string;
+  status?: string;
   birthday?: { day: number; month: number; year: number };
   showAge?: boolean;
   gender?: string;
@@ -41,6 +44,12 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [distance, setDistance] = useState<number | undefined>();
+  const [hasConversation, setHasConversation] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [reportText, setReportText] = useState('');
   const carouselRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const loc = useLocation();
@@ -73,6 +82,13 @@ export default function Profile() {
       }
       setLoading(false);
     });
+    // Check if conversation exists
+    if (uid && userId) {
+      const chatId = [uid, userId].sort().join('_');
+      getDoc(doc(db, 'chats', chatId)).then(snap => {
+        setHasConversation(snap.exists() && !!snap.data()?.lastMessage);
+      });
+    }
   }, [userId]);
 
   const openChat = () => {
@@ -80,6 +96,42 @@ export default function Profile() {
     if (!uid || !userId) return;
     const chatId = [uid, userId].sort().join('_');
     navigate(`/chat/${chatId}`, { state: { otherUserName: profile?.displayName, otherUserId: userId } });
+  };
+
+  const handleBlock = async () => {
+    setShowMenu(false);
+    const uid = auth.currentUser?.uid;
+    if (!uid || !userId || !profile) return;
+    if (!confirm(t.profileBlockConfirm(profile.displayName))) return;
+    await Promise.all([
+      updateDoc(doc(db, 'users', uid), { blockedUsers: arrayUnion(userId) }),
+      addDoc(collection(db, 'blocks'), {
+        blockerId: uid,
+        blockedUserId: userId,
+        createdAt: serverTimestamp(),
+        status: 'pending',
+      }),
+    ]);
+    navigate(-1);
+  };
+
+  const handleReport = () => {
+    setShowMenu(false);
+    setReportText('');
+    setShowReportModal(true);
+  };
+
+  const handleSendReport = async () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid || !userId) return;
+    setShowReportModal(false);
+    await addDoc(collection(db, 'reports'), {
+      reporterId: uid,
+      reportedUserId: userId,
+      message: reportText.trim() || null,
+      createdAt: serverTimestamp(),
+    });
+    setReportText('');
   };
 
   if (loading) return <div className="loading">{t.ok}...</div>;
@@ -117,9 +169,7 @@ export default function Profile() {
   const formatLastSeen = (): string => {
     if (!lastSeenMs) return '';
     const diff = Date.now() - lastSeenMs;
-    if (diff < 5 * 60 * 1000) return t.profileOnlineNow;
-    if (diff < 60 * 60 * 1000) return t.profileLastSeenMinutes(Math.floor(diff / 60000));
-    if (diff < 24 * 60 * 60 * 1000) return t.profileLastSeenHours(Math.floor(diff / 3600000));
+    if (diff < 24 * 60 * 60 * 1000) return '';
     return t.profileLastSeenDays(Math.floor(diff / 86400000));
   };
 
@@ -136,14 +186,34 @@ export default function Profile() {
     <div className="page profile-page">
       <div className="profile-topbar">
         <BackButton className="profile-back">{t.profileBack}</BackButton>
+        <button className="profile-more-btn" onClick={() => setShowMenu(!showMenu)}>⋮</button>
       </div>
+
+      {showMenu && (
+        <>
+          <div className="profile-menu-overlay" onClick={() => setShowMenu(false)} />
+          <div className="profile-menu-card">
+            <button className="profile-menu-option profile-menu-block" onClick={handleBlock}>
+              {t.profileBlock(profile.displayName)}
+            </button>
+            <div className="profile-menu-divider" />
+            <button className="profile-menu-option" onClick={handleReport}>
+              {t.profileReport(profile.displayName)}
+            </button>
+            <div className="profile-menu-divider" />
+            <button className="profile-menu-option profile-menu-cancel" onClick={() => setShowMenu(false)}>
+              {t.cancel}
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="profile-photo-container">
         {allPhotos.length > 1 ? (
           <div className="profile-carousel">
             <div className="profile-carousel-scroll" ref={carouselRef} onScroll={handleScroll}>
               {allPhotos.map((url, i) => (
-                <img key={i} src={url} alt="" />
+                <img key={i} src={url} alt="" onClick={() => { setGalleryIndex(i); setGalleryOpen(true); }} style={{ cursor: 'pointer' }} />
               ))}
             </div>
             <div className="profile-photo-count">{currentPhotoIndex + 1}/{allPhotos.length}</div>
@@ -153,46 +223,73 @@ export default function Profile() {
             src={profile.photoURL || placeholderPic()}
             alt=""
             className="profile-single-photo"
+            onClick={() => { if (allPhotos.length > 0) { setGalleryIndex(0); setGalleryOpen(true); } }}
+            style={allPhotos.length > 0 ? { cursor: 'pointer' } : undefined}
           />
         )}
       </div>
 
-      <div className="profile-info-card">
-        <h2 className="profile-name">
-          {profile.displayName}{age ? `, ${age}` : ''}
-        </h2>
+      <PhotoGalleryModal
+        visible={galleryOpen}
+        photos={allPhotos}
+        initialIndex={galleryIndex}
+        onClose={() => setGalleryOpen(false)}
+      />
 
-        {lastSeenMs && (
-          <p className={'profile-status' + (isOnline ? ' online' : ' offline')}>
-            {isOnline ? '● ' : '○ '}{formatLastSeen()}
+      <div className="profile-info-card">
+        {profile.status && (
+          <h2 className="profile-name">{profile.status}</h2>
+        )}
+
+        {formatLastSeen() && (
+          <p className="profile-status offline">
+            {formatLastSeen()}
           </p>
         )}
 
-        {dist && <p className="profile-distance">📍 {dist}</p>}
-
-        {(gender || sexuality) && (
-          <div className="profile-chips">
-            {gender && <span className="profile-chip">{genderLabels[gender] ?? gender}</span>}
-            {sexuality && <span className="profile-chip">{sexualityLabels[sexuality] ?? sexuality}</span>}
-          </div>
-        )}
-
-        {profile.bio ? (
-          <div className="profile-bio-section">
-            <span className="profile-bio-label">{t.profileAbout}</span>
+        {profile.bio && (
+          <div className={'profile-bio-section' + (profile.status || formatLastSeen() ? ' has-divider' : '')}>
             <p className="profile-bio-text">{profile.bio}</p>
           </div>
-        ) : (
-          <div className="profile-bio-section">
-            <p className="profile-bio-empty">{t.profileNoBio}</p>
-          </div>
         )}
+
+        <div className="profile-secondary-info">
+          <span className="profile-secondary-name">{profile.displayName || ''}{profile.displayName && age ? `, ${age}` : age ? `${age}` : ''}</span>
+          {dist && <span className="profile-secondary-distance">📍 {dist}</span>}
+        </div>
       </div>
 
       {!fromChat && (
         <button className="profile-message-fab" onClick={openChat}>
-          <MessagesSvg width={30} height={30} stroke="#fff" />
+          {hasConversation
+            ? <MessagesSvg width={30} height={30} stroke="#fff" />
+            : <MessageSvg width={30} height={30} stroke="#fff" />
+          }
         </button>
+      )}
+
+      {showReportModal && (
+        <div className="profile-modal-overlay" onClick={() => setShowReportModal(false)}>
+          <div className="profile-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="profile-modal-title">{t.profileReportConfirm(profile.displayName)}</h3>
+            <p className="profile-modal-desc">{t.profileReportDescription}</p>
+            <textarea
+              className="profile-modal-input"
+              placeholder={t.profileReportPlaceholder}
+              value={reportText}
+              onChange={(e) => setReportText(e.target.value)}
+              rows={4}
+            />
+            <div className="profile-modal-buttons">
+              <button className="profile-modal-btn profile-modal-cancel" onClick={() => setShowReportModal(false)}>
+                {t.cancel}
+              </button>
+              <button className="profile-modal-btn profile-modal-send" onClick={handleSendReport}>
+                {t.profileReportSend}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

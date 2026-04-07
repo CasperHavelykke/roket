@@ -3,10 +3,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
-  padding-bottom: 24px;
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
   background: linear-gradient(180deg, var(--primaryBlue) 0%, var(--primaryRed) 100%);
-  min-height: 100dvh;
+  min-height: 100vh;
   max-width: 600px;
   margin: 0 auto;
 }
@@ -79,6 +78,65 @@
 .birthday-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+.month-picker-btn {
+  flex: 1;
+  padding: 14px 12px;
+  border: 1px solid var(--inputBorder);
+  border-radius: 12px;
+  font-size: 16px;
+  background: var(--inputBackground);
+  color: var(--textMuted);
+  cursor: pointer;
+  text-align: center;
+}
+
+.month-picker-btn.selected {
+  color: var(--textPrimary);
+}
+
+.month-grid-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 250ms ease, opacity 250ms ease;
+  opacity: 0;
+}
+
+.month-grid-wrapper.open {
+  max-height: 180px;
+  opacity: 1;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--inputBorder);
+  border-radius: 12px;
+  background: var(--inputBackground);
+}
+
+.month-grid-item {
+  padding: 10px 4px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--textPrimary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.month-grid-item:hover {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.month-grid-item.active {
+  background: var(--primaryBlue);
+  color: #fff;
 }
 
 .privacy-label {

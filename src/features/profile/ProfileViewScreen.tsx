@@ -32,6 +32,7 @@ interface RouteParams {
     id: string;
     displayName: string;
     bio: string;
+    status?: string;
     photoURL: string | null;
     distance?: number;
     lastSeen?: number; // millisekunder siden epoch
@@ -56,9 +57,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   const formatLastSeen = (lastSeenMs?: number): string => {
     if (!lastSeenMs) return '';
     const diff = Date.now() - lastSeenMs;
-    if (diff < 5 * 60 * 1000) return t.profileOnlineNow;
-    if (diff < 60 * 60 * 1000) return t.profileLastSeenMinutes(Math.floor(diff / 60000));
-    if (diff < 24 * 60 * 60 * 1000) return t.profileLastSeenHours(Math.floor(diff / 3600000));
+    if (diff < 24 * 60 * 60 * 1000) return '';
     return t.profileLastSeenDays(Math.floor(diff / 86400000));
   };
   const genderLabels: Record<string, string> = {
@@ -240,49 +239,28 @@ export default function ProfileViewScreen({ route, navigation }: any) {
         </View>
 
         <View style={[styles.infoContainer, { backgroundColor: colors.white }]}>
-          <Text style={[styles.name, { color: colors.textPrimary }]}>{user.displayName || ''}{user.displayName && user.age ? `, ${user.age}` : user.age ? `${user.age}` : ''}</Text>
+          {user.status ? (
+            <Text style={[styles.name, { color: colors.textPrimary }]}>{user.status}</Text>
+          ) : null}
 
-          {user.lastSeen !== undefined && (
-            <Text style={[
-              styles.onlineStatus,
-              Date.now() - user.lastSeen < 5 * 60 * 1000
-                ? { color: colors.online }
-                : { color: colors.offline },
-            ]}>
-              {Date.now() - user.lastSeen < 5 * 60 * 1000 ? '● ' : '○ '}
+          {user.lastSeen !== undefined && formatLastSeen(user.lastSeen) !== '' && (
+            <Text style={[styles.onlineStatus, { color: colors.offline }]}>
               {formatLastSeen(user.lastSeen)}
             </Text>
           )}
 
-          {locationGranted && user.distance !== undefined && formatDistance(user.distance) !== '' && (
-            <Text style={[styles.distance, { color: colors.primaryRed }]}>📍 {formatDistance(user.distance)}</Text>
-          )}
-
-          {(user.gender || user.sexuality) && (
-            <View style={styles.detailsRow}>
-              {user.gender && (
-                <View style={[styles.detailChip, { backgroundColor: colors.backgroundLight, borderColor: colors.inputBorder }]}>
-                  <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>{genderLabels[user.gender] ?? user.gender}</Text>
-                </View>
-              )}
-              {user.sexuality && (
-                <View style={[styles.detailChip, { backgroundColor: colors.backgroundLight, borderColor: colors.inputBorder }]}>
-                  <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>{sexualityLabels[user.sexuality] ?? user.sexuality}</Text>
-                </View>
-              )}
-            </View>
-          )}
-
           {user.bio ? (
-            <View style={[styles.bioContainer, { borderTopColor: colors.borderLight }]}>
-              <Text style={[styles.bioLabel, { color: colors.textMuted }]}>{t.profileAbout}</Text>
+            <View style={[styles.bioContainer, (user.status || (user.lastSeen !== undefined && formatLastSeen(user.lastSeen) !== '')) && { borderTopColor: colors.borderLight, borderTopWidth: 1 }]}>
               <Text style={[styles.bio, { color: colors.textPrimary }]}>{user.bio}</Text>
             </View>
-          ) : (
-            <View style={[styles.bioContainer, { borderTopColor: colors.borderLight }]}>
-              <Text style={[styles.bioEmpty, { color: colors.textMuted }]}>{t.profileNoBio}</Text>
-            </View>
-          )}
+          ) : null}
+
+          <View style={{ marginTop: 12 }}>
+            <Text style={[{ fontSize: 15, color: colors.textMuted }]}>{user.displayName || ''}{user.displayName && user.age ? `, ${user.age}` : user.age ? `${user.age}` : ''}</Text>
+            {locationGranted && user.distance !== undefined && formatDistance(user.distance) !== '' && (
+              <Text style={[{ fontSize: 13, color: colors.textMuted, marginTop: 2 }]}>📍 {formatDistance(user.distance)}</Text>
+            )}
+          </View>
         </View>
 
         {showTestBadges && user.testAccount && (
@@ -553,7 +531,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   bioContainer: {
-    borderTopWidth: 1,
     paddingTop: 16,
   },
   bio: {

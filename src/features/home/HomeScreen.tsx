@@ -48,6 +48,7 @@ interface User {
   id: string;
   displayName: string;
   bio: string;
+  status?: string;
   photoURL: string | null;
   location: {
     latitude: number;
@@ -109,8 +110,8 @@ export default function HomeScreen({ navigation }: any) {
     if (!needsProfile) return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
+        Animated.delay(200),
       ]),
     );
     loop.start();
@@ -284,16 +285,10 @@ export default function HomeScreen({ navigation }: any) {
         longitude: myLocData.location.longitude,
       };
       const blockedUsers: string[] = currentUserData?.blockedUsers ?? [];
-      const matchTag: string | undefined = currentUserData?.matchTag;
 
-      // Hent brugere filtreret efter matchTag (eller alle som fallback)
-      const usersQuery = matchTag
-        ? firestore().collection('users')
-            .where('visibleTo', 'array-contains', matchTag)
-        : firestore().collection('users');
-
+      // Fetch ALL users — matchTag filtering removed for social discovery pivot
       const [usersSnapshot, locationsSnapshot] = await Promise.all([
-        usersQuery.get(),
+        firestore().collection('users').get(),
         firestore().collection('userLocations').get(),
       ]);
 
@@ -324,6 +319,7 @@ export default function HomeScreen({ navigation }: any) {
             id: doc.id,
             displayName: data.displayName,
             bio: data.bio || '',
+            status: data.status || '',
             photoURL: data.photoURL,
             location: theirLoc,
             distance: distance,
@@ -448,6 +444,7 @@ export default function HomeScreen({ navigation }: any) {
     photos: item.photos,
     testAccount: item.testAccount,
     datingOnly: item.datingOnly,
+    status: item.status,
   });
 
   const renderUserCard = (item: User) => {
@@ -468,16 +465,17 @@ export default function HomeScreen({ navigation }: any) {
         onPress={navigateToProfile}
         onLongPress={() => setPreviewUser(item)}
       />
-      <GradientView
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={styles.cardOverlay}
-        pointerEvents="none"
-      >
-        <Text style={[styles.cardName, isCompact && { fontSize: 12 }]} numberOfLines={1}>{item.displayName || ''}{item.displayName && item.age ? `, ${item.age}` : item.age ? `${item.age}` : ''}</Text>
-        <Text style={[styles.cardDistance, isCompact && { fontSize: 10 }]}>{formatDistance(item.distance, item.distanceMode)}</Text>
-      </GradientView>
-      {isOnline(item.lastSeen) && (
-        <View style={[styles.onlineDot, { backgroundColor: colors.online, borderColor: '#fff' }, isCompact && { width: 8, height: 8, borderRadius: 4, top: 5, right: 5 }]} />
+      {(item.status || unreadFromUsers.has(item.id)) && (
+        <View style={[styles.cardOverlay, !item.status && { backgroundColor: 'transparent' }, unreadFromUsers.has(item.id) && { backgroundColor: 'rgba(67,97,238,0.5)' }]} pointerEvents="none">
+          {item.status ? (
+            <>
+              <Text style={[styles.cardName, isCompact && { fontSize: 12 }, isSingle && { fontSize: 22, lineHeight: 28 }]} numberOfLines={2}>{item.status}</Text>
+              {isSingle && item.bio ? (
+                <Text style={styles.cardBio}>{item.bio}</Text>
+              ) : null}
+            </>
+          ) : null}
+        </View>
       )}
       {showTestBadges && item.testAccount && !isCompact && (
         <View style={styles.testBadge}>
@@ -489,7 +487,7 @@ export default function HomeScreen({ navigation }: any) {
           <View style={[styles.unreadBorder, { borderColor: colors.primaryBlue }]} pointerEvents="none" />
           {!isCompact && (
             <View
-              style={[styles.messageBadge, { backgroundColor: colors.primaryBlue }, isSingle && styles.messageBadgeSingle]}
+              style={[styles.messageBadge, { backgroundColor: colors.primaryRed }, isSingle && styles.messageBadgeSingle]}
               onStartShouldSetResponder={() => true}
               onResponderRelease={() => navigation.navigate('Chat', {
                 otherUser: { id: item.id, displayName: item.displayName, testAccount: item.testAccount },
@@ -621,7 +619,7 @@ export default function HomeScreen({ navigation }: any) {
         };
 
         const fabButtons = [
-          { icon: <ProfileIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <Animated.View style={[styles.fabPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0.15] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] }) }] }]} /> },
+          { icon: <ProfileIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <Animated.View style={[styles.fabPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.8, 0] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.4] }) }] }]} /> },
           { icon: <MessagesIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread ? (btnLeft: number) => (
             <GradientView
               colors={[colors.primaryBlue, colors.primaryRed]}
@@ -912,17 +910,36 @@ const styles = StyleSheet.create({
   },
   cardOverlay: {
     position: 'absolute',
+    top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    paddingTop: 30,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.18)',
   },
   cardName: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '700',
     color: '#fff',
+    lineHeight: 22,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  cardBio: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.95)',
+    lineHeight: 19,
+    textAlign: 'center',
+    marginTop: 6,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   cardDistance: {
     fontSize: 12,

@@ -7,6 +7,9 @@
 .chats-list {
   display: flex;
   flex-direction: column;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .chats-empty {

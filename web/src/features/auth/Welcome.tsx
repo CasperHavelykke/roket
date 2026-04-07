@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import translations, { Language } from '@shared/translations';
+import MessagesSvg from '@shared/assets/messages.svg?react';
+import PinMapWhiteSvg from '@shared/assets/pin-map-white.svg?react';
+import ProfileSvg from '@shared/assets/profile.svg?react';
 import './Welcome.css';
 
 function getLang(): Language {
@@ -8,11 +11,24 @@ function getLang(): Language {
 }
 
 const pages = [
-  { icon: '🚀', titleKey: 'welcomeTitle', descKey: 'welcomeSubtitle' },
-  { icon: '💬', titleKey: 'welcomeFeatureTitle', descKey: 'welcomeFeatureDesc' },
-  { icon: '📍', titleKey: 'welcomeDistanceTitle', descKey: 'welcomeDistanceDesc' },
-  { icon: '🛡️', titleKey: 'welcomeGuidelinesTitle', descKey: 'welcomeGuidelinesDesc' },
-] as const;
+  { type: 'logo' as const, titleKey: 'welcomeTitle', descKey: 'welcomeSubtitle' },
+  { type: 'messages' as const, titleKey: 'welcomeFeatureTitle', descKey: 'welcomeFeatureDesc' },
+  { type: 'distance' as const, titleKey: 'welcomeDistanceTitle', descKey: 'welcomeDistanceDesc' },
+  { type: 'guidelines' as const, titleKey: 'welcomeGuidelinesTitle', descKey: 'welcomeGuidelinesDesc' },
+];
+
+function SlideIcon({ type }: { type: string }) {
+  if (type === 'logo') {
+    return <img src="/logo.svg" alt="" className="welcome-logo-icon" />;
+  }
+  return (
+    <div className="welcome-icon-circle">
+      {type === 'messages' && <MessagesSvg width={48} height={48} stroke="#fff" />}
+      {type === 'distance' && <PinMapWhiteSvg width={48} height={48} />}
+      {type === 'guidelines' && <ProfileSvg width={48} height={48} stroke="#fff" />}
+    </div>
+  );
+}
 
 export default function Welcome() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -33,7 +49,9 @@ export default function Welcome() {
   return (
     <div className="welcome-page">
       <div className="welcome-slide">
-        <div className="welcome-icon">{page.icon}</div>
+        <div className="welcome-icon">
+          <SlideIcon type={page.type} />
+        </div>
         <h1>{t[page.titleKey]}</h1>
         <p>{t[page.descKey]}</p>
       </div>

@@ -38,7 +38,6 @@ export default function DeleteAccount() {
     try {
       const credential = EmailAuthProvider.credential(currentUser.email || '', password);
       await reauthenticateWithCredential(currentUser, credential);
-      await deleteDoc(doc(db, 'users', currentUser.uid));
       await deleteUser(currentUser);
       navigate('/login');
     } catch (e: any) {

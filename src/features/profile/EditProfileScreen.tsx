@@ -28,9 +28,10 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-na
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export default function EditProfileScreen({ navigation }: any) {
-  const { colors, isDark, t } = useTheme();
+  const { colors, isDark, t, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit } = useTheme();
   const insets = useSafeAreaInsets();
   const [displayName, setDisplayName] = useState('');
+  const [status, setStatus] = useState('');
   const [bio, setBio] = useState('');
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -43,7 +44,6 @@ export default function EditProfileScreen({ navigation }: any) {
   const [sexuality, setSexuality] = useState('');
   const [showSexuality, setShowSexuality] = useState(true);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [datingOnly, setDatingOnly] = useState(false);
   const currentUser = auth().currentUser;
   const MAX_EXTRA_PHOTOS = 5;
 
@@ -52,15 +52,15 @@ export default function EditProfileScreen({ navigation }: any) {
     if (photoURL) return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
+        Animated.delay(200),
       ]),
     );
     loop.start();
     return () => loop.stop();
   }, [photoURL]);
 
-  const profileCompletion = (photoURL ? 1 : 0) + (displayName.trim() ? 1 : 0) + (bio.trim() ? 1 : 0);
+  const profileCompletion = (photoURL ? 1 : 0) + (status.trim() ? 1 : 0) + (bio.trim() ? 1 : 0);
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -85,8 +85,8 @@ export default function EditProfileScreen({ navigation }: any) {
   const dataLoaded = useRef(false);
   useEffect(() => {
     if (!dataLoaded.current) return;
-    Animated.timing(nameHighlight, { toValue: displayName.trim() ? 0 : 1, duration: 400, useNativeDriver: true }).start();
-  }, [!!displayName.trim()]);
+    Animated.timing(nameHighlight, { toValue: status.trim() ? 0 : 1, duration: 400, useNativeDriver: true }).start();
+  }, [!!status.trim()]);
   useEffect(() => {
     if (!dataLoaded.current) return;
     Animated.timing(bioHighlight, { toValue: bio.trim() ? 0 : 1, duration: 400, useNativeDriver: true }).start();
@@ -111,6 +111,7 @@ export default function EditProfileScreen({ navigation }: any) {
         const data = doc.data();
         if (data) {
           setDisplayName(data.displayName ?? '');
+          setStatus(data.status ?? '');
           setBio(data.bio ?? '');
           setPhotoURL(data.photoURL ?? null);
           setShowAge(data.showAge !== false);
@@ -120,12 +121,11 @@ export default function EditProfileScreen({ navigation }: any) {
           setSexuality(data.sexuality ?? '');
           setShowSexuality(data.showSexuality !== false);
           setPhotos(data.photos ?? []);
-          setDatingOnly(data.datingOnly ?? false);
 
           dataLoaded.current = true;
-          nameHighlight.setValue((data.displayName ?? '').trim() ? 0 : 1);
+          nameHighlight.setValue((data.status ?? '').trim() ? 0 : 1);
           bioHighlight.setValue((data.bio ?? '').trim() ? 0 : 1);
-          progressAnim.setValue((data.photoURL ? 1 : 0) + ((data.displayName ?? '').trim() ? 1 : 0) + ((data.bio ?? '').trim() ? 1 : 0));
+          progressAnim.setValue((data.photoURL ? 1 : 0) + ((data.status ?? '').trim() ? 1 : 0) + ((data.bio ?? '').trim() ? 1 : 0));
 
           // Vis alert hvis et billede blev afvist af moderation
           if (data.photoRejected) {
@@ -173,6 +173,7 @@ export default function EditProfileScreen({ navigation }: any) {
       await firestore().collection('users').doc(currentUser.uid).update({
         photoURL: null,
       });
+      storage().ref(`profilePhotos/${currentUser.uid}.jpg`).delete().catch(() => {});
       setPhotoURL(null);
     } catch (error: any) {
       Alert.alert(t.error, getFirebaseError(error, t));
@@ -225,10 +226,12 @@ export default function EditProfileScreen({ navigation }: any) {
         onPress: async () => {
           setUploadingExtra(true);
           try {
+            const removedUrl = photos[index];
             const updated = photos.filter((_, i) => i !== index);
             await firestore().collection('users').doc(currentUser.uid).update({
               photos: updated,
             });
+            if (removedUrl) storage().refFromURL(removedUrl).delete().catch(() => {});
             setPhotos(updated);
           } catch (error: any) {
             Alert.alert(t.error, getFirebaseError(error, t));
@@ -248,11 +251,11 @@ export default function EditProfileScreen({ navigation }: any) {
     try {
       await firestore().collection('users').doc(currentUser.uid).update({
         displayName: trimmedName,
+        status: status.trim(),
         bio: bio.trim(),
         showAge,
         showGender,
         showSexuality,
-        datingOnly,
       });
       navigation.goBack();
     } catch (error: any) {
@@ -330,7 +333,7 @@ export default function EditProfileScreen({ navigation }: any) {
             )}
             <View style={[styles.editBadge, { backgroundColor: colors.white }]}>
               {!photoURL && (
-                <Animated.View style={[styles.cameraPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0.15] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] }) }] }]} />
+                <Animated.View style={[styles.cameraPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.8, 0] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.4] }) }] }]} />
               )}
               <CameraIcon width={16} height={16} fill={colors.primaryBlueText} />
             </View>
@@ -369,7 +372,7 @@ export default function EditProfileScreen({ navigation }: any) {
           </View>
 
           <View style={styles.form}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileNameLabel}</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileStatusLabel}</Text>
             <View style={styles.inputWrap}>
               <Animated.View style={[styles.inputHighlightBorder, { opacity: Animated.multiply(nameHighlight, fieldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] })) }]} pointerEvents="none">
                 <GradientView
@@ -379,15 +382,16 @@ export default function EditProfileScreen({ navigation }: any) {
                 />
               </Animated.View>
               <TextInput
-                style={[styles.input, { marginBottom: 0, backgroundColor: colors.white, borderColor: displayName.trim() ? colors.inputBorder : 'transparent', color: colors.textPrimary }]}
-                value={displayName}
-                onChangeText={setDisplayName}
-                placeholder={t.editProfileNamePlaceholder}
+                style={[styles.input, { marginBottom: 0, backgroundColor: colors.white, borderColor: status.trim() ? colors.inputBorder : 'transparent', color: colors.textPrimary }]}
+                value={status}
+                onChangeText={setStatus}
+                placeholder={t.editProfileStatusPlaceholder}
                 placeholderTextColor={colors.textMuted}
-                maxLength={50}
+                maxLength={80}
                 autoCorrect={false}
               />
             </View>
+            <Text style={styles.charCount}>{status.length}/80</Text>
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileBioLabel}</Text>
             <View style={styles.inputWrap}>
@@ -411,9 +415,25 @@ export default function EditProfileScreen({ navigation }: any) {
               />
             </View>
             <Text style={styles.charCount}>{bio.length}/200</Text>
+            <View style={{ height: 1, backgroundColor: colors.inputBorder, marginBottom: 24 }} />
 
-            {hasBirthday && (
-              <View style={[styles.toggleRow, { borderTopColor: colors.inputBorder }]}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileNameLabel}</Text>
+            <View style={styles.inputWrap}>
+              <TextInput
+                style={[styles.input, { marginBottom: 0, backgroundColor: colors.white, borderColor: colors.inputBorder, color: colors.textPrimary }]}
+                value={displayName}
+                onChangeText={setDisplayName}
+                placeholder={t.editProfileNamePlaceholder}
+                placeholderTextColor={colors.textMuted}
+                maxLength={50}
+                autoCorrect={false}
+              />
+            </View>
+          </View>
+
+          {hasBirthday && (
+            <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
+              <View style={[styles.toggleRow, { borderTopWidth: 0, marginTop: 0, paddingTop: 0 }]}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileShowAge}</Text>
                   <Text style={[styles.toggleDesc, { color: colors.textMuted }]}>{t.editProfileShowAgeDesc}</Text>
@@ -425,65 +445,27 @@ export default function EditProfileScreen({ navigation }: any) {
                   thumbColor="#fff"
                 />
               </View>
-            )}
-          </View>
+            </View>
+          )}
 
           <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
-            <View style={[styles.toggleRow, { borderTopWidth: 0, marginTop: 0, paddingTop: 0 }]}>
-              <View style={styles.toggleInfo}>
-                <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileDatingOnly}</Text>
-                <Text style={[styles.toggleDesc, { color: colors.textMuted }]}>{t.editProfileDatingOnlyDesc}</Text>
-              </View>
-              <Switch
-                value={datingOnly}
-                onValueChange={(val) => {
-                  setDatingOnly(val);
-                  if (!val) {
-                    setShowGender(false);
-                    setShowSexuality(false);
-                  }
-                }}
-                trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
-                thumbColor="#fff"
-              />
+            <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 8, marginTop: 0 }]}>{t.settingsDistance}</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {([{ value: 'exact', label: t.settingsDistanceExact }, { value: 'fuzzy', label: distanceUnit === 'mi' ? t.settingsDistanceFuzzyMi : t.settingsDistanceFuzzy }, { value: 'hidden', label: t.settingsDistanceHidden }] as const).map(opt => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.distanceOption, { borderColor: colors.inputBorder }, distanceMode === opt.value && { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue }]}
+                  onPress={() => setDistanceMode(opt.value)}
+                >
+                  <Text style={[styles.distanceOptionText, { color: colors.textPrimary }, distanceMode === opt.value && { color: colors.textWhite }]}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
+            <Text style={[styles.settingDesc, { color: colors.textMuted }]}>
+              {distanceMode === 'exact' ? t.settingsDistanceDescExact : distanceMode === 'fuzzy' ? (distanceUnit === 'mi' ? t.settingsDistanceDescFuzzyMi : t.settingsDistanceDescFuzzy) : t.settingsDistanceDescHidden}
+            </Text>
+
           </View>
-
-          {datingOnly && gender !== '' && (
-            <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
-              <Text style={[styles.toggleValueLabel, { color: colors.textPrimary }]}>{t.editProfileGender}: {genderLabel(gender)}</Text>
-              <View style={[styles.toggleRow, { borderTopColor: colors.inputBorder }]}>
-                <View style={styles.toggleInfo}>
-                  <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileShowGender}</Text>
-                  <Text style={[styles.toggleDesc, { color: colors.textMuted }]}>{t.editProfileShowGenderDesc}</Text>
-                </View>
-                <Switch
-                  value={showGender}
-                  onValueChange={setShowGender}
-                  trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
-                  thumbColor="#fff"
-                />
-              </View>
-            </View>
-          )}
-
-          {datingOnly && sexuality !== '' && (
-            <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
-              <Text style={[styles.toggleValueLabel, { color: colors.textPrimary }]}>{t.editProfileSexuality}: {sexualityLabel(sexuality)}</Text>
-              <View style={[styles.toggleRow, { borderTopColor: colors.inputBorder }]}>
-                <View style={styles.toggleInfo}>
-                  <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileShowSexuality}</Text>
-                  <Text style={[styles.toggleDesc, { color: colors.textMuted }]}>{t.editProfileShowSexualityDesc}</Text>
-                </View>
-                <Switch
-                  value={showSexuality}
-                  onValueChange={setShowSexuality}
-                  trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
-                  thumbColor="#fff"
-                />
-              </View>
-            </View>
-          )}
 
           <TouchableOpacity
             style={[styles.saveButton, { backgroundColor: colors.primaryRed }, saving && styles.saveButtonDisabled]}
@@ -660,6 +642,22 @@ const styles = StyleSheet.create({
   toggleValueLabel: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  distanceOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  distanceOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  settingDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 8,
   },
   saveButton: {
     width: '100%',

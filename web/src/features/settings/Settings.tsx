@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import BackButton from '../../components/BackButton';
+import LogoMenu from '../../components/LogoMenu';
+import RoketStars from '@shared/assets/roket-logo-stars-only.svg?react';
 import { signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
@@ -97,7 +99,9 @@ export default function Settings() {
       <nav className="navbar">
         <BackButton>{t.back}</BackButton>
         <h1>{t.settingsTitle}</h1>
-        <img src="/logo-simpel.svg" alt="" className="navbar-logo" />
+        <Link to="/settings/feedback" style={{ marginLeft: 'auto' }}>
+          <img src="/logo-simpel.svg" alt="" className="navbar-logo" />
+        </Link>
       </nav>
 
       <div className="settings-content">
@@ -146,26 +150,6 @@ export default function Settings() {
           </div>
         </div>
 
-        <h3 className="section-title">{t.settingsDistance}</h3>
-        <div className="settings-card">
-          <div className="selector">
-            {([['exact', t.settingsDistanceExact], ['fuzzy', distanceUnit === 'mi' ? t.settingsDistanceFuzzyMi : t.settingsDistanceFuzzy], ['hidden', t.settingsDistanceHidden]] as const).map(([val, label]) => (
-              <button
-                key={val}
-                className={'selector-btn' + (distanceMode === val ? ' active' : '')}
-                onClick={() => {
-                  set<DistanceMode>('roket-distanceMode', 'distanceMode', setDistanceMode)(val);
-                  const uid = auth.currentUser?.uid;
-                  if (uid) setDoc(doc(db, 'users', uid), { distanceMode: val }, { merge: true }).catch(() => {});
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <p className="setting-desc">{distanceDesc}</p>
-        </div>
-
         <h3 className="section-title">{t.settingsDistanceUnit}</h3>
         <div className="settings-card">
           <div className="selector">
@@ -203,7 +187,7 @@ export default function Settings() {
         <h3 className="section-title">{t.settingsSupport}</h3>
         <div className="settings-card">
           <Link to="/settings/feedback" className="settings-row gradient-row last">
-            <span>{t.settingsFeedback}</span><span className="row-arrow">→</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><RoketStars width={20} height={20} /> {t.settingsFeedback}</span><span className="row-arrow">→</span>
           </Link>
         </div>
 

@@ -1,8 +1,8 @@
 .welcome-page {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
   background: linear-gradient(135deg, var(--primaryBlue), var(--primaryRed));
+  min-height: 100vh;
   max-width: 600px;
   margin: 0 auto;
   padding-top: env(safe-area-inset-top, 0px);
@@ -19,8 +19,26 @@
 }
 
 .welcome-icon {
-  font-size: 80px;
   margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-logo-icon {
+  width: 100px;
+  height: 100px;
+  filter: brightness(0) invert(1);
+}
+
+.welcome-icon-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 48px;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .welcome-slide h1 {
@@ -37,7 +55,7 @@
 }
 
 .welcome-footer {
-  padding: 0 30px calc(env(safe-area-inset-bottom, 0px) + 50px);
+  padding: 0 30px calc(env(safe-area-inset-bottom, 0px) + 20px);
   display: flex;
   flex-direction: column;
   align-items: center;

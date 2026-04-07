@@ -24,6 +24,7 @@ export default function MyProfileScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
+  const [status, setStatus] = useState('');
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [age, setAge] = useState<number | null>(null);
   const [gender, setGender] = useState<string | null>(null);
@@ -44,8 +45,8 @@ export default function MyProfileScreen({ navigation }: any) {
     if (photoURL) return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
+        Animated.delay(200),
       ]),
     );
     loop.start();
@@ -67,9 +68,7 @@ export default function MyProfileScreen({ navigation }: any) {
 
   const formatLastSeen = (lastSeenMs: number): string => {
     const diff = Date.now() - lastSeenMs;
-    if (diff < 5 * 60 * 1000) return t.profileOnlineNow;
-    if (diff < 60 * 60 * 1000) return t.profileLastSeenMinutes(Math.floor(diff / 60000));
-    if (diff < 24 * 60 * 60 * 1000) return t.profileLastSeenHours(Math.floor(diff / 3600000));
+    if (diff < 24 * 60 * 60 * 1000) return '';
     return t.profileLastSeenDays(Math.floor(diff / 86400000));
   };
 
@@ -85,6 +84,7 @@ export default function MyProfileScreen({ navigation }: any) {
           if (data) {
             setDisplayName(data.displayName ?? '');
             setBio(data.bio ?? '');
+            setStatus(data.status ?? '');
             setPhotoURL(data.photoURL ?? null);
             if (data.birthday && data.showAge !== false) {
               const today = new Date();
@@ -166,51 +166,30 @@ export default function MyProfileScreen({ navigation }: any) {
         </View>
 
         <View style={[styles.infoContainer, { backgroundColor: colors.white }]}>
-          <Text style={[styles.name, { color: colors.textPrimary }]}>{displayName || ''}{displayName && age ? `, ${age}` : age ? `${age}` : ''}</Text>
+          {status ? (
+            <Text style={[styles.name, { color: colors.textPrimary }]}>{status}</Text>
+          ) : null}
 
-          {lastSeen !== null && (
-            <Text style={[
-              styles.onlineStatus,
-              Date.now() - lastSeen < 5 * 60 * 1000
-                ? { color: colors.online }
-                : { color: colors.offline },
-            ]}>
-              {Date.now() - lastSeen < 5 * 60 * 1000 ? '● ' : '○ '}
+          {lastSeen !== null && formatLastSeen(lastSeen) !== '' && (
+            <Text style={[styles.onlineStatus, { color: colors.offline }]}>
               {formatLastSeen(lastSeen)}
             </Text>
           )}
 
-          {locationGranted && distanceModeValue && distanceModeValue !== 'hidden' && (
-            <Text style={[styles.distance, { color: colors.primaryRed }]}>
-              📍 {distanceModeValue === 'fuzzy' ? (distanceUnit === 'mi' ? t.distanceUnder100ft : t.distanceUnder30) : (distanceUnit === 'mi' ? t.distanceFeet(0) : t.distanceMeters(0))}
-            </Text>
-          )}
-
-          {(gender || sexuality) && (
-            <View style={styles.detailsRow}>
-              {gender && (
-                <View style={[styles.detailChip, { backgroundColor: colors.backgroundLight, borderColor: colors.inputBorder }]}>
-                  <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>{genderLabels[gender] ?? gender}</Text>
-                </View>
-              )}
-              {sexuality && (
-                <View style={[styles.detailChip, { backgroundColor: colors.backgroundLight, borderColor: colors.inputBorder }]}>
-                  <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>{sexualityLabels[sexuality] ?? sexuality}</Text>
-                </View>
-              )}
-            </View>
-          )}
-
           {bio ? (
-            <View style={[styles.bioContainer, { borderTopColor: colors.borderLight }]}>
-              <Text style={[styles.bioLabel, { color: colors.textMuted }]}>{t.myProfileAbout}</Text>
+            <View style={[styles.bioContainer, (status || (lastSeen !== null && formatLastSeen(lastSeen) !== '')) && { borderTopColor: colors.borderLight, borderTopWidth: 1 }]}>
               <Text style={[styles.bio, { color: colors.textPrimary }]}>{bio}</Text>
             </View>
-          ) : (
-            <View style={[styles.bioContainer, { borderTopColor: colors.borderLight }]}>
-              <Text style={[styles.bioEmpty, { color: colors.textMuted }]}>{t.myProfileNoBio}</Text>
-            </View>
-          )}
+          ) : null}
+
+          <View style={{ marginTop: 12 }}>
+            <Text style={[{ fontSize: 15, color: colors.textMuted }]}>{displayName || ''}{displayName && age ? `, ${age}` : age ? `${age}` : ''}</Text>
+            {locationGranted && distanceModeValue && distanceModeValue !== 'hidden' && (
+              <Text style={[{ fontSize: 13, color: colors.textMuted, marginTop: 2 }]}>
+                📍 {distanceModeValue === 'fuzzy' ? (distanceUnit === 'mi' ? t.distanceUnder100ft : t.distanceUnder30) : (distanceUnit === 'mi' ? t.distanceFeet(0) : t.distanceMeters(0))}
+              </Text>
+            )}
+          </View>
         </View>
 
         {showTestBadges && testAccount && (
@@ -221,7 +200,7 @@ export default function MyProfileScreen({ navigation }: any) {
 
         <TouchableOpacity onPress={() => navigation.navigate('EditProfile')} style={{ position: 'relative' }}>
           {!photoURL && (
-            <Animated.View style={[styles.editPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0.1] }), transform: [{ scaleX: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }, { scaleY: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] }) }] }]}>
+            <Animated.View style={[styles.editPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.7, 0] }), transform: [{ scaleX: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.06] }) }, { scaleY: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.90, 1.22] }) }] }]}>
               <GradientView
                 colors={[colors.primaryBlue, colors.primaryRed]}
                 start={{ x: 0, y: 0 }}
@@ -346,7 +325,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   bioContainer: {
-    borderTopWidth: 1,
     paddingTop: 16,
   },
   bio: {

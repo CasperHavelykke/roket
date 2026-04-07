@@ -7,23 +7,59 @@
   align-items: center;
 }
 
+.editprofile-rejected-banner {
+  background: var(--primaryRed);
+  color: #fff;
+  text-align: center;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .editprofile-photo-container {
   position: relative;
   margin-bottom: 8px;
   cursor: pointer;
+  width: 134px;
+  height: 134px;
 }
 
 .editprofile-photo {
+  position: absolute;
+  top: 7px;
+  left: 7px;
   width: 120px;
   height: 120px;
   border-radius: 60px;
   object-fit: cover;
 }
 
+/* Progress ring */
+.editprofile-progress-ring {
+  position: absolute;
+  inset: 0;
+  width: 134px;
+  height: 134px;
+  transform: rotate(-90deg);
+}
+
+.editprofile-progress-bg {
+  fill: none;
+  stroke: var(--inputBorder);
+  stroke-width: 3.5;
+}
+
+.editprofile-progress-fill {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
 .editprofile-photo-uploading {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 7px;
+  left: 7px;
   width: 120px;
   height: 120px;
   border-radius: 60px;
@@ -48,7 +84,24 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  font-size: 16px;
+  color: var(--primaryBlue);
+}
+
+/* Camera badge pulse */
+@keyframes cameraPulse {
+  0% { opacity: 0; transform: scale(0.85); }
+  30% { opacity: 0.8; }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+.editprofile-edit-badge.pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  animation: cameraPulse 1.4s ease-out infinite;
+  pointer-events: none;
 }
 
 .editprofile-photo-input {
@@ -188,6 +241,7 @@
 }
 
 .editprofile-input {
+  position: relative;
   width: 100%;
   border: 1px solid var(--inputBorder);
   border-radius: 10px;
@@ -199,13 +253,52 @@
   font-family: inherit;
 }
 
+.editprofile-input-wrap .editprofile-input {
+  margin-bottom: 0;
+}
+
+.editprofile-input-wrap {
+  margin-bottom: 16px;
+}
+
 .editprofile-input::placeholder {
   color: var(--textMuted);
 }
 
+/* Pulsing gradient border on empty inputs */
+.editprofile-input-wrap {
+  position: relative;
+}
+
+@keyframes fieldPulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.editprofile-input-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--primaryBlue), var(--primaryRed));
+  animation: fieldPulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.editprofile-input-pulse {
+  border-color: transparent !important;
+}
+
+.editprofile-input:focus {
+  outline: none;
+  border-color: var(--inputBorder);
+}
+
 .editprofile-bio-input {
   min-height: 100px;
-  resize: vertical;
+  resize: none;
+  vertical-align: top;
+  display: block;
 }
 
 .editprofile-charcount {
@@ -213,6 +306,13 @@
   color: #aaa;
   text-align: right;
   margin-top: -12px;
+  margin-bottom: 16px;
+}
+
+.editprofile-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--inputBorder);
   margin-bottom: 24px;
 }
 
@@ -304,6 +404,31 @@
   transform: translateX(22px);
 }
 
+/* Distance selectors */
+.editprofile-distance-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.editprofile-distance-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--inputBorder);
+  background: none;
+  color: var(--textPrimary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.editprofile-distance-btn.active {
+  background: var(--primaryBlue);
+  border-color: var(--primaryBlue);
+  color: #fff;
+}
+
 /* Save button */
 .editprofile-save {
   width: 100%;
@@ -321,4 +446,19 @@
 .editprofile-save:disabled {
   background: #aaa;
   cursor: not-allowed;
+}
+
+.editprofile-save-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

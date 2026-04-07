@@ -25,7 +25,6 @@ export default function CommunityGuidelines() {
       <nav className="navbar">
         <BackButton>{t.back}</BackButton>
         <h1>{t.settingsGuidelines}</h1>
-        <img src="/logo-simpel.svg" alt="" className="navbar-logo" />
       </nav>
       <div className="legal-content">
         <p>{t.guidelinesIntro}</p>

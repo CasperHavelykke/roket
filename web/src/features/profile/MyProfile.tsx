@@ -5,6 +5,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import translations, { Language } from '@shared/translations';
 import { placeholderPic } from '../../utils/theme';
+import PhotoGalleryModal from './PhotoGalleryModal';
 import './MyProfile.css';
 
 export default function MyProfile() {
@@ -14,13 +15,18 @@ export default function MyProfile() {
 
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
+  const [status, setStatus] = useState('');
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [age, setAge] = useState<number | null>(null);
   const [gender, setGender] = useState<string | null>(null);
   const [sexuality, setSexuality] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [lastSeen, setLastSeen] = useState<number | null>(null);
+  const [distanceMode, setDistanceMode] = useState<string | null>(null);
+  const [locationGranted, setLocationGranted] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const genderLabels: Record<string, string> = {
@@ -34,9 +40,7 @@ export default function MyProfile() {
 
   const formatLastSeen = (lastSeenMs: number): string => {
     const diff = Date.now() - lastSeenMs;
-    if (diff < 5 * 60 * 1000) return t.profileOnlineNow;
-    if (diff < 60 * 60 * 1000) return t.profileLastSeenMinutes(Math.floor(diff / 60000));
-    if (diff < 24 * 60 * 60 * 1000) return t.profileLastSeenHours(Math.floor(diff / 3600000));
+    if (diff < 24 * 60 * 60 * 1000) return '';
     return t.profileLastSeenDays(Math.floor(diff / 86400000));
   };
 
@@ -47,6 +51,7 @@ export default function MyProfile() {
       if (!data) return;
       setDisplayName(data.displayName ?? '');
       setBio(data.bio ?? '');
+      setStatus(data.status ?? '');
       setPhotoURL(data.photoURL ?? null);
       if (data.birthday && data.showAge !== false) {
         const today = new Date();
@@ -62,7 +67,11 @@ export default function MyProfile() {
       setSexuality(data.sexuality && data.showSexuality !== false ? data.sexuality : null);
       setPhotos(data.photos ?? []);
       setLastSeen(data.lastSeen?.toMillis?.() ?? null);
+      setDistanceMode(data.distanceMode ?? null);
     });
+    getDoc(doc(db, 'userLocations', currentUser.uid)).then(snap => {
+      setLocationGranted(snap.exists());
+    }).catch(() => {});
   }, [currentUser]);
 
   if (!currentUser) return null;
@@ -93,7 +102,7 @@ export default function MyProfile() {
                 onScroll={handleScroll}
               >
                 {allPhotos.map((uri, i) => (
-                  <img key={i} src={uri} alt="" />
+                  <img key={i} src={uri} alt="" onClick={() => { setGalleryIndex(i); setGalleryOpen(true); }} style={{ cursor: 'pointer' }} />
                 ))}
               </div>
               <div className="myprofile-photo-count">
@@ -105,48 +114,54 @@ export default function MyProfile() {
               src={photoURL || placeholderPic()}
               alt=""
               className="myprofile-single-photo"
+              onClick={() => { if (allPhotos.length > 0) { setGalleryIndex(0); setGalleryOpen(true); } }}
+              style={allPhotos.length > 0 ? { cursor: 'pointer' } : undefined}
             />
           )}
         </div>
 
-        <div className="myprofile-info">
-          <div className="myprofile-name">
-            {displayName || ''}{displayName && age ? `, ${age}` : age ? `${age}` : ''}
-          </div>
+        <PhotoGalleryModal
+          visible={galleryOpen}
+          photos={allPhotos}
+          initialIndex={galleryIndex}
+          onClose={() => setGalleryOpen(false)}
+        />
 
-          {lastSeen !== null && (
-            <div className={`myprofile-online ${Date.now() - lastSeen < 5 * 60 * 1000 ? 'online' : 'offline'}`}>
-              {Date.now() - lastSeen < 5 * 60 * 1000 ? '\u25CF ' : '\u25CB '}
+        <div className="myprofile-info">
+          {status ? (
+            <div className="myprofile-name">{status}</div>
+          ) : null}
+
+          {lastSeen !== null && formatLastSeen(lastSeen) !== '' && (
+            <div className="myprofile-online offline">
               {formatLastSeen(lastSeen)}
             </div>
           )}
 
-          {(gender || sexuality) && (
-            <div className="myprofile-details-row">
-              {gender && (
-                <span className="myprofile-chip">{genderLabels[gender] ?? gender}</span>
-              )}
-              {sexuality && (
-                <span className="myprofile-chip">{sexualityLabels[sexuality] ?? sexuality}</span>
-              )}
-            </div>
-          )}
-
-          {bio ? (
-            <div className="myprofile-bio-section">
-              <div className="myprofile-bio-label">{t.myProfileAbout}</div>
+          {bio && (
+            <div className={'myprofile-bio-section' + (status || (lastSeen !== null && formatLastSeen(lastSeen) !== '') ? ' has-divider' : '')}>
               <div className="myprofile-bio">{bio}</div>
             </div>
-          ) : (
-            <div className="myprofile-bio-section">
-              <div className="myprofile-bio-empty">{t.myProfileNoBio}</div>
-            </div>
           )}
+
+          <div className="myprofile-secondary-info">
+            <span className="myprofile-secondary-name">{displayName || ''}{displayName && age ? `, ${age}` : age ? `${age}` : ''}</span>
+            {locationGranted && distanceMode && distanceMode !== 'hidden' && (() => {
+              const unit = (localStorage.getItem('roket-distanceUnit') as 'km' | 'mi') || 'km';
+              const text = distanceMode === 'fuzzy'
+                ? (unit === 'mi' ? t.distanceUnder100ft : t.distanceUnder30)
+                : (unit === 'mi' ? t.distanceFeet(0) : t.distanceMeters(0));
+              return <span className="myprofile-secondary-distance">{'\uD83D\uDCCD'} {text}</span>;
+            })()}
+          </div>
         </div>
 
-        <Link to="/profile/edit" className="myprofile-edit-btn">
-          {t.myProfileEdit}
-        </Link>
+        <div className="myprofile-edit-wrap">
+          {!photoURL && <div className="myprofile-edit-pulse" />}
+          <Link to="/profile/edit" className="myprofile-edit-btn">
+            {t.myProfileEdit}
+          </Link>
+        </div>
       </div>
     </div>
   );

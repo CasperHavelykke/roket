@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from './firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from './firebase';
 import Login from './features/auth/Login';
 import Home from './features/home/Home';
 import Chat from './features/chat/Chat';
@@ -14,18 +15,33 @@ import BlockedUsers from './features/settings/BlockedUsers';
 import Feedback from './features/settings/Feedback';
 import DeleteAccount from './features/settings/DeleteAccount';
 import Welcome from './features/auth/Welcome';
+import OfflineBanner from './components/OfflineBanner';
 import ProfileSetup from './features/profile/ProfileSetup';
 import ChildSafety from './features/legal/ChildSafety';
 import CommunityGuidelines from './features/legal/CommunityGuidelines';
 import PrivacyPolicy from './features/legal/PrivacyPolicy';
 import TermsConditions from './features/legal/TermsConditions';
 
+function AuthGuard({ user, setupComplete, children }: { user: User | null; setupComplete: boolean; children: React.ReactNode }) {
+  if (!user) return <Navigate to="/login" />;
+  if (!setupComplete) return <Navigate to="/welcome" />;
+  return <>{children}</>;
+}
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [setupComplete, setSetupComplete] = useState(true);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
+    return onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        const snap = await getDoc(doc(db, 'users', u.uid));
+        const data = snap.data();
+        setSetupComplete(!snap.exists() ? false : (data?.setupComplete === true || !!data?.gender));
+      } else {
+        setSetupComplete(true);
+      }
       setUser(u);
       setLoading(false);
     });
@@ -35,18 +51,19 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <OfflineBanner />
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-        <Route path="/" element={user ? <Home /> : <Navigate to="/login" />} />
-        <Route path="/chats" element={user ? <ChatsList /> : <Navigate to="/login" />} />
-        <Route path="/chat/:chatId" element={user ? <Chat /> : <Navigate to="/login" />} />
-        <Route path="/profile/me" element={user ? <MyProfile /> : <Navigate to="/login" />} />
-        <Route path="/profile/edit" element={user ? <EditProfile /> : <Navigate to="/login" />} />
-        <Route path="/profile/:userId" element={user ? <Profile /> : <Navigate to="/login" />} />
-        <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
-        <Route path="/settings/blocked" element={user ? <BlockedUsers /> : <Navigate to="/login" />} />
-        <Route path="/settings/feedback" element={user ? <Feedback /> : <Navigate to="/login" />} />
-        <Route path="/settings/delete" element={user ? <DeleteAccount /> : <Navigate to="/login" />} />
+        <Route path="/" element={<AuthGuard user={user} setupComplete={setupComplete}><Home /></AuthGuard>} />
+        <Route path="/chats" element={<AuthGuard user={user} setupComplete={setupComplete}><ChatsList /></AuthGuard>} />
+        <Route path="/chat/:chatId" element={<AuthGuard user={user} setupComplete={setupComplete}><Chat /></AuthGuard>} />
+        <Route path="/profile/me" element={<AuthGuard user={user} setupComplete={setupComplete}><MyProfile /></AuthGuard>} />
+        <Route path="/profile/edit" element={<AuthGuard user={user} setupComplete={setupComplete}><EditProfile /></AuthGuard>} />
+        <Route path="/profile/:userId" element={<AuthGuard user={user} setupComplete={setupComplete}><Profile /></AuthGuard>} />
+        <Route path="/settings" element={<AuthGuard user={user} setupComplete={setupComplete}><Settings /></AuthGuard>} />
+        <Route path="/settings/blocked" element={<AuthGuard user={user} setupComplete={setupComplete}><BlockedUsers /></AuthGuard>} />
+        <Route path="/settings/feedback" element={<AuthGuard user={user} setupComplete={setupComplete}><Feedback /></AuthGuard>} />
+        <Route path="/settings/delete" element={<AuthGuard user={user} setupComplete={setupComplete}><DeleteAccount /></AuthGuard>} />
         <Route path="/welcome" element={user ? <Welcome /> : <Navigate to="/login" />} />
         <Route path="/profile/setup" element={user ? <ProfileSetup /> : <Navigate to="/login" />} />
         <Route path="/legal/child-safety" element={<ChildSafety />} />

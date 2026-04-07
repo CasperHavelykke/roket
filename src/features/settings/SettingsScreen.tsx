@@ -173,19 +173,10 @@ export default function SettingsScreen({ navigation }: any) {
           {renderSelector(timeFormats, timeFormat, setTimeFormat)}
         </View>
 
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsDistance}</Text>
-        <View style={[styles.card, { backgroundColor: colors.white }]}>
-          {renderSelector(distanceModes, distanceMode, handleDistanceModeChange)}
-          <Text style={[styles.settingDesc, { color: colors.textMuted }]}>
-            {distanceMode === 'exact' ? t.settingsDistanceDescExact : distanceMode === 'fuzzy' ? (distanceUnit === 'mi' ? t.settingsDistanceDescFuzzyMi : t.settingsDistanceDescFuzzy) : t.settingsDistanceDescHidden}
-          </Text>
-        </View>
-
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsDistanceUnit}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           {renderSelector(distanceUnits, distanceUnit, setDistanceUnit)}
         </View>
-
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsNotifications}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>

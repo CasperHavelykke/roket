@@ -10,38 +10,38 @@ import {
   ScrollView,
   TextInput,
   Animated,
+  Image,
 } from 'react-native';
 import GradientView from '../../components/GradientView';
+import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
+import pickImage from '../../utils/pickImage';
 import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
 import RoketLogo from '../../assets/roket-logo-2.svg';
+import ProfileIcon from '../../assets/profile.svg';
 
-type SimpleGender = 'male' | 'female' | '';
-type Attraction = 'men' | 'women' | 'both' | '';
-
-const ALL_BASE_TAGS = [
-  'male_straight', 'male_gay', 'male_bisexual',
-  'female_straight', 'female_gay', 'female_bisexual',
+const AVATAR_GRADIENTS = [
+  { colors: ['#4A90D9', '#357ABD'], label: 'blue' },
+  { colors: ['#D94A4A', '#BD3535'], label: 'red' },
+  { colors: ['#9B59B6', '#8E44AD'], label: 'purple' },
 ];
-
-function deriveSexuality(g: 'male' | 'female', a: 'men' | 'women' | 'both'): string {
-  if (a === 'both') return 'bisexual';
-  if (g === 'male') return a === 'men' ? 'gay' : 'straight';
-  return a === 'women' ? 'gay' : 'straight';
-}
 
 export default function ProfileSetupScreen() {
   const { colors, language, t } = useTheme();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
-  const [gender, setGender] = useState<SimpleGender>('');
-  const [attraction, setAttraction] = useState<Attraction>('');
-  const [datingOnly, setDatingOnly] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [photoURL, setPhotoURL] = useState<string | null>(null);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
+  const [status, setStatus] = useState('');
+  const [selectedStatusChip, setSelectedStatusChip] = useState<number | null>(null);
 
   const [needsBirthday, setNeedsBirthday] = useState(false);
   const [birthDay, setBirthDay] = useState('');
@@ -79,11 +79,35 @@ export default function ProfileSetupScreen() {
   const monthNames = monthsByLang[language] || monthsByLang.en;
   const ph = placeholders[language] || placeholders.en;
 
+  const statusOptions = [t.setupStatusOption1, t.setupStatusOption2, t.setupStatusOption3];
+
   React.useEffect(() => {
     AsyncStorage.getItem('@roket_birthday').then(stored => {
       if (!stored) setNeedsBirthday(true);
     }).catch(() => setNeedsBirthday(true));
   }, []);
+
+  const handlePickPhoto = async () => {
+    const uri = await pickImage();
+    if (!uri) return;
+    setPhotoUri(uri);
+    setSelectedAvatar(null);
+  };
+
+  const handleSelectAvatar = (label: string) => {
+    setSelectedAvatar(label);
+    setPhotoUri(null);
+  };
+
+  const handleSelectStatusChip = (index: number) => {
+    if (selectedStatusChip === index) {
+      setSelectedStatusChip(null);
+      setStatus('');
+    } else {
+      setSelectedStatusChip(index);
+      setStatus(statusOptions[index]);
+    }
+  };
 
   const handleCompleteProfile = async () => {
     let birthday: { day: number; month: number; year: number } | null = null;
@@ -110,16 +134,6 @@ export default function ProfileSetupScreen() {
       return;
     }
 
-    if (!gender) {
-      Alert.alert(t.error, t.setupErrorNoGender);
-      return;
-    }
-
-    if (!attraction) {
-      Alert.alert(t.error, t.setupErrorNoAttraction);
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -131,41 +145,40 @@ export default function ProfileSetupScreen() {
 
       await AsyncStorage.removeItem('@roket_birthday');
 
-      const sex = deriveSexuality(gender, attraction);
-      const baseTag = `${gender}_${sex}`;
-      const matchTag = `${baseTag}_${datingOnly ? 'dating' : 'friends'}`;
-      const datingCompatibleMap: Record<string, string[]> = {
-        male_straight: ['female_straight', 'female_bisexual'],
-        male_gay: ['male_gay', 'male_bisexual'],
-        male_bisexual: ['male_gay', 'male_bisexual', 'female_straight', 'female_bisexual'],
-        female_straight: ['male_straight', 'male_bisexual'],
-        female_gay: ['female_gay', 'female_bisexual'],
-        female_bisexual: ['male_straight', 'male_bisexual', 'female_gay', 'female_bisexual'],
-      };
+      let uploadedPhotoURL: string | null = null;
 
-      const compatible = datingCompatibleMap[baseTag] || [];
-      const visibleTo = datingOnly
-        ? compatible.flatMap(tag => [`${tag}_friends`, `${tag}_dating`])
-        : [...ALL_BASE_TAGS.map(tag => `${tag}_friends`), ...compatible.map(tag => `${tag}_dating`)];
+      if (photoUri) {
+        setUploading(true);
+        try {
+          const ref = storage().ref(`profilePhotos/${user.uid}.jpg`);
+          await ref.putFile(photoUri);
+          uploadedPhotoURL = await ref.getDownloadURL();
+        } catch (e) {
+          console.warn('Photo upload failed, continuing without photo:', e);
+        }
+        setUploading(false);
+      }
 
       await firestore().collection('users').doc(user.uid).set({
         displayName: '',
         bio: '',
+        status: status.trim(),
         email: user.email,
         createdAt: firestore.FieldValue.serverTimestamp(),
-        photoURL: null,
+        photoURL: uploadedPhotoURL,
         lastSeen: firestore.FieldValue.serverTimestamp(),
         distanceMode: 'exact',
         birthday,
         showAge: true,
-        gender,
+        gender: '',
         showGender: false,
-        sexuality: sex,
+        sexuality: '',
         showSexuality: false,
         photos: [],
-        matchTag,
-        visibleTo,
-        datingOnly,
+        matchTag: 'all',
+        visibleTo: ['all'],
+        datingOnly: false,
+        setupComplete: true,
       });
     } catch (error: any) {
       console.error('Profile setup error:', error);
@@ -195,6 +208,63 @@ export default function ProfileSetupScreen() {
           <Text style={styles.title}>{t.setupTitle}</Text>
           <Text style={styles.subtitle}>{t.setupSubtitle}</Text>
 
+          {/* Profile Photo Section */}
+          <View style={styles.photoSection}>
+            <TouchableOpacity onPress={handlePickPhoto} style={styles.photoPreviewWrap}>
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+              ) : selectedAvatar ? (
+                <LinearGradient
+                  colors={AVATAR_GRADIENTS.find(a => a.label === selectedAvatar)?.colors || ['#4A90D9', '#357ABD']}
+                  style={styles.photoPreview}
+                >
+                  <ProfileIcon width={50} height={50} fill="#fff" />
+                </LinearGradient>
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <ProfileIcon width={50} height={50} fill="rgba(255,255,255,0.5)" />
+                </View>
+              )}
+              {uploading && (
+                <View style={[styles.photoPreview, styles.photoUploading]}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.uploadButton} onPress={handlePickPhoto}>
+              <Text style={styles.uploadButtonText}>{t.setupUploadPhoto}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Status Section */}
+          <Text style={styles.label}>{t.setupStatusLabel}</Text>
+          <TextInput
+            style={styles.statusInput}
+            value={status}
+            onChangeText={(v) => {
+              setStatus(v);
+              setSelectedStatusChip(null);
+            }}
+            placeholder={t.setupStatusLabel}
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            maxLength={80}
+          />
+          <View style={styles.chipRow}>
+            {statusOptions.map((opt, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[styles.chip, selectedStatusChip === i && styles.chipSelected]}
+                onPress={() => handleSelectStatusChip(i)}
+              >
+                <Text style={[styles.chipText, selectedStatusChip === i && { color: colors.primaryBlue }]}>
+                  {opt}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Birthday Section (conditional) */}
           {needsBirthday && (
             <>
               <Text style={styles.label}>{t.signupBirthday}</Text>
@@ -253,70 +323,9 @@ export default function ProfileSetupScreen() {
             </>
           )}
 
-          <Text style={styles.label}>{t.setupGenderQuestion}</Text>
-          <View style={styles.chipRow}>
-            <TouchableOpacity
-              style={[styles.chip, gender === 'male' && styles.chipSelected]}
-              onPress={() => setGender('male')}
-            >
-              <Text style={[styles.chipText, gender === 'male' && { color: colors.primaryBlue }]}>
-                {t.genderMale}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.chip, gender === 'female' && styles.chipSelected]}
-              onPress={() => setGender('female')}
-            >
-              <Text style={[styles.chipText, gender === 'female' && { color: colors.primaryBlue }]}>
-                {t.genderFemale}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.label}>{t.setupAttractionQuestion}</Text>
-          <View style={styles.chipRow}>
-            <TouchableOpacity
-              style={[styles.chip, attraction === 'men' && styles.chipSelected]}
-              onPress={() => setAttraction('men')}
-            >
-              <Text style={[styles.chipText, attraction === 'men' && { color: colors.primaryBlue }]}>
-                {t.setupAttractionMen}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.chip, attraction === 'women' && styles.chipSelected]}
-              onPress={() => setAttraction('women')}
-            >
-              <Text style={[styles.chipText, attraction === 'women' && { color: colors.primaryBlue }]}>
-                {t.setupAttractionWomen}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.chip, attraction === 'both' && styles.chipSelected]}
-              onPress={() => setAttraction('both')}
-            >
-              <Text style={[styles.chipText, attraction === 'both' && { color: colors.primaryBlue }]}>
-                {t.setupAttractionBoth}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={styles.checkboxRow}
-            onPress={() => setDatingOnly(!datingOnly)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.checkbox, datingOnly && styles.checkboxChecked]}>
-              {datingOnly && <Text style={{ color: colors.primaryBlue, fontSize: 14, fontWeight: '700' }}>✓</Text>}
-            </View>
-            <Text style={styles.checkboxLabel}>{t.setupDatingOnlyPre}<Text style={{ fontStyle: 'italic' }}>{t.setupDatingOnlyEmphasis}</Text>{t.setupDatingOnlyPost}</Text>
-          </TouchableOpacity>
-
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
-          <Text style={styles.privacyNote}>{t.setupPrivacyNote}</Text>
-
           <TouchableOpacity
             style={[styles.button, loading && { opacity: 0.7 }]}
             onPress={handleCompleteProfile}
@@ -365,6 +374,79 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     lineHeight: 22,
   },
+  photoSection: {
+    alignItems: 'center',
+    marginBottom: 28,
+    width: '100%',
+  },
+  photoPreviewWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  photoPreview: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoUploading: {
+    position: 'absolute',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  uploadButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 16,
+  },
+  uploadButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  avatarLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  avatarCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  avatarCircleSelected: {
+    borderColor: '#fff',
+  },
+  avatarGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   label: {
     fontSize: 16,
     fontWeight: '600',
@@ -372,41 +454,44 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 10,
   },
+  statusInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    padding: 15,
+    borderRadius: 12,
+    fontSize: 16,
+    color: '#fff',
+    marginBottom: 12,
+  },
   chipRow: {
     flexDirection: 'row',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 10,
     marginBottom: 24,
     width: '100%',
   },
   chip: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.3)',
     backgroundColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
   },
   chipSelected: {
     backgroundColor: '#fff',
     borderColor: '#fff',
   },
   chipText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#fff',
   },
   footer: {
     paddingHorizontal: 30,
     alignItems: 'center',
-  },
-  privacyNote: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-    textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 16,
-    paddingHorizontal: 10,
   },
   button: {
     width: '100%',
@@ -475,30 +560,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 12,
-    marginBottom: 8,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.4)',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#fff',
-    borderColor: '#fff',
-  },
-  checkboxLabel: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.8)',
   },
 });

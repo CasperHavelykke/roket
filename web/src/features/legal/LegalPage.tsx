@@ -54,7 +54,6 @@ export default function LegalPage({ title, texts }: LegalPageProps) {
       <nav className="navbar">
         <BackButton>{t.back}</BackButton>
         <h1>{title}</h1>
-        <img src="/logo-simpel.svg" alt="" className="navbar-logo" />
       </nav>
       <div className="legal-content">
         {formatLegalText(text)}

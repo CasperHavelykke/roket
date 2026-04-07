@@ -28,12 +28,27 @@
 }
 
 .fab-btn:hover {
-  transform: scale(1.08);
+  transform: none;
 }
 
 .fab-btn svg {
   width: 30px;
   height: 30px;
+}
+
+@keyframes fab-pulse {
+  0% { transform: scale(0.85); opacity: 0; }
+  30% { opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.fab-pulse-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  animation: fab-pulse 1.4s ease-out infinite;
+  pointer-events: none;
 }
 
 .fab-badge {
@@ -52,4 +67,17 @@
   justify-content: center;
   padding: 0 5px;
   border: 1.5px solid #fff;
+}
+
+/* Unread state: white button with gradient icon */
+.fab-btn-unread {
+  background: #fff !important;
+  background-image: none !important;
+  outline-color: rgba(0,0,0,0.08);
+}
+
+
+.fab-badge-gradient {
+  background-size: inherit;
+  background-position-x: inherit;
 }

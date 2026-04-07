@@ -80,6 +80,10 @@
   font-weight: 700;
 }
 
+.gradient-row svg path {
+  fill: #fff !important;
+}
+
 .settings-row {
   display: flex;
   justify-content: space-between;

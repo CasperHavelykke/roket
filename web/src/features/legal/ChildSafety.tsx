@@ -21,7 +21,6 @@ export default function ChildSafety() {
       <nav className="navbar">
         <BackButton>{t.back}</BackButton>
         <h1>{t.childSafetyTitle}</h1>
-        <img src="/logo-simpel.svg" alt="" className="navbar-logo" />
       </nav>
       <div className="legal-content">
         <div className="legal-card">

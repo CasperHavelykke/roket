@@ -1,8 +1,21 @@
 import { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase';
-import translations from '@shared/translations';
+import translations, { Language } from '@shared/translations';
 import './SignUp.css';
+
+const monthsByLang: Record<string, string[]> = {
+  da: ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  es: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+  de: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+  fr: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
+  pt: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+};
+
+const placeholdersByLang: Record<string, string> = {
+  da: 'Måned', en: 'Month', es: 'Mes', de: 'Monat', fr: 'Mois', pt: 'Mês',
+};
 
 function getAge(day: number, month: number, year: number): number {
   const today = new Date();
@@ -19,8 +32,10 @@ function daysInMonth(month: number, year: number): number {
 }
 
 export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
-  const lang = (navigator.language?.slice(0, 2) || 'en') as keyof typeof translations;
+  const lang = ((localStorage.getItem('roket-language') || navigator.language?.slice(0, 2) || 'en') as Language);
   const t = translations[lang] || translations.en;
+  const months = monthsByLang[lang] || monthsByLang.en;
+  const monthPlaceholder = placeholdersByLang[lang] || placeholdersByLang.en;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,6 +43,7 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
   const [birthDay, setBirthDay] = useState('');
   const [birthMonth, setBirthMonth] = useState('');
   const [birthYear, setBirthYear] = useState('');
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -130,15 +146,13 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
             max={31}
             className="birthday-input"
           />
-          <input
-            type="number"
-            placeholder="MM"
-            value={birthMonth}
-            onChange={(e) => setBirthMonth(e.target.value)}
-            min={1}
-            max={12}
-            className="birthday-input"
-          />
+          <button
+            type="button"
+            className={'month-picker-btn' + (birthMonth ? ' selected' : '')}
+            onClick={() => setShowMonthPicker(!showMonthPicker)}
+          >
+            {birthMonth ? months[parseInt(birthMonth, 10) - 1] : monthPlaceholder}
+          </button>
           <input
             type="number"
             placeholder="YYYY"
@@ -148,6 +162,20 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
             max={new Date().getFullYear()}
             className="birthday-input"
           />
+        </div>
+        <div className={'month-grid-wrapper' + (showMonthPicker ? ' open' : '')}>
+          <div className="month-grid">
+            {months.map((m, i) => (
+              <button
+                key={i}
+                type="button"
+                className={'month-grid-item' + (birthMonth === String(i + 1) ? ' active' : '')}
+                onClick={() => { setBirthMonth(String(i + 1)); setShowMonthPicker(false); }}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
         </div>
 
         <label className="privacy-label">

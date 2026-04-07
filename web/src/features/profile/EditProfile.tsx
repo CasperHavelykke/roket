@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import BackButton from '../../components/BackButton';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from '../../firebase';
 import translations, { Language } from '@shared/translations';
 import { placeholderPic } from '../../utils/theme';
+import getFirebaseError from '../../utils/getFirebaseError';
+import CameraIcon from '@shared/assets/camera.svg?react';
 import './EditProfile.css';
 
 export default function EditProfile() {
@@ -15,6 +17,7 @@ export default function EditProfile() {
   const currentUser = auth.currentUser;
 
   const [displayName, setDisplayName] = useState('');
+  const [status, setStatus] = useState('');
   const [bio, setBio] = useState('');
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -27,7 +30,7 @@ export default function EditProfile() {
   const [sexuality, setSexuality] = useState('');
   const [showSexuality, setShowSexuality] = useState(true);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [datingOnly, setDatingOnly] = useState(false);
+  const [photoRejected, setPhotoRejected] = useState(false);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const extraPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +41,7 @@ export default function EditProfile() {
     return map[key] ?? '';
   };
   const sexualityLabel = (key: string) => {
-    const map: Record<string, string> = { straight: t.sexualityStraight, gay: t.sexualityGay, bisexual: t.sexualityBisexual };
+    const map: Record<string, string> = { straight: t.sexualityStraight, gay: t.sexualityGay, bisexual: t.sexualityBisexual, pansexual: t.sexualityPansexual, other: t.sexualityOther };
     return map[key] ?? '';
   };
 
@@ -48,6 +51,7 @@ export default function EditProfile() {
       const data = snap.data();
       if (!data) return;
       setDisplayName(data.displayName ?? '');
+      setStatus(data.status ?? '');
       setBio(data.bio ?? '');
       setPhotoURL(data.photoURL ?? null);
       setShowAge(data.showAge !== false);
@@ -57,7 +61,10 @@ export default function EditProfile() {
       setSexuality(data.sexuality ?? '');
       setShowSexuality(data.showSexuality !== false);
       setPhotos(data.photos ?? []);
-      setDatingOnly(data.datingOnly ?? false);
+      if (data.photoRejected) {
+        setPhotoRejected(true);
+        updateDoc(doc(db, 'users', currentUser.uid), { photoRejected: false }).catch(() => {});
+      }
     });
   }, [currentUser]);
 
@@ -72,7 +79,7 @@ export default function EditProfile() {
       await updateDoc(doc(db, 'users', currentUser.uid), { photoURL: url });
       setPhotoURL(url);
     } catch (error: any) {
-      alert(error.message);
+      alert(getFirebaseError(error, t));
     } finally {
       setUploading(false);
     }
@@ -88,9 +95,10 @@ export default function EditProfile() {
     setUploading(true);
     try {
       await updateDoc(doc(db, 'users', currentUser.uid), { photoURL: null });
+      deleteObject(ref(storage, `profilePhotos/${currentUser.uid}.jpg`)).catch(() => {});
       setPhotoURL(null);
     } catch (error: any) {
-      alert(error.message);
+      alert(getFirebaseError(error, t));
     } finally {
       setUploading(false);
     }
@@ -111,7 +119,7 @@ export default function EditProfile() {
       await updateDoc(doc(db, 'users', currentUser.uid), { photos: updated });
       setPhotos(updated);
     } catch (error: any) {
-      alert(error.message);
+      alert(getFirebaseError(error, t));
     } finally {
       setUploadingExtra(false);
     }
@@ -121,11 +129,13 @@ export default function EditProfile() {
     if (!confirm(t.delete + '?')) return;
     setUploadingExtra(true);
     try {
+      const removedUrl = photos[index];
       const updated = photos.filter((_, i) => i !== index);
       await updateDoc(doc(db, 'users', currentUser.uid), { photos: updated });
+      if (removedUrl) deleteObject(ref(storage, removedUrl)).catch(() => {});
       setPhotos(updated);
     } catch (error: any) {
-      alert(error.message);
+      alert(getFirebaseError(error, t));
     } finally {
       setUploadingExtra(false);
     }
@@ -136,15 +146,15 @@ export default function EditProfile() {
     try {
       await updateDoc(doc(db, 'users', currentUser.uid), {
         displayName: displayName.trim(),
+        status: status.trim(),
         bio: bio.trim(),
         showAge,
         showGender,
         showSexuality,
-        datingOnly,
       });
-      navigate('/profile/me');
+      navigate(-1);
     } catch (error: any) {
-      alert(error.message);
+      alert(getFirebaseError(error, t));
     } finally {
       setSaving(false);
     }
@@ -157,8 +167,30 @@ export default function EditProfile() {
         <h1>{t.editProfileTitle}</h1>
       </nav>
 
+      {photoRejected && (
+        <div className="editprofile-rejected-banner">
+          Dit billede blev fjernet fordi det overtræder vores retningslinjer. Upload venligst et passende billede.
+        </div>
+      )}
+
       <div className="editprofile-content">
         <div className="editprofile-photo-container" onClick={() => photoInputRef.current?.click()}>
+          <svg className="editprofile-progress-ring" viewBox="0 0 134 134">
+            <defs>
+              <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="var(--primaryBlue)" />
+                <stop offset="1" stopColor="var(--primaryRed)" />
+              </linearGradient>
+            </defs>
+            <circle className="editprofile-progress-bg" cx="67" cy="67" r="65.25" />
+            <circle
+              className="editprofile-progress-fill"
+              cx="67" cy="67" r="65.25"
+              stroke="url(#ringGrad)"
+              strokeDasharray={2 * Math.PI * 65.25}
+              strokeDashoffset={2 * Math.PI * 65.25 * (1 - ((photoURL ? 1 : 0) + (status.trim() ? 1 : 0) + (bio.trim() ? 1 : 0)) / 3)}
+            />
+          </svg>
           <img
             src={photoURL || placeholderPic()}
             alt=""
@@ -167,8 +199,8 @@ export default function EditProfile() {
           {uploading && (
             <div className="editprofile-photo-uploading">...</div>
           )}
-          <div className="editprofile-edit-badge">
-            {'\uD83D\uDCF7'}
+          <div className={'editprofile-edit-badge' + (!photoURL ? ' pulse' : '')}>
+            <CameraIcon width={16} height={16} />
           </div>
         </div>
         <input
@@ -223,25 +255,45 @@ export default function EditProfile() {
         </div>
 
         <div className="editprofile-form">
-          <div className="editprofile-label">{t.editProfileNameLabel}</div>
-          <input
-            className="editprofile-input"
-            value={displayName}
-            onChange={e => setDisplayName(e.target.value)}
-            placeholder={t.editProfileNamePlaceholder}
-            maxLength={50}
-            autoCorrect="off"
-          />
+          <div className="editprofile-label">{t.editProfileStatusLabel}</div>
+          <div className="editprofile-input-wrap">
+            {!status.trim() && <div className="editprofile-input-glow" />}
+            <input
+              className={'editprofile-input' + (!status.trim() ? ' editprofile-input-pulse' : '')}
+              value={status}
+              onChange={e => setStatus(e.target.value)}
+              placeholder={t.editProfileStatusPlaceholder}
+              maxLength={80}
+              autoCorrect="off"
+            />
+          </div>
+          <div className="editprofile-charcount">{status.length}/80</div>
 
           <div className="editprofile-label">{t.editProfileBioLabel}</div>
-          <textarea
-            className="editprofile-input editprofile-bio-input"
-            value={bio}
-            onChange={e => setBio(e.target.value)}
-            placeholder={t.editProfileBioPlaceholder}
-            maxLength={200}
-          />
+          <div className="editprofile-input-wrap">
+            {!bio.trim() && <div className="editprofile-input-glow" />}
+            <textarea
+              className={'editprofile-input editprofile-bio-input' + (!bio.trim() ? ' editprofile-input-pulse' : '')}
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              placeholder={t.editProfileBioPlaceholder}
+              maxLength={200}
+            />
+          </div>
           <div className="editprofile-charcount">{bio.length}/200</div>
+          <div className="editprofile-divider" />
+
+          <div className="editprofile-label">{t.editProfileNameLabel}</div>
+          <div className="editprofile-input-wrap">
+            <input
+              className="editprofile-input"
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              placeholder={t.editProfileNamePlaceholder}
+              maxLength={50}
+              autoCorrect="off"
+            />
+          </div>
 
           {hasBirthday && (
             <div className="editprofile-toggle-section">
@@ -257,51 +309,26 @@ export default function EditProfile() {
               </div>
             </div>
           )}
-        </div>
 
-        {gender !== '' && (
-          <div className="editprofile-toggle-section">
-            <div className="editprofile-toggle-value">{t.editProfileGender}: {genderLabel(gender)}</div>
-            <div className="editprofile-toggle-row">
-              <div className="editprofile-toggle-info">
-                <div className="editprofile-label" style={{ marginBottom: 0 }}>{t.editProfileShowGender}</div>
-                <div className="editprofile-toggle-desc">{t.editProfileShowGenderDesc}</div>
-              </div>
-              <label className="editprofile-switch">
-                <input type="checkbox" checked={showGender} onChange={e => setShowGender(e.target.checked)} />
-                <span className="editprofile-switch-slider" />
-              </label>
-            </div>
+          <div className="editprofile-label">{t.settingsDistance}</div>
+          <div className="editprofile-distance-row">
+            {([['exact', t.settingsDistanceExact], ['fuzzy', t.settingsDistanceFuzzy], ['hidden', t.settingsDistanceHidden]] as const).map(([val, label]) => (
+              <button
+                key={val}
+                className={'editprofile-distance-btn' + ((localStorage.getItem('roket-distanceMode') || 'exact') === val ? ' active' : '')}
+                onClick={() => {
+                  localStorage.setItem('roket-distanceMode', val);
+                  const uid = auth.currentUser?.uid;
+                  if (uid) {
+                    setDoc(doc(db, 'users', uid), { distanceMode: val, settings: { distanceMode: val } }, { merge: true }).catch(() => {});
+                  }
+                  // Force re-render
+                  setShowAge(v => v);
+                }}
+              >{label}</button>
+            ))}
           </div>
-        )}
 
-        {sexuality !== '' && (
-          <div className="editprofile-toggle-section">
-            <div className="editprofile-toggle-value">{t.editProfileSexuality}: {sexualityLabel(sexuality)}</div>
-            <div className="editprofile-toggle-row">
-              <div className="editprofile-toggle-info">
-                <div className="editprofile-label" style={{ marginBottom: 0 }}>{t.editProfileShowSexuality}</div>
-                <div className="editprofile-toggle-desc">{t.editProfileShowSexualityDesc}</div>
-              </div>
-              <label className="editprofile-switch">
-                <input type="checkbox" checked={showSexuality} onChange={e => setShowSexuality(e.target.checked)} />
-                <span className="editprofile-switch-slider" />
-              </label>
-            </div>
-          </div>
-        )}
-
-        <div className="editprofile-toggle-section">
-          <div className="editprofile-toggle-row no-border">
-            <div className="editprofile-toggle-info">
-              <div className="editprofile-label" style={{ marginBottom: 0 }}>{t.editProfileDatingOnly}</div>
-              <div className="editprofile-toggle-desc">{t.editProfileDatingOnlyDesc}</div>
-            </div>
-            <label className="editprofile-switch">
-              <input type="checkbox" checked={datingOnly} onChange={e => setDatingOnly(e.target.checked)} />
-              <span className="editprofile-switch-slider" />
-            </label>
-          </div>
         </div>
 
         <button
@@ -309,7 +336,7 @@ export default function EditProfile() {
           onClick={handleSave}
           disabled={saving}
         >
-          {saving ? '...' : t.editProfileSave}
+          {saving ? <span className="editprofile-save-spinner" /> : t.editProfileSave}
         </button>
       </div>
     </div>

@@ -108,7 +108,9 @@ export default function ChatsList() {
       <nav className="navbar">
         <BackButton>{t.back}</BackButton>
         <h1>{t.chatsTitle}</h1>
-        <img src="/logo-simpel.svg" alt="" className="navbar-logo" />
+        <Link to="/settings/feedback" style={{ marginLeft: 'auto' }}>
+          <img src="/logo-simpel.svg" alt="" className="navbar-logo" />
+        </Link>
       </nav>
       <div className="chats-list">
         {chats.length === 0 ? (
