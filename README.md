@@ -1,97 +1,88 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Røket
 
-# Getting Started
+A location-based social discovery app that lets you see who's nearby and what they're up to. Built with React Native (iOS/Android) and a companion Progressive Web App.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Links
 
-## Step 1: Start Metro
+- Landing page: [roketapp.eu](https://roketapp.eu/)
+- Web app: [roket-web.web.app](https://roket-web.web.app/)
+- Android: [Google Play](https://play.google.com/store/apps/details?id=com.roket)
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## Features
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- **Proximity grid** — See nearby users sorted by distance, with real-time status updates
+- **Real-time chat** — 1-on-1 messaging with photo sharing and 12h expiring images
+- **Status-based profiles** — Users share what they're doing, not just who they are
+- **PWA** — Full web app mirroring the mobile experience
+- **Multi-language** — Danish, English, Spanish, German, French, Portuguese
+- **Dark/light mode** — Automatic or manual theme switching
 
-```sh
-# Using npm
-npm start
+## Tech Stack
 
-# OR using Yarn
-yarn start
+| Layer | Technology |
+|-------|-----------|
+| **Mobile** | React Native, TypeScript |
+| **Web** | Vite, React, TypeScript |
+| **Backend** | Firebase (Auth, Firestore, Storage, Cloud Functions, Cloud Messaging) |
+| **Moderation** | Google Cloud Vision API (SafeSearch) |
+| **Geo** | Geohash-based proximity queries |
+
+## Architecture
+
+```
+src/                  # React Native mobile app
+├── features/         # Feature-based folder structure
+├── components/       # Shared UI components
+├── services/         # NotificationService, etc.
+└── translations.ts   # i18n for 6 languages
+
+web/                  # Vite + React PWA
+├── src/features/     # Mirrors mobile feature structure
+└── public/           # Service worker, manifest
+
+functions/            # Firebase Cloud Functions
+                      # Chat notifications, moderation, content safety
 ```
 
-## Step 2: Build and run your app
+The web app shares translations and types with the mobile app via a `@shared` path alias, ensuring consistency across platforms.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+## Key Technical Decisions
 
-### Android
+- **Geohash proximity** — Users are queried by geohash prefix for efficient Firestore lookups without full-table scans
+- **Status over profiles** — Grid cards show user status instead of name/age to differentiate from dating apps
+- **Shared translations** — Single source of truth (`translations.ts`) used by both mobile and web via path aliasing
+- **Firestore security rules** — Chat participants must be set before messages can be read, preventing unauthorized access
 
-```sh
-# Using npm
-npm run android
+## Screenshots
 
-# OR using Yarn
-yarn android
+*Coming soon*
+
+## Setup
+
+### Prerequisites
+- Node.js 18+
+- React Native development environment ([setup guide](https://reactnative.dev/docs/set-up-your-environment))
+- Firebase project with Firestore, Auth, Storage, and Cloud Functions enabled
+
+### Mobile
+```bash
+npm install
+npx react-native run-android  # or run-ios
 ```
 
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
+### Web
+```bash
+cd web
+npm install
+npm run dev
 ```
 
-Then, and every time you update your native dependencies, run:
+### Firebase
+```bash
+# Deploy Cloud Functions
+cd functions && npm install
+firebase deploy --only functions
 
-```sh
-bundle exec pod install
+# Deploy web app
+firebase deploy --only hosting
 ```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
