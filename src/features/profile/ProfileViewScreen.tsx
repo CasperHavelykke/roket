@@ -26,6 +26,7 @@ import PhotoGalleryModal from './PhotoGalleryModal';
 import MessageIcon from '../../assets/message.svg';
 import MessagesIcon from '../../assets/messages.svg';
 import MaskedView from '@react-native-masked-view/masked-view';
+import RoketLogo from '../../assets/roket-logo-2.svg';
 
 interface RouteParams {
   user: {
@@ -225,10 +226,16 @@ export default function ProfileViewScreen({ route, navigation }: any) {
               onPress={() => allPhotos.length > 0 && setShowGallery(true)}
               disabled={allPhotos.length === 0}
             >
-              <Image
-                source={user.photoURL ? { uri: user.photoURL } : isDark ? require('../../assets/missing-profile-pic.png') : require('../../assets/missing-profile-pic-light.png')}
-                style={[styles.photo, { width: photoSize, height: photoSize }]}
-              />
+              {user.photoURL ? (
+                <Image
+                  source={{ uri: user.photoURL }}
+                  style={[styles.photo, { width: photoSize, height: photoSize }]}
+                />
+              ) : (
+                <View style={[styles.photo, styles.photoFallback, { width: photoSize, height: photoSize, backgroundColor: colors.cardBackground }]}>
+                  <RoketLogo width={photoSize * 0.5} height={photoSize * 0.5} fill={colors.cardBackgroundIcon} />
+                </View>
+              )}
             </TouchableOpacity>
           )}
           {showTestBadges && user.testAccount && (
@@ -456,6 +463,10 @@ const styles = StyleSheet.create({
     width: Dimensions.get('window').width - 40,
     height: Dimensions.get('window').width - 40,
     borderRadius: 16,
+  },
+  photoFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   photoCountBadge: {
     position: 'absolute',

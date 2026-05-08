@@ -17,7 +17,8 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
 import CameraIcon from '../../assets/camera.svg';
-import RoketLogo from '../../assets/roket-logo-simpel.svg';
+import RoketLogo from '../../assets/roket-logo-2.svg';
+import RoketLogoHeader from '../../assets/roket-logo-simpel.svg';
 
 interface ChatPreview {
   chatId: string;
@@ -29,6 +30,8 @@ interface ChatPreview {
   lastMessageTime: any;
   unreadCount: number;
   pinned: boolean;
+  isEvent?: boolean;
+  eventId?: string;
 }
 
 const SWIPE_THRESHOLD = 70;
@@ -160,10 +163,34 @@ export default function ChatsListScreen({ navigation }: any) {
           const data = doc.data();
           if (!data.lastMessage) continue;
 
+          // Event/gruppechat: brug event-titel og rocket-logo
+          if (data.eventId) {
+            // Spring over hvis vi ikke længere er deltager
+            if (!data.participants.includes(currentUser.uid)) continue;
+            const unreadCount = data.unreadCount?.[currentUser.uid] ?? 0;
+            chatPreviews.push({
+              chatId: doc.id,
+              otherUserId: data.eventId,
+              otherUserName: data.eventTitle ?? t.chatsUnknown,
+              otherUserPhoto: null,
+              otherUserTestAccount: false,
+              lastMessage: data.lastMessage,
+              lastMessageTime: data.lastMessageTime,
+              unreadCount,
+              pinned: pinnedSet.has(doc.id),
+              isEvent: true,
+              eventId: data.eventId,
+            });
+            continue;
+          }
+
           const otherUserId = data.participants.find(
             (id: string) => id !== currentUser.uid
           );
+          // Spring over chats uden modtager (orphan eller fejldata)
           if (!otherUserId) continue;
+          // Spring over hvis modtager-id ser ud som en chat-id (f.eks. fra gammel event-bug)
+          if (otherUserId.includes('_') && otherUserId.length > 30) continue;
 
           // Spring over hvis vi har blokeret dem
           if (myBlockedUsers.includes(otherUserId)) continue;
@@ -280,16 +307,16 @@ export default function ChatsListScreen({ navigation }: any) {
             setOpenedChatIds(prev => new Set(prev).add(item.chatId));
             navigation.navigate('Chat', {
               otherUser: { id: item.otherUserId, displayName: item.otherUserName, testAccount: item.otherUserTestAccount },
+              ...(item.isEvent ? { eventChatId: item.chatId } : {}),
             });
           }}
         >
           {item.otherUserPhoto ? (
             <Image source={{ uri: item.otherUserPhoto }} style={styles.avatar} />
           ) : (
-            <Image
-              source={isDark ? require('../../assets/missing-profile-pic.png') : require('../../assets/missing-profile-pic-light.png')}
-              style={styles.avatar}
-            />
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.cardBackground }]}>
+              <RoketLogo width={36} height={36} fill={colors.cardBackgroundIcon} />
+            </View>
           )}
           <View style={styles.chatInfo}>
             <View style={styles.chatTop}>
@@ -346,7 +373,7 @@ export default function ChatsListScreen({ navigation }: any) {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.chatsTitle}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
-          <RoketLogo width={24} height={24} fillRule="evenodd" />
+          <RoketLogoHeader width={24} height={24} fillRule="evenodd" />
         </TouchableOpacity>
       </GradientView>
 
@@ -442,6 +469,10 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     marginRight: 14,
+  },
+  avatarFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chatInfo: {
     flex: 1,

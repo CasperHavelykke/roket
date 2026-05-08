@@ -30,8 +30,13 @@ import MaskedView from '@react-native-masked-view/masked-view';
 import CardCarousel from './CardCarousel';
 import ProfilePreviewModal from './ProfilePreviewModal';
 import RoketLogo from '../../assets/roket-logo-3.svg';
+import PlusIcon from '../../assets/plus.svg';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { STATUS_TAGS, StatusTagId, getStatusTag } from '../../statusTags';
+import CreateEventModal from '../events/CreateEventModal';
+import EventCard from '../events/EventCard';
+import EventDetailModal from '../events/EventDetailModal';
+import { EventDoc } from '../../events';
 
 const BANNER_AD_ID = __DEV__
   ? TestIds.ADAPTIVE_BANNER
@@ -43,7 +48,12 @@ const BANNER_AD_ID = __DEV__
 const AD_FIRST: Record<number, number> = { 1: 3, 2: 3, 3: 6, 4: 6 };
 const AD_REPEAT: Record<number, number> = { 1: 6, 2: 6, 3: 12, 4: 12 };
 
-type GridRow = { type: 'users'; users: User[]; key: string } | { type: 'ad'; key: string };
+type GridCell = { kind: 'user'; user: User } | { kind: 'event'; event: EventDoc };
+type GridRow =
+  | { type: 'users'; users: User[]; key: string }
+  | { type: 'ad'; key: string }
+  | { type: 'events'; events: EventDoc[]; key: string }
+  | { type: 'mixed'; cells: GridCell[]; key: string };
 
 interface User {
   id: string;
@@ -101,6 +111,11 @@ export default function HomeScreen({ navigation }: any) {
   const [needsProfile, setNeedsProfile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(12);
   const [activeFilter, setActiveFilter] = useState<StatusTagId | null>(null);
+  const [eventsFilterActive, setEventsFilterActive] = useState(false);
+  const [events, setEvents] = useState<EventDoc[]>([]);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [previewEvent, setPreviewEvent] = useState<EventDoc | null>(null);
+  const [userLocationCoords, setUserLocationCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showLocationDisclosure, setShowLocationDisclosure] = useState(false);
   const [locationDenied, setLocationDenied] = useState(false);
   const [previewUser, setPreviewUser] = useState<User | null>(null);
@@ -179,6 +194,41 @@ export default function HomeScreen({ navigation }: any) {
     updateLocationAndLoad();
   }, []);
 
+  // Lyt på events i nærheden
+  useEffect(() => {
+    const unsubscribe = firestore()
+      .collection('events')
+      .where('expiresAt', '>', firestore.Timestamp.now())
+      .onSnapshot(snap => {
+        const list: EventDoc[] = [];
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          list.push({
+            id: doc.id,
+            creatorId: data.creatorId,
+            title: data.title,
+            description: data.description ?? '',
+            meetingPlace: data.meetingPlace ?? '',
+            location: {
+              latitude: data.location?.latitude ?? 0,
+              longitude: data.location?.longitude ?? 0,
+            },
+            time: data.time?.toDate?.() ?? new Date(),
+            maxParticipants: data.maxParticipants ?? null,
+            participantIds: data.participantIds ?? [],
+            tag: data.tag ?? null,
+            chatId: data.chatId,
+            createdAt: data.createdAt?.toDate?.() ?? new Date(),
+            expiresAt: data.expiresAt?.toDate?.() ?? new Date(),
+          });
+        });
+        list.sort((a, b) => a.time.getTime() - b.time.getTime());
+        setEvents(list);
+      }, err => console.warn('Events subscription error:', err));
+
+    return () => unsubscribe();
+  }, []);
+
   const requestLocationDisclosure = (): Promise<boolean> => {
     return new Promise(resolve => {
       locationDisclosureResolve.current = resolve;
@@ -242,6 +292,7 @@ export default function HomeScreen({ navigation }: any) {
     const position = await LocationService.getCurrentPosition();
     if (position) {
       setLocationDenied(false);
+      setUserLocationCoords({ latitude: position.latitude, longitude: position.longitude });
       await Promise.all([
         firestore().collection('userLocations').doc(currentUser.uid).set({
           location: new firestore.GeoPoint(position.latitude, position.longitude),
@@ -424,24 +475,56 @@ export default function HomeScreen({ navigation }: any) {
   }, [users, activeFilter]);
 
   const gridRows = React.useMemo((): GridRow[] => {
-    const visible = filteredUsers.slice(0, visibleCount);
     const rows: GridRow[] = [];
+
+    if (eventsFilterActive) {
+      for (let i = 0; i < events.length; i += numColumns) {
+        rows.push({ type: 'events', events: events.slice(i, i + numColumns), key: `events-${i}` });
+      }
+      return rows;
+    }
+
+    // Beregn distance for events og merge dem med users sorteret efter distance
+    const tagFilteredEvents = activeFilter ? events.filter(ev => ev.tag === activeFilter) : events;
+    const eventsWithDistance = userLocationCoords
+      ? tagFilteredEvents.map(ev => ({
+          ...ev,
+          distance: calculateDistance(
+            userLocationCoords.latitude,
+            userLocationCoords.longitude,
+            ev.location.latitude,
+            ev.location.longitude
+          ),
+        }))
+      : tagFilteredEvents.map(ev => ({ ...ev, distance: 999999 }));
+
+    type SortedCell = GridCell & { distance: number };
+    const cells: SortedCell[] = [
+      ...filteredUsers.slice(0, visibleCount).map(u => ({ kind: 'user' as const, user: u, distance: u.distance ?? 999999 })),
+      ...eventsWithDistance.map(e => ({ kind: 'event' as const, event: e, distance: e.distance ?? 999999 })),
+    ];
+    cells.sort((a, b) => a.distance - b.distance);
+
     const firstAd = AD_FIRST[numColumns] || 3;
     const repeatAd = AD_REPEAT[numColumns] || 6;
     let nextAdAt = firstAd;
     let rowCount = 0;
     let adCount = 0;
-    for (let i = 0; i < visible.length; i += numColumns) {
+
+    for (let i = 0; i < cells.length; i += numColumns) {
       if (rowCount >= nextAdAt) {
         adCount++;
         rows.push({ type: 'ad', key: `__ad_${adCount}__` });
         nextAdAt = rowCount + repeatAd;
       }
-      rows.push({ type: 'users', users: visible.slice(i, i + numColumns), key: `row-${i}` });
+      const rowCells = cells.slice(i, i + numColumns).map(c => c.kind === 'user'
+        ? ({ kind: 'user', user: c.user } as GridCell)
+        : ({ kind: 'event', event: c.event } as GridCell));
+      rows.push({ type: 'mixed', cells: rowCells, key: `row-${i}` });
       rowCount++;
     }
     return rows;
-  }, [filteredUsers, visibleCount, numColumns]);
+  }, [filteredUsers, visibleCount, numColumns, eventsFilterActive, events, userLocationCoords, activeFilter]);
 
   const serializeUser = (item: User) => ({
     ...item,
@@ -471,6 +554,7 @@ export default function HomeScreen({ navigation }: any) {
         width={cardWidth}
         fallbackSource={fallbackSource}
         compact={isCompact}
+        isSingle={isSingle}
         onPress={navigateToProfile}
         onLongPress={() => setPreviewUser(item)}
       />
@@ -527,6 +611,38 @@ export default function HomeScreen({ navigation }: any) {
             unitId={BANNER_AD_ID}
             size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
           />
+        </View>
+      );
+    }
+    const renderEventCard = (ev: EventDoc) => (
+      <View key={`e-${ev.id}`} style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin }, isSingle && { aspectRatio: 1.2 }]}>
+        <EventCard
+          event={ev}
+          width={cardWidth}
+          compact={isCompact}
+          tiny={numColumns === 4}
+          isSingle={isSingle}
+          onPress={() => setPreviewEvent(ev)}
+        />
+      </View>
+    );
+
+    if (item.type === 'mixed') {
+      return (
+        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+          {item.cells.map(cell => {
+            if (cell.kind === 'user') {
+              return <React.Fragment key={`u-${cell.user.id}`}>{renderUserCard(cell.user)}</React.Fragment>;
+            }
+            return renderEventCard(cell.event);
+          })}
+        </View>
+      );
+    }
+    if (item.type === 'events') {
+      return (
+        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+          {item.events.map(ev => renderEventCard(ev))}
         </View>
       );
     }
@@ -625,12 +741,25 @@ export default function HomeScreen({ navigation }: any) {
                 style={[
                   styles.filterChip,
                   { backgroundColor: colors.card },
-                  activeFilter === null && { backgroundColor: colors.primaryBlue },
+                  activeFilter === null && !eventsFilterActive && { backgroundColor: colors.primaryBlue },
                 ]}
-                onPress={() => setActiveFilter(null)}
+                onPress={() => { setActiveFilter(null); setEventsFilterActive(false); }}
               >
-                <Text style={[styles.filterChipText, { color: colors.textPrimary }, activeFilter === null && { color: '#fff' }]}>
+                <Text style={[styles.filterChipText, { color: colors.textPrimary }, activeFilter === null && !eventsFilterActive && { color: '#fff' }]}>
                   {t.tagAll}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: colors.card },
+                  eventsFilterActive && { backgroundColor: colors.primaryBlue },
+                ]}
+                onPress={() => { setEventsFilterActive(!eventsFilterActive); setActiveFilter(null); }}
+              >
+                <Text style={styles.filterChipEmoji}>📅</Text>
+                <Text style={[styles.filterChipText, { color: colors.textPrimary }, eventsFilterActive && { color: '#fff' }]}>
+                  {t.tagEvents}
                 </Text>
               </TouchableOpacity>
               {STATUS_TAGS.map(tag => {
@@ -852,6 +981,31 @@ export default function HomeScreen({ navigation }: any) {
           navigation.navigate('Chat', { otherUser: { id, displayName, testAccount } });
         }}
       />
+      <CreateEventModal
+        visible={showCreateEvent}
+        onClose={() => setShowCreateEvent(false)}
+        userLocation={userLocationCoords}
+      />
+      <EventDetailModal
+        visible={!!previewEvent}
+        event={previewEvent}
+        onClose={() => setPreviewEvent(null)}
+        onOpenChat={(chatId, eventTitle) => {
+          setPreviewEvent(null);
+          navigation.navigate('Chat', { otherUser: { id: chatId, displayName: eventTitle, testAccount: false }, eventChatId: chatId, eventTitle });
+        }}
+      />
+      {eventsFilterActive && (
+        <TouchableOpacity
+          style={[styles.fabShadow, styles.createEventFab, { bottom: insets.bottom + (showColumnPicker ? 314 : 100) }]}
+          activeOpacity={0.8}
+          onPress={() => setShowCreateEvent(true)}
+        >
+          <View style={[styles.fabButton, { backgroundColor: colors.primaryBlue }]}>
+            <PlusIcon width={30} height={30} stroke="#fff" />
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -1074,6 +1228,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 18,
     includeFontPadding: false,
+  },
+  createEventFab: {
+    position: 'absolute',
+    right: 32,
   },
   testBadgeText: {
     color: '#fff',

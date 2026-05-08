@@ -18,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
 import PhotoGalleryModal from './PhotoGalleryModal';
+import RoketLogo from '../../assets/roket-logo-2.svg';
 
 export default function MyProfileScreen({ navigation }: any) {
   const { colors, isDark, t, distanceUnit, showTestBadges } = useTheme();
@@ -152,10 +153,16 @@ export default function MyProfileScreen({ navigation }: any) {
               onPress={() => allPhotos.length > 0 && setShowGallery(true)}
               disabled={allPhotos.length === 0}
             >
-              <Image
-                source={photoURL ? { uri: photoURL } : isDark ? require('../../assets/missing-profile-pic.png') : require('../../assets/missing-profile-pic-light.png')}
-                style={[styles.photo, { width: photoSize, height: photoSize }]}
-              />
+              {photoURL ? (
+                <Image
+                  source={{ uri: photoURL }}
+                  style={[styles.photo, { width: photoSize, height: photoSize }]}
+                />
+              ) : (
+                <View style={[styles.photo, styles.photoFallback, { width: photoSize, height: photoSize, backgroundColor: colors.cardBackground }]}>
+                  <RoketLogo width={photoSize * 0.5} height={photoSize * 0.5} fill={colors.cardBackgroundIcon} />
+                </View>
+              )}
             </TouchableOpacity>
           )}
           {showTestBadges && testAccount && (
@@ -261,6 +268,10 @@ const styles = StyleSheet.create({
     width: Dimensions.get('window').width - 40,
     height: Dimensions.get('window').width - 40,
     borderRadius: 16,
+  },
+  photoFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   photoCountBadge: {
     position: 'absolute',

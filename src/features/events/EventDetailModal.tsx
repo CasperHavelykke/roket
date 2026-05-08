@@ -1,0 +1,344 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+  Animated,
+  PanResponder,
+} from 'react-native';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../theme';
+import { getStatusTag } from '../../statusTags';
+import { EventDoc, isEventFull } from '../../events';
+
+interface EventDetailModalProps {
+  visible: boolean;
+  event: EventDoc | null;
+  onClose: () => void;
+  onOpenChat: (chatId: string, eventTitle: string) => void;
+}
+
+export default function EventDetailModal({ visible, event, onClose, onOpenChat }: EventDetailModalProps) {
+  const { colors, t } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [busy, setBusy] = useState(false);
+  const [mounted, setMounted] = useState(visible);
+  const [displayEvent, setDisplayEvent] = useState<EventDoc | null>(event);
+  const translateY = useRef(new Animated.Value(600)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (event) setDisplayEvent(event);
+  }, [event]);
+
+  useEffect(() => {
+    if (visible) {
+      // Hvis modal lige er ved at lukke, reset translateY til startposition før indgang
+      if (!mounted) {
+        translateY.setValue(600);
+        overlayOpacity.setValue(0);
+      }
+      setMounted(true);
+      Animated.parallel([
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 65 }),
+        Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]).start();
+    } else if (mounted) {
+      Animated.parallel([
+        Animated.timing(translateY, { toValue: 600, duration: 220, useNativeDriver: true }),
+        Animated.timing(overlayOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
+      ]).start(() => setMounted(false));
+    }
+  }, [visible]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) translateY.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 120 || g.vy > 0.6) {
+          Animated.timing(translateY, { toValue: 600, duration: 200, useNativeDriver: true }).start(() => onClose());
+        } else {
+          Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 8 }).start();
+        }
+      },
+      onPanResponderTerminationRequest: () => false,
+    }),
+  ).current;
+
+  if (!displayEvent || !mounted) return null;
+  const ev = displayEvent;
+
+  const user = auth().currentUser;
+  const isCreator = user?.uid === ev.creatorId;
+  const isParticipant = !!user && ev.participantIds.includes(user.uid);
+  const tag = getStatusTag(ev.tag);
+  const full = isEventFull(ev);
+
+  const handleJoin = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const batch = firestore().batch();
+      batch.update(firestore().collection('events').doc(ev.id), {
+        participantIds: firestore.FieldValue.arrayUnion(user.uid),
+      });
+      batch.update(firestore().collection('chats').doc(ev.chatId), {
+        participants: firestore.FieldValue.arrayUnion(user.uid),
+      });
+      await batch.commit();
+      // Optimistisk opdater lokalt så Chat/Forlad-knapper vises straks
+      setDisplayEvent(prev => prev ? { ...prev, participantIds: [...prev.participantIds, user.uid] } : prev);
+    } catch (e) {
+      console.error('Join failed:', e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    if (!user) return;
+    setBusy(true);
+    // Tolerér mismatched state: hvis bruger kun er i den ene, fjernes de stadig der.
+    try {
+      await firestore().collection('events').doc(ev.id).update({
+        participantIds: firestore.FieldValue.arrayRemove(user.uid),
+      });
+    } catch (e) {
+      console.warn('Event leave failed (maybe already removed):', e);
+    }
+    try {
+      await firestore().collection('chats').doc(ev.chatId).update({
+        participants: firestore.FieldValue.arrayRemove(user.uid),
+      });
+    } catch (e) {
+      console.warn('Chat leave failed (maybe already removed):', e);
+    }
+    setBusy(false);
+    onClose();
+  };
+
+  const handleCancel = () => {
+    Alert.alert(t.eventsCancel, t.eventsCancelConfirm, [
+      { text: t.cancel, style: 'cancel' },
+      {
+        text: t.delete,
+        style: 'destructive',
+        onPress: async () => {
+          setBusy(true);
+          try {
+            await firestore().collection('events').doc(ev.id).delete();
+            await firestore().collection('chats').doc(ev.chatId).delete();
+            onClose();
+          } catch (e) {
+            console.error('Cancel failed:', e);
+          } finally {
+            setBusy(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  const formatDateTime = (d: Date) => {
+    const hh = d.getHours().toString().padStart(2, '0');
+    const mm = d.getMinutes().toString().padStart(2, '0');
+    const today = new Date();
+    const isToday = today.toDateString() === d.toDateString();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow = tomorrow.toDateString() === d.toDateString();
+    const dayLabel = isToday ? t.eventsTimeToday : isTomorrow ? t.eventsTimeTomorrow : d.toLocaleDateString();
+    return `${dayLabel} ${hh}:${mm}`;
+  };
+
+  return (
+    <Modal visible={mounted} animationType="none" transparent onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <Animated.View style={[styles.overlayBg, { opacity: overlayOpacity }]}>
+          <TouchableOpacity activeOpacity={1} style={StyleSheet.absoluteFill} onPress={onClose} />
+        </Animated.View>
+        <Animated.View style={[styles.sheet, { backgroundColor: colors.background, paddingBottom: insets.bottom + 20, transform: [{ translateY }] }]}>
+          <View style={styles.handleArea} {...panResponder.panHandlers}>
+            <View style={styles.handle} />
+          </View>
+          <ScrollView style={styles.content}>
+            <View style={styles.headerRow}>
+              {tag && <Text style={styles.emoji}>{tag.emoji}</Text>}
+              <Text style={[styles.title, { color: colors.textPrimary }]}>{ev.title}</Text>
+            </View>
+
+            <View style={[styles.infoBox, { backgroundColor: colors.card }]}>
+              <Text style={[styles.infoLine, { color: colors.textPrimary }]}>
+                🕐 {formatDateTime(ev.time)}
+              </Text>
+              {ev.meetingPlace ? (
+                <Text style={[styles.infoLine, { color: colors.textPrimary }]}>
+                  📍 {ev.meetingPlace}
+                </Text>
+              ) : null}
+              <Text style={[styles.infoLine, { color: colors.textSecondary }]}>
+                👥 {ev.maxParticipants
+                  ? t.eventsParticipantsOf(ev.participantIds.length, ev.maxParticipants)
+                  : t.eventsParticipants(ev.participantIds.length)}
+              </Text>
+            </View>
+
+            {ev.description ? (
+              <Text style={[styles.description, { color: colors.textPrimary }]}>
+                {ev.description}
+              </Text>
+            ) : null}
+          </ScrollView>
+
+          <View style={styles.footer}>
+            {isCreator ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.cta, { backgroundColor: colors.primaryBlue }]}
+                  onPress={() => onOpenChat(ev.chatId, ev.title)}
+                >
+                  <Text style={styles.ctaText}>💬 Chat</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.ctaSecondary, { borderColor: colors.primaryRed }]}
+                  onPress={handleCancel}
+                  disabled={busy}
+                >
+                  <Text style={[styles.ctaSecondaryText, { color: colors.primaryRed }]}>{t.eventsCancel}</Text>
+                </TouchableOpacity>
+              </>
+            ) : isParticipant ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.cta, { backgroundColor: colors.primaryBlue }]}
+                  onPress={() => onOpenChat(ev.chatId, ev.title)}
+                >
+                  <Text style={styles.ctaText}>💬 Chat</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.ctaSecondary, { borderColor: colors.border }]}
+                  onPress={handleLeave}
+                  disabled={busy}
+                >
+                  <Text style={[styles.ctaSecondaryText, { color: colors.textPrimary }]}>{t.eventsLeave}</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={[styles.cta, { backgroundColor: full ? colors.textMuted : colors.primaryBlue }, full && { opacity: 0.6 }]}
+                onPress={handleJoin}
+                disabled={busy || full}
+              >
+                {busy ? <ActivityIndicator color="#fff" /> : (
+                  <Text style={styles.ctaText}>{full ? t.eventsFull : t.eventsJoin}</Text>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  overlayBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  sheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 30,
+    maxHeight: '90%',
+  },
+  handleArea: {
+    paddingVertical: 14,
+    paddingHorizontal: 60,
+    alignItems: 'center',
+    marginBottom: 4,
+    marginHorizontal: -20,
+    marginTop: -12,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#ccc',
+  },
+  content: {
+    maxHeight: 400,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  emoji: {
+    fontSize: 32,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    flex: 1,
+  },
+  infoBox: {
+    borderRadius: 14,
+    padding: 14,
+    gap: 10,
+    marginBottom: 16,
+  },
+  infoLine: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  description: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  footer: {
+    paddingTop: 16,
+    gap: 10,
+  },
+  cta: {
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  ctaText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  ctaSecondary: {
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: 'center',
+    borderWidth: 1.5,
+  },
+  ctaSecondaryText: {
+    fontWeight: '700',
+    fontSize: 15,
+  },
+});

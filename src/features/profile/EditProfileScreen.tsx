@@ -25,6 +25,7 @@ import { useTheme } from '../../theme';
 import CameraIcon from '../../assets/camera.svg';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { STATUS_TAGS, StatusTagId } from '../../statusTags';
+import RoketLogo from '../../assets/roket-logo-2.svg';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -323,10 +324,13 @@ export default function EditProfileScreen({ navigation }: any) {
                 </Svg>
               );
             })()}
-            <Image
-              source={photoURL ? { uri: photoURL } : isDark ? require('../../assets/missing-profile-pic.png') : require('../../assets/missing-profile-pic-light.png')}
-              style={styles.photo}
-            />
+            {photoURL ? (
+              <Image source={{ uri: photoURL }} style={styles.photo} />
+            ) : (
+              <View style={[styles.photo, styles.photoFallback, { backgroundColor: colors.cardBackground }]}>
+                <RoketLogo width={56} height={56} fill={colors.cardBackgroundIcon} />
+              </View>
+            )}
             {uploading && (
               <GradientView
                 colors={[colors.primaryBlue, colors.primaryRed]}
@@ -376,27 +380,6 @@ export default function EditProfileScreen({ navigation }: any) {
           </View>
 
           <View style={styles.form}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileStatusLabel}</Text>
-            <View style={styles.inputWrap}>
-              <Animated.View style={[styles.inputHighlightBorder, { opacity: Animated.multiply(nameHighlight, fieldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] })) }]} pointerEvents="none">
-                <GradientView
-                  colors={[colors.primaryBlue, colors.primaryRed]}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  style={styles.inputHighlightFill}
-                />
-              </Animated.View>
-              <TextInput
-                style={[styles.input, { marginBottom: 0, backgroundColor: colors.white, borderColor: status.trim() ? colors.inputBorder : 'transparent', color: colors.textPrimary }]}
-                value={status}
-                onChangeText={setStatus}
-                placeholder={t.editProfileStatusPlaceholder}
-                placeholderTextColor={colors.textMuted}
-                maxLength={80}
-                autoCorrect={false}
-              />
-            </View>
-            <Text style={styles.charCount}>{status.length}/80</Text>
-
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t.tagPickerLabel}</Text>
             <ScrollView
               horizontal
@@ -425,6 +408,27 @@ export default function EditProfileScreen({ navigation }: any) {
                 );
               })}
             </ScrollView>
+
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileStatusLabel}</Text>
+            <View style={styles.inputWrap}>
+              <Animated.View style={[styles.inputHighlightBorder, { opacity: Animated.multiply(nameHighlight, fieldPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] })) }]} pointerEvents="none">
+                <GradientView
+                  colors={[colors.primaryBlue, colors.primaryRed]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={styles.inputHighlightFill}
+                />
+              </Animated.View>
+              <TextInput
+                style={[styles.input, { marginBottom: 0, backgroundColor: colors.white, borderColor: status.trim() ? colors.inputBorder : 'transparent', color: colors.textPrimary }]}
+                value={status}
+                onChangeText={setStatus}
+                placeholder={t.editProfileStatusPlaceholder}
+                placeholderTextColor={colors.textMuted}
+                maxLength={80}
+                autoCorrect={false}
+              />
+            </View>
+            <Text style={styles.charCount}>{status.length}/80</Text>
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileBioLabel}</Text>
             <View style={styles.inputWrap}>
@@ -568,6 +572,10 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
   },
+  photoFallback: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   photoPlaceholder: {
     width: 120,
     height: 120,
@@ -645,8 +653,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   tagScroll: {
-    marginBottom: 16,
-    marginTop: -8,
+    marginBottom: 28,
   },
   tagScrollContent: {
     gap: 8,

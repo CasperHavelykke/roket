@@ -1,0 +1,147 @@
+import React from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useTheme } from '../../theme';
+import { getStatusTag } from '../../statusTags';
+import { EventDoc } from '../../events';
+
+interface EventCardProps {
+  event: EventDoc;
+  width: number;
+  compact?: boolean;
+  tiny?: boolean;
+  isSingle?: boolean;
+  onPress: () => void;
+}
+
+function formatTime(time: Date, t: any): string {
+  const now = Date.now();
+  const diffMs = time.getTime() - now;
+  const diffMins = Math.floor(diffMs / 60000);
+
+  if (diffMins < 0) return t.eventsTimeAgo;
+  if (diffMins < 60) return t.eventsTimeIn(diffMins);
+
+  const today = new Date();
+  const eventDay = new Date(time);
+  const isToday = today.toDateString() === eventDay.toDateString();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTomorrow = tomorrow.toDateString() === eventDay.toDateString();
+
+  const hh = eventDay.getHours().toString().padStart(2, '0');
+  const mm = eventDay.getMinutes().toString().padStart(2, '0');
+
+  if (isToday) return `${t.eventsTimeToday} ${hh}:${mm}`;
+  if (isTomorrow) return `${t.eventsTimeTomorrow} ${hh}:${mm}`;
+  return t.eventsTimeIn(diffMins);
+}
+
+export default function EventCard({ event, compact, tiny, isSingle, onPress }: EventCardProps) {
+  const { colors, t } = useTheme();
+  const tag = getStatusTag(event.tag);
+  const participantCount = event.participantIds.length;
+  const timeText = formatTime(event.time, t);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.fill,
+        { backgroundColor: colors.primaryBlue, opacity: pressed ? 0.85 : 1 },
+      ]}
+    >
+      {/* Calendar/Event indicator badge top-left */}
+      <View style={[styles.cornerBadge, styles.cornerLeft, compact && styles.cornerCompact]} pointerEvents="none">
+        <Text style={[styles.cornerEmoji, compact && { fontSize: 13 }]}>📅</Text>
+      </View>
+
+      {/* Tag emoji top-right */}
+      {tag && (
+        <View style={[styles.cornerBadge, styles.cornerRight, styles.cornerDark, compact && styles.cornerCompact]} pointerEvents="none">
+          <Text style={[styles.cornerEmoji, compact && { fontSize: 13 }]}>{tag.emoji}</Text>
+        </View>
+      )}
+
+      {/* Center content */}
+      <View style={styles.center}>
+        <Text
+          style={[
+            styles.title,
+            compact && { fontSize: 13, lineHeight: 17 },
+            isSingle && { fontSize: 22, lineHeight: 28 },
+          ]}
+          numberOfLines={compact ? 3 : 4}
+        >
+          {event.title}
+        </Text>
+      </View>
+
+      {/* Bottom info */}
+      <View style={[styles.bottom, compact && { padding: 6 }]} pointerEvents="none">
+        <Text style={[styles.timeText, compact && { fontSize: 10 }]} numberOfLines={1}>
+          {timeText}
+        </Text>
+        <Text style={[styles.participants, compact && { fontSize: 10 }]}>
+          {tiny
+            ? (event.maxParticipants ? `${participantCount}/${event.maxParticipants}` : `${participantCount}`)
+            : event.maxParticipants
+              ? t.eventsParticipantsOf(participantCount, event.maxParticipants)
+              : t.eventsParticipants(participantCount)}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
+  cornerBadge: {
+    position: 'absolute',
+    top: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  cornerLeft: { left: 8 },
+  cornerRight: { right: 8 },
+  cornerDark: { backgroundColor: 'rgba(0,0,0,0.35)' },
+  cornerCompact: { width: 22, height: 22, borderRadius: 11, top: 6 },
+  cornerEmoji: { fontSize: 15 },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingTop: 36,
+    paddingBottom: 44,
+  },
+  title: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 20,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  bottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  participants: { color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: '600' },
+});

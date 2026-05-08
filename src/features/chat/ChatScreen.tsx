@@ -32,6 +32,8 @@ import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoSimpel from '../../assets/roket-logo-simpel.svg';
 import RoketStars from '../../assets/roket-logo-stars-only.svg';
 import RoketStarsDark from '../../assets/roket-logo-stars-dark.svg';
+import EventDetailModal from '../events/EventDetailModal';
+import { EventDoc } from '../../events';
 
 interface Message {
   id: string;
@@ -207,13 +209,17 @@ function getOrCreateChatId(uid1: string, uid2: string): string {
 export default function ChatScreen({ route, navigation }: any) {
   const { colors, isDark, timeFormat, t, showTestBadges } = useTheme();
   const insets = useSafeAreaInsets();
-  const { otherUser, fromProfile } = route.params as {
+  const { otherUser, fromProfile, eventChatId } = route.params as {
     otherUser: { id: string; displayName: string; testAccount?: boolean };
     fromProfile?: boolean;
+    eventChatId?: string;
   };
 
   const currentUser = auth().currentUser;
-  const chatId = currentUser ? getOrCreateChatId(currentUser.uid, otherUser.id) : '';
+  const chatId = eventChatId
+    ? eventChatId
+    : (currentUser ? getOrCreateChatId(currentUser.uid, otherUser.id) : '');
+  const isEventChat = !!eventChatId;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -224,6 +230,9 @@ export default function ChatScreen({ route, navigation }: any) {
   const [showChatInfo, setShowChatInfo] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [reportMessage, setReportMessage] = useState<Message | null>(null);
+  const [eventDoc, setEventDoc] = useState<EventDoc | null>(null);
+  const [showEventDetail, setShowEventDetail] = useState(false);
+  const [senderNames, setSenderNames] = useState<Record<string, string>>({});
   const [reportText, setReportText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const lastTapRef = useRef<{ id: string; time: number }>({ id: '', time: 0 });
@@ -290,6 +299,11 @@ export default function ChatScreen({ route, navigation }: any) {
   const ensureChatExists = async () => {
     if (chatCreatedRef.current || !currentUser) return;
     chatCreatedRef.current = true;
+    if (isEventChat) {
+      // Event-chat er allerede oprettet ved event-oprettelse — bare start listener
+      startListener();
+      return;
+    }
     const chatRef = firestore().collection('chats').doc(chatId);
     await chatRef.set(
       {
@@ -321,6 +335,62 @@ export default function ChatScreen({ route, navigation }: any) {
     return () => unsubscribeRef.current?.();
   }, [chatId]);
 
+  // Hent sender-navne for alle der har sendt beskeder i event-chat
+  useEffect(() => {
+    if (!isEventChat) return;
+    const unknownSenderIds = new Set<string>();
+    messages.forEach(m => {
+      if (m.senderId && m.senderId !== currentUser?.uid && !senderNames[m.senderId]) {
+        unknownSenderIds.add(m.senderId);
+      }
+    });
+    if (unknownSenderIds.size === 0) return;
+    Promise.all(
+      Array.from(unknownSenderIds).map(uid =>
+        firestore().collection('users').doc(uid).get().then(snap => ({ uid, name: snap.data()?.displayName || '' })),
+      ),
+    ).then(results => {
+      setSenderNames(prev => {
+        const next = { ...prev };
+        results.forEach(r => { next[r.uid] = r.name; });
+        return next;
+      });
+    });
+  }, [messages, isEventChat]);
+
+  // Lyt på event-data ved event-chat
+  useEffect(() => {
+    if (!isEventChat) return;
+    const chatRef = firestore().collection('chats').doc(chatId);
+    chatRef.get().then(snap => {
+      const eventId = snap.data()?.eventId;
+      if (!eventId) return;
+      const unsub = firestore().collection('events').doc(eventId).onSnapshot(doc => {
+        if (!doc.exists) {
+          setEventDoc(null);
+          return;
+        }
+        const data = doc.data()!;
+        setEventDoc({
+          id: doc.id,
+          creatorId: data.creatorId,
+          title: data.title,
+          description: data.description ?? '',
+          meetingPlace: data.meetingPlace ?? '',
+          location: { latitude: data.location?.latitude ?? 0, longitude: data.location?.longitude ?? 0 },
+          time: data.time?.toDate?.() ?? new Date(),
+          maxParticipants: data.maxParticipants ?? null,
+          participantIds: data.participantIds ?? [],
+          tag: data.tag ?? null,
+          chatId: data.chatId ?? chatId,
+          createdAt: data.createdAt?.toDate?.() ?? new Date(),
+          expiresAt: data.expiresAt?.toDate?.() ?? new Date(),
+        });
+      });
+      return () => unsub();
+    });
+  }, [isEventChat, chatId]);
+
   if (!currentUser) return null;
 
   const sendMessage = async () => {
@@ -345,7 +415,7 @@ export default function ChatScreen({ route, navigation }: any) {
         lastMessage: text.slice(0, 500),
         lastMessageTime: firestore.FieldValue.serverTimestamp(),
         lastMessageSenderId: currentUser.uid,
-        unreadCount: { [otherUser.id]: firestore.FieldValue.increment(1) },
+        ...(isEventChat ? {} : { unreadCount: { [otherUser.id]: firestore.FieldValue.increment(1) } }),
       },
       { merge: true }
     );
@@ -585,6 +655,15 @@ export default function ChatScreen({ route, navigation }: any) {
             <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
           </View>
         )}
+      {isEventChat && !isMe && (() => {
+        // Vis afsendernavn hvis den næste besked i visningen (= ovenfor) er fra en anden afsender
+        const showName = !nextMsg || nextMsg.senderId !== item.senderId;
+        if (!showName) return null;
+        const name = senderNames[item.senderId] || '...';
+        return (
+          <Text style={[styles.senderName, { color: colors.textSecondary }]}>{name}</Text>
+        );
+      })()}
       <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowThem]}>
         <Pressable
           style={styles.messagePressable}
@@ -691,7 +770,17 @@ export default function ChatScreen({ route, navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
         </TouchableOpacity>
-        {fromProfile ? (
+        {isEventChat ? (
+          <TouchableOpacity
+            style={styles.headerInfo}
+            onPress={() => setShowEventDetail(true)}
+            disabled={!eventDoc}
+          >
+            <View style={styles.headerNameRow}>
+              <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>
+            </View>
+          </TouchableOpacity>
+        ) : fromProfile ? (
           <View style={styles.headerInfo}>
             <View style={styles.headerNameRow}>
               <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>
@@ -907,6 +996,13 @@ export default function ChatScreen({ route, navigation }: any) {
         </KeyboardAvoidingView>
       </Modal>
 
+      <EventDetailModal
+        visible={showEventDetail}
+        event={eventDoc}
+        onClose={() => setShowEventDetail(false)}
+        onOpenChat={() => setShowEventDetail(false)}
+      />
+
     </SafeAreaView>
   );
 }
@@ -981,6 +1077,13 @@ const styles = StyleSheet.create({
   tipText: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  senderName: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 16,
+    marginBottom: 2,
+    marginTop: 4,
   },
   messageRow: {
     marginBottom: 12,

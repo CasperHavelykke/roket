@@ -1,16 +1,20 @@
 import React, { useState, useCallback } from 'react';
 import { View, Image, ScrollView, TouchableOpacity, StyleSheet, NativeScrollEvent, NativeSyntheticEvent, ImageSourcePropType, LayoutChangeEvent } from 'react-native';
+import RoketLogo from '../../assets/roket-logo-2.svg';
+import { useTheme } from '../../theme';
 
 interface CardCarouselProps {
   photos: string[];
   width: number;
   fallbackSource: ImageSourcePropType;
   compact?: boolean;
+  isSingle?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
 }
 
-export default React.memo(function CardCarousel({ photos, width, fallbackSource, compact, onPress, onLongPress }: CardCarouselProps) {
+export default React.memo(function CardCarousel({ photos, width, compact, isSingle, onPress, onLongPress }: CardCarouselProps) {
+  const { colors } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [height, setHeight] = useState(0);
 
@@ -25,8 +29,13 @@ export default React.memo(function CardCarousel({ photos, width, fallbackSource,
 
   if (photos.length === 0) {
     return (
-      <TouchableOpacity activeOpacity={0.85} onPress={onPress} onLongPress={onLongPress} style={styles.container}>
-        <Image source={fallbackSource} style={styles.image} />
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        style={[styles.container, styles.placeholder, { backgroundColor: colors.cardBackground }]}
+      >
+        <RoketLogo width={width * (isSingle ? 0.4 : 0.6)} height={width * (isSingle ? 0.4 : 0.75)} fill={colors.cardBackgroundIcon} />
       </TouchableOpacity>
     );
   }
@@ -74,6 +83,10 @@ export default React.memo(function CardCarousel({ photos, width, fallbackSource,
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  placeholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   image: {
     width: '100%',
