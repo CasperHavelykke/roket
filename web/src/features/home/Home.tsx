@@ -12,6 +12,7 @@ import MessagesSvg from '@shared/assets/messages.svg?react';
 import { placeholderPic } from '../../utils/theme';
 import CardCarousel from './CardCarousel';
 import ProfilePreviewModal from './ProfilePreviewModal';
+import { STATUS_TAGS, StatusTagId, getStatusTag } from '@shared/statusTags';
 import './Home.css';
 
 const INACTIVE_HOURS = 24;
@@ -23,6 +24,7 @@ interface UserProfile {
   photos?: string[];
   bio?: string;
   status?: string;
+  statusTag?: StatusTagId | null;
   age?: number;
   distance?: number;
   distanceMode?: string;
@@ -121,6 +123,9 @@ export default function Home() {
   const [previewUser, setPreviewUser] = useState<UserProfile | null>(null);
   const [needsProfile, setNeedsProfile] = useState(false);
   const [showLocationHow, setShowLocationHow] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<StatusTagId | null>(null);
+
+  const filteredUsers = activeFilter ? users.filter(u => u.statusTag === activeFilter) : users;
   const navigate = useNavigate();
   const t = translations[getLang()];
 
@@ -213,6 +218,7 @@ export default function Home() {
             photos: data.photos ?? [],
             bio: data.bio || '',
             status: data.status || '',
+            statusTag: data.statusTag ?? null,
             distance,
             distanceMode: data.distanceMode ?? 'exact',
             lastSeen: lastSeenDate,
@@ -323,33 +329,62 @@ export default function Home() {
       ) : users.length === 0 ? (
         <div className="empty">{t.homeEmpty}</div>
       ) : (
-        <div className="user-grid" data-cols={gridColumns} style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
-          {users.map((user) => {
-            const allPhotos = [user.photoURL, ...(user.photos || [])].filter(Boolean) as string[];
-            return (
-              <div key={user.id} className={'user-card' + (unreadFromUsers.has(user.id) ? ' has-unread' : '')}>
-                <CardCarousel
-                  photos={allPhotos}
-                  fallbackSrc={placeholderPic()}
-                  compact={gridColumns >= 3}
-                  onClick={() => navigate(`/profile/${user.id}`)}
-                  onLongPress={() => setPreviewUser(user)}
-                />
-                {(user.status || unreadFromUsers.has(user.id)) && (
-                  <div className={'user-card-overlay' + (unreadFromUsers.has(user.id) ? ' unread' : '')}>
-                    {user.status && <span className="user-status">{user.status}</span>}
-                    {user.status && user.bio && gridColumns === 1 && <span className="user-bio">{user.bio}</span>}
-                  </div>
-                )}
-                {unreadFromUsers.has(user.id) && gridColumns <= 2 && (
-                  <div className="unread-badge" onClick={(e) => { e.stopPropagation(); const uid = auth.currentUser?.uid; if (!uid) return; const chatId = [uid, user.id].sort().join('_'); navigate(`/chat/${chatId}`, { state: { otherUserName: user.displayName, otherUserId: user.id } }); }}>
-                    <MessagesSvg width={gridColumns === 1 ? 24 : 18} height={gridColumns === 1 ? 24 : 18} stroke="#fff" style={{ display: 'block' }} />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <>
+          <div className="filter-bar">
+            <button
+              className={'filter-chip' + (activeFilter === null ? ' active' : '')}
+              onClick={() => setActiveFilter(null)}
+            >
+              {t.tagAll}
+            </button>
+            {STATUS_TAGS.map(tag => {
+              const isActive = activeFilter === tag.id;
+              const labelKey = `tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}` as keyof typeof t;
+              return (
+                <button
+                  key={tag.id}
+                  className={'filter-chip' + (isActive ? ' active' : '')}
+                  onClick={() => setActiveFilter(isActive ? null : tag.id)}
+                >
+                  <span className="filter-chip-emoji">{tag.emoji}</span>
+                  <span>{String(t[labelKey] ?? tag.id)}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="user-grid" data-cols={gridColumns} style={{ gridTemplateColumns: `repeat(${gridColumns}, 1fr)` }}>
+            {filteredUsers.map((user) => {
+              const allPhotos = [user.photoURL, ...(user.photos || [])].filter(Boolean) as string[];
+              const tag = getStatusTag(user.statusTag);
+              return (
+                <div key={user.id} className={'user-card' + (unreadFromUsers.has(user.id) ? ' has-unread' : '')}>
+                  <CardCarousel
+                    photos={allPhotos}
+                    fallbackSrc={placeholderPic()}
+                    compact={gridColumns >= 3}
+                    onClick={() => navigate(`/profile/${user.id}`)}
+                    onLongPress={() => setPreviewUser(user)}
+                  />
+                  {tag && (
+                    <div className={'user-tag-badge' + (gridColumns >= 3 ? ' compact' : '')}>{tag.emoji}</div>
+                  )}
+                  {(user.status || unreadFromUsers.has(user.id)) && (
+                    <div className={'user-card-overlay' + (unreadFromUsers.has(user.id) ? ' unread' : '')}>
+                      {user.status && <span className="user-status">{user.status}</span>}
+                      {user.status && user.bio && gridColumns === 1 && <span className="user-bio">{user.bio}</span>}
+                    </div>
+                  )}
+                  {unreadFromUsers.has(user.id) && gridColumns <= 2 && (
+                    <div className="unread-badge" onClick={(e) => { e.stopPropagation(); const uid = auth.currentUser?.uid; if (!uid) return; const chatId = [uid, user.id].sort().join('_'); navigate(`/chat/${chatId}`, { state: { otherUserName: user.displayName, otherUserId: user.id } }); }}>
+                      <MessagesSvg width={gridColumns === 1 ? 24 : 18} height={gridColumns === 1 ? 24 : 18} stroke="#fff" style={{ display: 'block' }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {showColumnPicker && (

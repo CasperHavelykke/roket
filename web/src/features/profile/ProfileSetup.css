@@ -192,6 +192,38 @@
   color: var(--primaryBlue);
 }
 
+.setup-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.setup-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.setup-tag.selected {
+  background: #fff;
+  border-color: #fff;
+  color: var(--primaryBlue);
+}
+
+.setup-tag-emoji {
+  font-size: 16px;
+}
+
 /* Birthday */
 .setup-birthday-row {
   display: flex;

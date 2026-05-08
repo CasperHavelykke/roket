@@ -13,12 +13,14 @@ import GradientView from '../../components/GradientView';
 import { useTheme } from '../../theme';
 import MessageIcon from '../../assets/message.svg';
 import MessagesIcon from '../../assets/messages.svg';
+import { getStatusTag } from '../../statusTags';
 
 interface PreviewUser {
   id: string;
   displayName: string;
   bio: string;
   status?: string;
+  statusTag?: string | null;
   photoURL: string | null;
   distance?: number;
   lastSeen?: Date;
@@ -103,6 +105,15 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
               />
             </Pressable>
             <View style={styles.headerText}>
+              {(() => {
+                const tag = getStatusTag(user.statusTag);
+                return tag ? (
+                  <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
+                    <Text style={styles.tagPillEmoji}>{tag.emoji}</Text>
+                    <Text style={styles.tagPillText}>{String((t as any)[`tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}`] ?? tag.id)}</Text>
+                  </View>
+                ) : null;
+              })()}
               {user.status ? (
                 <Text style={[styles.statusText, { color: colors.textPrimary }]}>{user.status}</Text>
               ) : null}
@@ -176,6 +187,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     lineHeight: 26,
+  },
+  tagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  tagPillEmoji: {
+    fontSize: 13,
+    marginRight: 4,
+  },
+  tagPillText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   info: {
     paddingHorizontal: 16,

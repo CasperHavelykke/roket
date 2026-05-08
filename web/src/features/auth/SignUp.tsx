@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../../firebase';
 import translations, { Language } from '@shared/translations';
 import './SignUp.css';
 
@@ -93,8 +94,29 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
 
     setLoading(true);
     try {
-      localStorage.setItem('@roket_birthday', JSON.stringify({ day, month, year }));
-      await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        displayName: '',
+        bio: '',
+        status: '',
+        statusTag: null,
+        email: cred.user.email,
+        createdAt: serverTimestamp(),
+        photoURL: null,
+        lastSeen: serverTimestamp(),
+        distanceMode: 'exact',
+        birthday: { day, month, year },
+        showAge: true,
+        gender: '',
+        showGender: false,
+        sexuality: '',
+        showSexuality: false,
+        photos: [],
+        matchTag: 'all',
+        visibleTo: ['all'],
+        datingOnly: false,
+        setupComplete: true,
+      });
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
         setError(t.signupErrorInUse);

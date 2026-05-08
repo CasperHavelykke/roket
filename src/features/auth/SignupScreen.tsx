@@ -16,7 +16,7 @@ import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import firestore from '@react-native-firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
@@ -131,8 +131,29 @@ export default function SignupScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      await AsyncStorage.setItem('@roket_birthday', JSON.stringify({ day, month, year }));
-      await auth().createUserWithEmailAndPassword(email, password);
+      const cred = await auth().createUserWithEmailAndPassword(email, password);
+      await firestore().collection('users').doc(cred.user.uid).set({
+        displayName: '',
+        bio: '',
+        status: '',
+        statusTag: null,
+        email: cred.user.email,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        photoURL: null,
+        lastSeen: firestore.FieldValue.serverTimestamp(),
+        distanceMode: 'exact',
+        birthday: { day, month, year },
+        showAge: true,
+        gender: '',
+        showGender: false,
+        sexuality: '',
+        showSexuality: false,
+        photos: [],
+        matchTag: 'all',
+        visibleTo: ['all'],
+        datingOnly: false,
+        setupComplete: true,
+      });
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         Alert.alert(t.error, t.signupErrorInUse);

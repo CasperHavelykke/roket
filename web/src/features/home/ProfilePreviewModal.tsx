@@ -4,6 +4,7 @@ import translations, { Language } from '@shared/translations';
 import { placeholderPic } from '../../utils/theme';
 import { auth } from '../../firebase';
 import MessageSvg from '@shared/assets/message.svg?react';
+import { getStatusTag } from '@shared/statusTags';
 import './ProfilePreviewModal.css';
 
 interface PreviewUser {
@@ -11,6 +12,7 @@ interface PreviewUser {
   displayName: string;
   bio?: string;
   status?: string;
+  statusTag?: string | null;
   photoURL?: string;
   photos?: string[];
   distance?: number;
@@ -143,6 +145,15 @@ export default function ProfilePreviewModal({ visible, user, onClose }: ProfileP
             style={{ cursor: 'pointer' }}
           />
           <div className="preview-header-text">
+            {(() => {
+              const tag = getStatusTag(user.statusTag);
+              return tag ? (
+                <div className="preview-tag-pill">
+                  <span className="preview-tag-emoji">{tag.emoji}</span>
+                  <span>{String((t as any)[`tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}`] ?? tag.id)}</span>
+                </div>
+              ) : null;
+            })()}
             {user.status && (
               <div className="preview-status-text">{user.status}</div>
             )}

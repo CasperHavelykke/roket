@@ -4,6 +4,7 @@ import BackButton from '../../components/BackButton';
 import LogoMenu from '../../components/LogoMenu';
 import RoketStars from '@shared/assets/roket-logo-stars-only.svg?react';
 import { signOut, sendPasswordResetEmail } from 'firebase/auth';
+import { clearFCMToken } from '../../services/NotificationService';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import translations, { Language } from '@shared/translations';
@@ -80,6 +81,7 @@ export default function Settings() {
 
   const handleLogout = async () => {
     if (!confirm(t.settingsLogoutConfirm)) return;
+    await clearFCMToken();
     await signOut(auth);
     navigate('/login');
   };

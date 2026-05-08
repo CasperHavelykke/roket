@@ -25,6 +25,7 @@ import pickImage from '../../utils/pickImage';
 import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import ProfileIcon from '../../assets/profile.svg';
+import { STATUS_TAGS, StatusTagId } from '../../statusTags';
 
 const AVATAR_GRADIENTS = [
   { colors: ['#4A90D9', '#357ABD'], label: 'blue' },
@@ -42,6 +43,7 @@ export default function ProfileSetupScreen() {
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [status, setStatus] = useState('');
   const [selectedStatusChip, setSelectedStatusChip] = useState<number | null>(null);
+  const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
 
   const [needsBirthday, setNeedsBirthday] = useState(false);
   const [birthDay, setBirthDay] = useState('');
@@ -163,6 +165,7 @@ export default function ProfileSetupScreen() {
         displayName: '',
         bio: '',
         status: status.trim(),
+        statusTag: statusTag,
         email: user.email,
         createdAt: firestore.FieldValue.serverTimestamp(),
         photoURL: uploadedPhotoURL,
@@ -218,11 +221,11 @@ export default function ProfileSetupScreen() {
                   colors={AVATAR_GRADIENTS.find(a => a.label === selectedAvatar)?.colors || ['#4A90D9', '#357ABD']}
                   style={styles.photoPreview}
                 >
-                  <ProfileIcon width={50} height={50} fill="#fff" />
+                  <ProfileIcon width={50} height={50} fill="#fff" stroke="none" />
                 </LinearGradient>
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <ProfileIcon width={50} height={50} fill="rgba(255,255,255,0.5)" />
+                  <ProfileIcon width={50} height={50} fill="rgba(255,255,255,0.5)" stroke="none" />
                 </View>
               )}
               {uploading && (
@@ -263,6 +266,32 @@ export default function ProfileSetupScreen() {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Tag Picker */}
+          <Text style={styles.label}>{t.tagPickerLabel}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tagScrollContent}
+            style={styles.tagScroll}
+          >
+            {STATUS_TAGS.map(tag => {
+              const isSelected = statusTag === tag.id;
+              const labelKey = `tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}` as keyof typeof t;
+              return (
+                <TouchableOpacity
+                  key={tag.id}
+                  style={[styles.tag, isSelected && styles.tagSelected]}
+                  onPress={() => setStatusTag(isSelected ? null : tag.id)}
+                >
+                  <Text style={styles.tagEmoji}>{tag.emoji}</Text>
+                  <Text style={[styles.tagText, isSelected && { color: colors.primaryBlue }]}>
+                    {String(t[labelKey] ?? tag.id)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
 
           {/* Birthday Section (conditional) */}
           {needsBirthday && (
@@ -485,6 +514,37 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   chipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  tagScroll: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  tagScrollContent: {
+    gap: 8,
+    paddingRight: 20,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  tagSelected: {
+    backgroundColor: '#fff',
+    borderColor: '#fff',
+  },
+  tagEmoji: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  tagText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',

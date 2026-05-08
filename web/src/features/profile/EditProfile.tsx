@@ -8,6 +8,7 @@ import translations, { Language } from '@shared/translations';
 import { placeholderPic } from '../../utils/theme';
 import getFirebaseError from '../../utils/getFirebaseError';
 import CameraIcon from '@shared/assets/camera.svg?react';
+import { STATUS_TAGS, StatusTagId } from '@shared/statusTags';
 import './EditProfile.css';
 
 export default function EditProfile() {
@@ -31,6 +32,7 @@ export default function EditProfile() {
   const [showSexuality, setShowSexuality] = useState(true);
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoRejected, setPhotoRejected] = useState(false);
+  const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const extraPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +63,7 @@ export default function EditProfile() {
       setSexuality(data.sexuality ?? '');
       setShowSexuality(data.showSexuality !== false);
       setPhotos(data.photos ?? []);
+      setStatusTag(data.statusTag ?? null);
       if (data.photoRejected) {
         setPhotoRejected(true);
         updateDoc(doc(db, 'users', currentUser.uid), { photoRejected: false }).catch(() => {});
@@ -147,6 +150,7 @@ export default function EditProfile() {
       await updateDoc(doc(db, 'users', currentUser.uid), {
         displayName: displayName.trim(),
         status: status.trim(),
+        statusTag: statusTag,
         bio: bio.trim(),
         showAge,
         showGender,
@@ -268,6 +272,25 @@ export default function EditProfile() {
             />
           </div>
           <div className="editprofile-charcount">{status.length}/80</div>
+
+          <div className="editprofile-label">{t.tagPickerLabel}</div>
+          <div className="editprofile-tag-row">
+            {STATUS_TAGS.map(tag => {
+              const isSelected = statusTag === tag.id;
+              const labelKey = `tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}` as keyof typeof t;
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  className={`editprofile-tag${isSelected ? ' selected' : ''}`}
+                  onClick={() => setStatusTag(isSelected ? null : tag.id)}
+                >
+                  <span className="editprofile-tag-emoji">{tag.emoji}</span>
+                  <span>{String(t[labelKey] ?? tag.id)}</span>
+                </button>
+              );
+            })}
+          </div>
 
           <div className="editprofile-label">{t.editProfileBioLabel}</div>
           <div className="editprofile-input-wrap">

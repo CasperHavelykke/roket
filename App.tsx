@@ -17,8 +17,6 @@ import BellIcon from './src/assets/bell.svg';
 import { ThemeContext, useThemeProvider } from './src/theme';
 import LoginScreen from './src/features/auth/LoginScreen';
 import SignupScreen from './src/features/auth/SignupScreen';
-import WelcomeScreen from './src/features/auth/WelcomeScreen';
-import ProfileSetupScreen from './src/features/profile/ProfileSetupScreen';
 import HomeScreen from './src/features/home/HomeScreen';
 import ProfileViewScreen from './src/features/profile/ProfileViewScreen';
 import ChatScreen from './src/features/chat/ChatScreen';
@@ -40,8 +38,6 @@ mobileAds().initialize();
 type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
-  Welcome: undefined;
-  ProfileSetup: undefined;
   Home: undefined;
   ProfileView: { userId: string };
   Chat: { otherUser: { id: string; displayName: string } };
@@ -63,7 +59,7 @@ const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 function App() {
   const [initializing, setInitializing] = useState(true);
-  const [authState, setAuthState] = useState<null | false | true | 'setup'>(null);
+  const [authState, setAuthState] = useState<null | false | true>(null);
   const [networkError, setNetworkError] = useState(false);
   const [showNotifDisclosure, setShowNotifDisclosure] = useState(false);
   const notifDisclosureResolve = useRef<(() => void) | null>(null);
@@ -169,8 +165,7 @@ function App() {
               };
               initNotifications().catch(console.error);
             } else {
-              // Profildokument eksisterer ikke — vis velkomst + profil-setup
-              setAuthState('setup');
+              // Profildokument eksisterer ikke endnu — vent til signup-flow opretter det
             }
             setInitializing(false);
           });
@@ -349,11 +344,6 @@ function App() {
                 <Stack.Screen name="Signup" component={SignupScreen} />
                 <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
                 <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
-              </>
-            ) : authState === 'setup' ? (
-              <>
-                <Stack.Screen name="Welcome" component={WelcomeScreen} />
-                <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
               </>
             ) : (
               <>

@@ -31,6 +31,7 @@ import CardCarousel from './CardCarousel';
 import ProfilePreviewModal from './ProfilePreviewModal';
 import RoketLogo from '../../assets/roket-logo-3.svg';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { STATUS_TAGS, StatusTagId, getStatusTag } from '../../statusTags';
 
 const BANNER_AD_ID = __DEV__
   ? TestIds.ADAPTIVE_BANNER
@@ -49,6 +50,7 @@ interface User {
   displayName: string;
   bio: string;
   status?: string;
+  statusTag?: StatusTagId | null;
   photoURL: string | null;
   location: {
     latitude: number;
@@ -98,6 +100,7 @@ export default function HomeScreen({ navigation }: any) {
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
   const [needsProfile, setNeedsProfile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(12);
+  const [activeFilter, setActiveFilter] = useState<StatusTagId | null>(null);
   const [showLocationDisclosure, setShowLocationDisclosure] = useState(false);
   const [locationDenied, setLocationDenied] = useState(false);
   const [previewUser, setPreviewUser] = useState<User | null>(null);
@@ -320,6 +323,7 @@ export default function HomeScreen({ navigation }: any) {
             displayName: data.displayName,
             bio: data.bio || '',
             status: data.status || '',
+            statusTag: data.statusTag ?? null,
             photoURL: data.photoURL,
             location: theirLoc,
             distance: distance,
@@ -414,8 +418,13 @@ export default function HomeScreen({ navigation }: any) {
 
   const fallbackSource = isDark ? require('../../assets/missing-profile-pic.png') : require('../../assets/missing-profile-pic-light.png');
 
+  const filteredUsers = React.useMemo(() => {
+    if (!activeFilter) return users;
+    return users.filter(u => u.statusTag === activeFilter);
+  }, [users, activeFilter]);
+
   const gridRows = React.useMemo((): GridRow[] => {
-    const visible = users.slice(0, visibleCount);
+    const visible = filteredUsers.slice(0, visibleCount);
     const rows: GridRow[] = [];
     const firstAd = AD_FIRST[numColumns] || 3;
     const repeatAd = AD_REPEAT[numColumns] || 6;
@@ -432,7 +441,7 @@ export default function HomeScreen({ navigation }: any) {
       rowCount++;
     }
     return rows;
-  }, [users, visibleCount, numColumns]);
+  }, [filteredUsers, visibleCount, numColumns]);
 
   const serializeUser = (item: User) => ({
     ...item,
@@ -477,6 +486,14 @@ export default function HomeScreen({ navigation }: any) {
           ) : null}
         </View>
       )}
+      {item.statusTag && (() => {
+        const tag = getStatusTag(item.statusTag);
+        return tag ? (
+          <View style={[styles.tagBadge, isCompact && styles.tagBadgeCompact]} pointerEvents="none">
+            <Text style={[styles.tagBadgeText, isCompact && { fontSize: 14 }]}>{tag.emoji}</Text>
+          </View>
+        ) : null;
+      })()}
       {showTestBadges && item.testAccount && !isCompact && (
         <View style={styles.testBadge}>
           <Text style={styles.testBadgeText}>{t.testAccount}</Text>
@@ -596,6 +613,47 @@ export default function HomeScreen({ navigation }: any) {
           onEndReachedThreshold={0.5}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryRed} />
+          }
+          ListHeaderComponent={
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterBarContent}
+              style={[styles.filterBar, { backgroundColor: colors.background, marginHorizontal: -gridPadding }]}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  { backgroundColor: colors.card },
+                  activeFilter === null && { backgroundColor: colors.primaryBlue },
+                ]}
+                onPress={() => setActiveFilter(null)}
+              >
+                <Text style={[styles.filterChipText, { color: colors.textPrimary }, activeFilter === null && { color: '#fff' }]}>
+                  {t.tagAll}
+                </Text>
+              </TouchableOpacity>
+              {STATUS_TAGS.map(tag => {
+                const isActive = activeFilter === tag.id;
+                const labelKey = `tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}` as keyof typeof t;
+                return (
+                  <TouchableOpacity
+                    key={tag.id}
+                    style={[
+                      styles.filterChip,
+                      { backgroundColor: colors.card },
+                      isActive && { backgroundColor: colors.primaryBlue },
+                    ]}
+                    onPress={() => setActiveFilter(isActive ? null : tag.id)}
+                  >
+                    <Text style={styles.filterChipEmoji}>{tag.emoji}</Text>
+                    <Text style={[styles.filterChipText, { color: colors.textPrimary }, isActive && { color: '#fff' }]}>
+                      {String(t[labelKey] ?? tag.id)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           }
         />
       )}
@@ -964,6 +1022,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
+  },
+  tagBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tagBadgeCompact: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    top: 6,
+    right: 6,
+  },
+  tagBadgeText: {
+    fontSize: 16,
+  },
+  filterBar: {
+  },
+  filterBarContent: {
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    minHeight: 36,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  filterChipEmoji: {
+    fontSize: 14,
+    marginRight: 5,
+    lineHeight: 18,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+    includeFontPadding: false,
   },
   testBadgeText: {
     color: '#fff',

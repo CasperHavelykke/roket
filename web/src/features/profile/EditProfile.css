@@ -7,6 +7,40 @@
   align-items: center;
 }
 
+.editprofile-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.editprofile-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 18px;
+  border: 1px solid var(--inputBorder);
+  background: var(--card);
+  color: var(--textPrimary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.editprofile-tag.selected {
+  background: var(--primaryBlue);
+  border-color: var(--primaryBlue);
+  color: #fff;
+}
+
+.editprofile-tag-emoji {
+  font-size: 14px;
+}
+
 .editprofile-rejected-banner {
   background: var(--primaryRed);
   color: #fff;

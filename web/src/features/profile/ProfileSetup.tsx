@@ -3,6 +3,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../../firebase';
 import translations, { Language } from '@shared/translations';
+import { STATUS_TAGS, StatusTagId } from '@shared/statusTags';
 import './ProfileSetup.css';
 
 function getLang(): Language {
@@ -41,6 +42,7 @@ export default function ProfileSetup() {
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [status, setStatus] = useState('');
   const [selectedStatusChip, setSelectedStatusChip] = useState<number | null>(null);
+  const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [needsBirthday, setNeedsBirthday] = useState(false);
@@ -149,6 +151,7 @@ export default function ProfileSetup() {
         displayName: '',
         bio: '',
         status: status.trim(),
+        statusTag: statusTag,
         email: user.email,
         createdAt: serverTimestamp(),
         photoURL: uploadedPhotoURL,
@@ -241,6 +244,26 @@ export default function ProfileSetup() {
                 {opt}
               </button>
             ))}
+          </div>
+
+          {/* Tag Picker */}
+          <h3 className="setup-label">{t.tagPickerLabel}</h3>
+          <div className="setup-tag-row">
+            {STATUS_TAGS.map(tag => {
+              const isSelected = statusTag === tag.id;
+              const labelKey = `tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}` as keyof typeof t;
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  className={`setup-tag${isSelected ? ' selected' : ''}`}
+                  onClick={() => setStatusTag(isSelected ? null : tag.id)}
+                >
+                  <span className="setup-tag-emoji">{tag.emoji}</span>
+                  <span>{String(t[labelKey] ?? tag.id)}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Birthday Section (conditional) */}

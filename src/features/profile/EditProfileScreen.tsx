@@ -24,6 +24,7 @@ import getFirebaseError from '../../utils/getFirebaseError';
 import { useTheme } from '../../theme';
 import CameraIcon from '../../assets/camera.svg';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+import { STATUS_TAGS, StatusTagId } from '../../statusTags';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -44,6 +45,7 @@ export default function EditProfileScreen({ navigation }: any) {
   const [sexuality, setSexuality] = useState('');
   const [showSexuality, setShowSexuality] = useState(true);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
   const currentUser = auth().currentUser;
   const MAX_EXTRA_PHOTOS = 5;
 
@@ -121,6 +123,7 @@ export default function EditProfileScreen({ navigation }: any) {
           setSexuality(data.sexuality ?? '');
           setShowSexuality(data.showSexuality !== false);
           setPhotos(data.photos ?? []);
+          setStatusTag(data.statusTag ?? null);
 
           dataLoaded.current = true;
           nameHighlight.setValue((data.status ?? '').trim() ? 0 : 1);
@@ -252,6 +255,7 @@ export default function EditProfileScreen({ navigation }: any) {
       await firestore().collection('users').doc(currentUser.uid).update({
         displayName: trimmedName,
         status: status.trim(),
+        statusTag: statusTag,
         bio: bio.trim(),
         showAge,
         showGender,
@@ -392,6 +396,35 @@ export default function EditProfileScreen({ navigation }: any) {
               />
             </View>
             <Text style={styles.charCount}>{status.length}/80</Text>
+
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t.tagPickerLabel}</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tagScrollContent}
+              style={styles.tagScroll}
+            >
+              {STATUS_TAGS.map(tag => {
+                const isSelected = statusTag === tag.id;
+                const labelKey = `tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}` as keyof typeof t;
+                return (
+                  <TouchableOpacity
+                    key={tag.id}
+                    style={[
+                      styles.tag,
+                      { backgroundColor: colors.white, borderColor: colors.inputBorder },
+                      isSelected && { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue },
+                    ]}
+                    onPress={() => setStatusTag(isSelected ? null : tag.id)}
+                  >
+                    <Text style={styles.tagEmoji}>{tag.emoji}</Text>
+                    <Text style={[styles.tagText, { color: colors.textPrimary }, isSelected && { color: '#fff' }]}>
+                      {String(t[labelKey] ?? tag.id)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileBioLabel}</Text>
             <View style={styles.inputWrap}>
@@ -610,6 +643,30 @@ const styles = StyleSheet.create({
     color: '#aaa',
     textAlign: 'right',
     marginBottom: 24,
+  },
+  tagScroll: {
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  tagScrollContent: {
+    gap: 8,
+    paddingRight: 20,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  tagEmoji: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  tagText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   toggleRow: {
     flexDirection: 'row',

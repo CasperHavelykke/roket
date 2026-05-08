@@ -13,6 +13,25 @@
   background: rgba(0, 0, 0, 0.5);
 }
 
+.preview-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--primaryBlue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  align-self: flex-start;
+  width: fit-content;
+}
+
+.preview-tag-emoji {
+  font-size: 13px;
+}
+
 .preview-card {
   position: relative;
   width: min(85vw, 380px);
