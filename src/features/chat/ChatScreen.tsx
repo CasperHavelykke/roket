@@ -949,7 +949,7 @@ export default function ChatScreen({ route, navigation }: any) {
             <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipBlurred}</Text>
             <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipReportMessage}</Text>
             <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 12 }]}>- {t.chatTipReportProfile}</Text>
-            <TouchableOpacity style={[styles.reportButton, { backgroundColor: colors.primaryBlue }]} onPress={() => setShowChatInfo(false)}>
+            <TouchableOpacity style={[styles.reportButton, { backgroundColor: colors.primaryBlue, flex: 0 }]} onPress={() => setShowChatInfo(false)}>
               <Text style={[styles.reportButtonText, { color: '#fff' }]}>{t.ok}</Text>
             </TouchableOpacity>
           </View>

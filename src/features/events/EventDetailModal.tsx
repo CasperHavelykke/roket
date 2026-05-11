@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Animated,
   PanResponder,
+  Linking,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -197,13 +198,23 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
                   {formatDateTime(ev.time)}
                 </Text>
               </View>
-              {ev.meetingPlace ? (
-                <View style={styles.infoRow}>
+              {(ev.meetingPlace || ev.location) ? (
+                <TouchableOpacity
+                  style={styles.infoRow}
+                  onPress={() => {
+                    const q = ev.location
+                      ? `${ev.location.latitude},${ev.location.longitude}`
+                      : encodeURIComponent(ev.meetingPlace);
+                    const url = `https://www.google.com/maps/search/?api=1&query=${q}`;
+                    Linking.openURL(url).catch(() => {});
+                  }}
+                  disabled={!ev.location && !ev.meetingPlace}
+                >
                   <MapPin size={18} color={colors.textPrimary} />
-                  <Text style={[styles.infoLine, { color: colors.textPrimary }]}>
-                    {ev.meetingPlace}
+                  <Text style={[styles.infoLine, { color: colors.primaryBlueText }]}>
+                    {ev.meetingPlace || ((t as any).eventsOpenInMaps ?? 'Vis på kort')}
                   </Text>
-                </View>
+                </TouchableOpacity>
               ) : null}
               <View style={styles.infoRow}>
                 <Users size={18} color={colors.textSecondary} />

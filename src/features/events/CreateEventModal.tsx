@@ -22,6 +22,8 @@ import { STATUS_TAGS, StatusTagId } from '../../statusTags';
 import { eventExpiryFromTime } from '../../events';
 import ScheduleEventModal from './ScheduleEventModal';
 import TagIcon from '../../components/TagIcon';
+import MapPickerModal from './MapPickerModal';
+import { Calendar, MapPin, X } from 'lucide-react-native';
 
 interface CreateEventModalProps {
   visible: boolean;
@@ -37,6 +39,8 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [meetingPlace, setMeetingPlace] = useState('');
+  const [meetingLocation, setMeetingLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showMapPicker, setShowMapPicker] = useState(false);
   const [tag, setTag] = useState<StatusTagId | null>(null);
   const [maxParticipants, setMaxParticipants] = useState('');
   const [minutesFromNow, setMinutesFromNow] = useState(60);
@@ -94,6 +98,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
     setTitle('');
     setDescription('');
     setMeetingPlace('');
+    setMeetingLocation(null);
     setTag(null);
     setMaxParticipants('');
     setMinutesFromNow(60);
@@ -125,15 +130,17 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
       const eventRef = firestore().collection('events').doc();
       const chatId = `event_${eventRef.id}`;
 
+      const eventLoc = meetingLocation ?? userLocation;
       await eventRef.set({
         creatorId: user.uid,
         title: title.trim(),
         description: description.trim(),
         meetingPlace: meetingPlace.trim(),
         location: {
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
+          latitude: eventLoc.latitude,
+          longitude: eventLoc.longitude,
         },
+        meetingLocationManual: !!meetingLocation,
         time: firestore.Timestamp.fromDate(time),
         maxParticipants: isNaN(max) || max < 2 ? null : max,
         participantIds: [user.uid],
@@ -225,8 +232,9 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
                   ]}
                   onPress={() => setShowScheduler(true)}
                 >
-                  <Text style={[styles.chipText, { color: colors.textPrimary }, !!scheduledTime && { color: '#fff' }]}>
-                    📅 {t.eventsSchedule}
+                  <Calendar size={14} color={!!scheduledTime ? '#fff' : colors.textPrimary} />
+                  <Text style={[styles.chipText, { color: colors.textPrimary, marginLeft: 5 }, !!scheduledTime && { color: '#fff' }]}>
+                    {t.eventsSchedule}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -265,6 +273,28 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
                 placeholderTextColor={colors.textMuted}
                 maxLength={100}
               />
+              <TouchableOpacity
+                style={[
+                  styles.locationButton,
+                  { borderColor: meetingLocation ? colors.primaryBlue : colors.inputBorder },
+                ]}
+                onPress={() => setShowMapPicker(true)}
+              >
+                <MapPin size={16} color={meetingLocation ? colors.primaryBlue : colors.textSecondary} />
+                <Text style={[styles.locationButtonText, { color: meetingLocation ? colors.primaryBlueText : colors.textSecondary }]}>
+                  {meetingLocation
+                    ? `${meetingLocation.latitude.toFixed(4)}, ${meetingLocation.longitude.toFixed(4)}`
+                    : ((t as any).eventsPickLocationOptional ?? 'Tilføj pin på kort (valgfri)')}
+                </Text>
+                {meetingLocation && (
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation(); setMeetingLocation(null); }}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <X size={18} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
 
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsTagLabel}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRowScroll}>
@@ -333,6 +363,12 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
         initial={scheduledTime}
         onClose={() => setShowScheduler(false)}
         onConfirm={(d) => setScheduledTime(d)}
+      />
+      <MapPickerModal
+        visible={showMapPicker}
+        initial={meetingLocation ?? userLocation}
+        onClose={() => setShowMapPicker(false)}
+        onConfirm={(loc) => setMeetingLocation(loc)}
       />
     </Modal>
   );
@@ -403,6 +439,22 @@ const styles = StyleSheet.create({
   chipRowScroll: {
     paddingRight: 20,
     gap: 0,
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  locationButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
   },
   chip: {
     flexDirection: 'row',

@@ -6,6 +6,10 @@ buildscript {
         targetSdkVersion = 36
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.1.20"
+        // Pin play-services-location til samme version for begge libraries
+        // (react-native-geolocation-service + react-native-maps)
+        googlePlayServicesVersion = "21.0.1"
+        googlePlayServicesLocationVersion = "21.0.1"
     }
     repositories {
         google()

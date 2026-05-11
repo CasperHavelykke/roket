@@ -608,7 +608,13 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       );
     }
-    const renderEventCard = (ev: EventDoc) => (
+    // Beregn absolut X-position for gradient der spænder fra skærmkant til skærmkant
+    const cellOuterWidth = cardWidth + 2 * cardMargin;
+    const rowWidth = numColumns * cellOuterWidth;
+    const rowLeft = (screenWidth - rowWidth) / 2;
+    const cardLeftAt = (colIdx: number) => rowLeft + colIdx * cellOuterWidth + cardMargin;
+
+    const renderEventCard = (ev: EventDoc, colIdx: number) => (
       <View key={`e-${ev.id}`} style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin }, isSingle && { aspectRatio: 1.2 }]}>
         <EventCard
           event={ev}
@@ -616,6 +622,8 @@ export default function HomeScreen({ navigation }: any) {
           compact={isCompact}
           tiny={numColumns === 4}
           isSingle={isSingle}
+          cardLeft={cardLeftAt(colIdx)}
+          screenWidth={screenWidth}
           onPress={() => setPreviewEvent(ev)}
         />
       </View>
@@ -624,11 +632,11 @@ export default function HomeScreen({ navigation }: any) {
     if (item.type === 'mixed') {
       return (
         <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-          {item.cells.map(cell => {
+          {item.cells.map((cell, i) => {
             if (cell.kind === 'user') {
               return <React.Fragment key={`u-${cell.user.id}`}>{renderUserCard(cell.user)}</React.Fragment>;
             }
-            return renderEventCard(cell.event);
+            return renderEventCard(cell.event, i);
           })}
         </View>
       );
@@ -636,7 +644,7 @@ export default function HomeScreen({ navigation }: any) {
     if (item.type === 'events') {
       return (
         <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-          {item.events.map(ev => renderEventCard(ev))}
+          {item.events.map((ev, i) => renderEventCard(ev, i))}
         </View>
       );
     }

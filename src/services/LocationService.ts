@@ -93,8 +93,8 @@ class LocationService {
           },
           {
             enableHighAccuracy: highAccuracy,
-            timeout: 15000,
-            maximumAge: 10000,
+            timeout: 30000,
+            maximumAge: 60000,
           },
         );
       });

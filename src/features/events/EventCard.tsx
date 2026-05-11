@@ -5,6 +5,7 @@ import { useTheme } from '../../theme';
 import { getStatusTag } from '../../statusTags';
 import TagIcon from '../../components/TagIcon';
 import { EventDoc } from '../../events';
+import GradientView from '../../components/GradientView';
 
 interface EventCardProps {
   event: EventDoc;
@@ -12,6 +13,8 @@ interface EventCardProps {
   compact?: boolean;
   tiny?: boolean;
   isSingle?: boolean;
+  cardLeft?: number;
+  screenWidth?: number;
   onPress: () => void;
 }
 
@@ -45,32 +48,47 @@ const LOCALE_MAP: Record<string, string> = {
   da: 'da-DK', en: 'en-GB', es: 'es-ES', de: 'de-DE', fr: 'fr-FR', pt: 'pt-PT',
 };
 
-export default function EventCard({ event, compact, tiny, isSingle, onPress }: EventCardProps) {
+export default function EventCard({ event, width, compact, tiny, isSingle, cardLeft, screenWidth, onPress }: EventCardProps) {
   const { colors, t, timeFormat, language } = useTheme();
   const tag = getStatusTag(event.tag);
   const participantCount = event.participantIds.length;
   const locale = LOCALE_MAP[language] || 'en-GB';
   const timeText = formatTime(event.time, t, locale, timeFormat === '12h');
 
+  // Gradient spænder fra skærmkant til skærmkant ligesom FAB
+  const useScreenSpanning = cardLeft !== undefined && screenWidth !== undefined && width > 0;
+  const gradientStart = useScreenSpanning
+    ? { x: -cardLeft! / width, y: 0 }
+    : { x: 0, y: 0 };
+  const gradientEnd = useScreenSpanning
+    ? { x: (screenWidth! - cardLeft!) / width, y: 0 }
+    : { x: 1, y: 1 };
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.fill,
-        { backgroundColor: colors.primaryBlue, opacity: pressed ? 0.85 : 1 },
+        { opacity: pressed ? 0.85 : 1 },
       ]}
     >
+      <GradientView
+        colors={[colors.primaryBlue, colors.primaryRed]}
+        start={gradientStart}
+        end={gradientEnd}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Tag-watermark i baggrunden */}
+      {tag && (
+        <View style={styles.watermark} pointerEvents="none">
+          <TagIcon tag={tag.id} size={width * 0.7} color="rgba(255,255,255,0.18)" strokeWidth={1.5} />
+        </View>
+      )}
+
       {/* Calendar/Event indicator badge top-left */}
       <View style={[styles.cornerBadge, styles.cornerLeft, compact && styles.cornerCompact]} pointerEvents="none">
         <CalendarIcon size={compact ? 12 : 16} color="#fff" />
       </View>
-
-      {/* Tag emoji top-right */}
-      {tag && (
-        <View style={[styles.cornerBadge, styles.cornerRight, styles.cornerDark, compact && styles.cornerCompact]} pointerEvents="none">
-          <TagIcon tag={tag.id} size={compact ? 12 : 16} color="#fff" />
-        </View>
-      )}
 
       {/* Center content */}
       <View style={styles.center}>
@@ -84,6 +102,11 @@ export default function EventCard({ event, compact, tiny, isSingle, onPress }: E
         >
           {event.title}
         </Text>
+        {isSingle && event.description ? (
+          <Text style={styles.description} numberOfLines={3}>
+            {event.description}
+          </Text>
+        ) : null}
       </View>
 
       {/* Bottom info */}
@@ -106,6 +129,11 @@ export default function EventCard({ event, compact, tiny, isSingle, onPress }: E
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+  },
+  watermark: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cornerBadge: {
     position: 'absolute',
@@ -137,6 +165,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 20,
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  description: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 19,
+    textAlign: 'center',
+    marginTop: 8,
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,

@@ -19,6 +19,8 @@ import { useTheme } from '../../theme';
 import { Camera as CameraIcon } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoHeader from '../../assets/roket-logo-simpel.svg';
+import TagIcon from '../../components/TagIcon';
+import { StatusTagId } from '../../statusTags';
 
 interface ChatPreview {
   chatId: string;
@@ -32,6 +34,7 @@ interface ChatPreview {
   pinned: boolean;
   isEvent?: boolean;
   eventId?: string;
+  eventTag?: StatusTagId | null;
 }
 
 const SWIPE_THRESHOLD = 70;
@@ -163,7 +166,7 @@ export default function ChatsListScreen({ navigation }: any) {
           const data = doc.data();
           if (!data.lastMessage) continue;
 
-          // Event/gruppechat: brug event-titel og rocket-logo
+          // Event/gruppechat: brug event-titel og status-ikon
           if (data.eventId) {
             // Spring over hvis vi ikke længere er deltager
             if (!data.participants.includes(currentUser.uid)) continue;
@@ -180,6 +183,7 @@ export default function ChatsListScreen({ navigation }: any) {
               pinned: pinnedSet.has(doc.id),
               isEvent: true,
               eventId: data.eventId,
+              eventTag: data.eventTag ?? null,
             });
             continue;
           }
@@ -313,9 +317,13 @@ export default function ChatsListScreen({ navigation }: any) {
         >
           {item.otherUserPhoto ? (
             <Image source={{ uri: item.otherUserPhoto }} style={styles.avatar} />
+          ) : item.isEvent && item.eventTag ? (
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.cardBackground }]}>
+              <TagIcon tag={item.eventTag} size={28} color={colors.cardBackgroundIcon} />
+            </View>
           ) : (
             <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.cardBackground }]}>
-              <RoketLogo width={36} height={36} fill={colors.cardBackgroundIcon} />
+              <RoketLogo width={32} height={32} fill={colors.cardBackgroundIcon} />
             </View>
           )}
           <View style={styles.chatInfo}>

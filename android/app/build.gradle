@@ -114,7 +114,7 @@ dependencies {
 
     // Firebase BoM
     implementation platform('com.google.firebase:firebase-bom:34.9.0')
-    
+
     // Firebase services (tilføj dem du skal bruge):
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-firestore'
@@ -125,5 +125,12 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+
+// Force konsistent play-services-location version på tværs af react-native-maps og react-native-geolocation-service
+configurations.all {
+    resolutionStrategy {
+        force 'com.google.android.gms:play-services-location:21.0.1'
     }
 }
