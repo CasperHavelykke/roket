@@ -16,7 +16,7 @@ import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
-import CameraIcon from '../../assets/camera.svg';
+import { Camera as CameraIcon } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoHeader from '../../assets/roket-logo-simpel.svg';
 
@@ -332,7 +332,7 @@ export default function ChatsListScreen({ navigation }: any) {
             <View style={styles.chatBottom}>
               {item.lastMessage.includes('📷') ? (
                 <View style={styles.lastMessagePhoto}>
-                  <CameraIcon width={14} height={14} fill={unread ? colors.textPrimary : colors.textMuted} />
+                  <CameraIcon size={14} color={unread ? colors.textPrimary : colors.textMuted} />
                   <Text style={[styles.lastMessage, unread && { color: colors.textPrimary, fontWeight: '600' }]}>{item.lastMessage.replace('📷 ', '')}</Text>
                 </View>
               ) : (

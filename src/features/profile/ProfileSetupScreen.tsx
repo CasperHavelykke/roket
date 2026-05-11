@@ -24,8 +24,9 @@ import getFirebaseError from '../../utils/getFirebaseError';
 import pickImage from '../../utils/pickImage';
 import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
 import RoketLogo from '../../assets/roket-logo-2.svg';
-import ProfileIcon from '../../assets/profile.svg';
+import { User as ProfileIcon } from 'lucide-react-native';
 import { STATUS_TAGS, StatusTagId } from '../../statusTags';
+import TagIcon from '../../components/TagIcon';
 
 const AVATAR_GRADIENTS = [
   { colors: ['#4A90D9', '#357ABD'], label: 'blue' },
@@ -221,11 +222,11 @@ export default function ProfileSetupScreen() {
                   colors={AVATAR_GRADIENTS.find(a => a.label === selectedAvatar)?.colors || ['#4A90D9', '#357ABD']}
                   style={styles.photoPreview}
                 >
-                  <ProfileIcon width={50} height={50} fill="#fff" stroke="none" />
+                  <ProfileIcon size={50} color="#fff" />
                 </LinearGradient>
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <ProfileIcon width={50} height={50} fill="rgba(255,255,255,0.5)" stroke="none" />
+                  <ProfileIcon size={50} color="rgba(255,255,255,0.5)" />
                 </View>
               )}
               {uploading && (
@@ -284,8 +285,8 @@ export default function ProfileSetupScreen() {
                   style={[styles.tag, isSelected && styles.tagSelected]}
                   onPress={() => setStatusTag(isSelected ? null : tag.id)}
                 >
-                  <Text style={styles.tagEmoji}>{tag.emoji}</Text>
-                  <Text style={[styles.tagText, isSelected && { color: colors.primaryBlue }]}>
+                  <TagIcon tag={tag.id} size={14} color={isSelected ? colors.primaryBlue : '#fff'} />
+                  <Text style={[styles.tagText, { marginLeft: 5 }, isSelected && { color: colors.primaryBlue }]}>
                     {String(t[labelKey] ?? tag.id)}
                   </Text>
                 </TouchableOpacity>

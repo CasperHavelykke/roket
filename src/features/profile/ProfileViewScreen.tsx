@@ -23,8 +23,7 @@ import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
 import PhotoGalleryModal from './PhotoGalleryModal';
-import MessageIcon from '../../assets/message.svg';
-import MessagesIcon from '../../assets/messages.svg';
+import { MessageSquare as MessageIcon, MessagesSquare as MessagesIcon } from 'lucide-react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 
@@ -294,8 +293,8 @@ export default function ProfileViewScreen({ route, navigation }: any) {
               <MaskedView
                 style={{ width: 30, height: 30 }}
                 maskElement={hasConversation
-                  ? <MessagesIcon width={30} height={30} stroke="#000" fill="none" />
-                  : <MessageIcon width={30} height={30} stroke="#000" fill="none" />
+                  ? <MessagesIcon size={30} color="#000" />
+                  : <MessageIcon size={30} color="#000" />
                 }
               >
                 <GradientView
@@ -314,8 +313,8 @@ export default function ProfileViewScreen({ route, navigation }: any) {
               style={styles.fabButton}
             >
               {hasConversation
-                ? <MessagesIcon width={30} height={30} stroke="#fff" />
-                : <MessageIcon width={30} height={30} stroke="#fff" />
+                ? <MessagesIcon size={30} color="#fff" />
+                : <MessageIcon size={30} color="#fff" />
               }
             </GradientView>
           )}

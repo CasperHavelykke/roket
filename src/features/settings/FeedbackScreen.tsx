@@ -21,7 +21,7 @@ import storage from '@react-native-firebase/storage';
 import pickImage from '../../utils/pickImage';
 import getFirebaseError from '../../utils/getFirebaseError';
 import { useTheme } from '../../theme';
-import CameraIcon from '../../assets/camera.svg';
+import { Camera as CameraIcon } from 'lucide-react-native';
 
 type Category = 'bug' | 'feature' | 'feedback';
 
@@ -180,7 +180,7 @@ export default function FeedbackScreen({ route, navigation }: any) {
               </View>
             ) : (
               <View style={styles.imagePickerInner}>
-                <CameraIcon width={18} height={18} fill={colors.primaryBlueText} />
+                <CameraIcon size={18} color={colors.primaryBlueText} />
                 <Text style={[styles.imagePickerText, { color: colors.textSecondary }]}>{t.feedbackImageAdd}</Text>
               </View>
             )}

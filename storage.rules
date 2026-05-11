@@ -2,18 +2,13 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Profilbilleder: læsning + listing (til admin-panelet med listAll)
-    match /profilePhotos/{allPaths=**} {
-      allow read: if request.auth != null;
-    }
-
-    // Profilbilleder: skriveregler for profilePhotos/{uid}.jpg og profilePhotos/{uid}_extra_{0-4}.jpg
+    // Profilbilleder: profilePhotos/{uid}.jpg og profilePhotos/{uid}_extra_{0-4}.jpg
     match /profilePhotos/{fileName} {
+      allow read: if request.auth != null;
       // Alle autentificerede kan uploade (bruger uploader egne, admin uploader for testkonti)
       allow create, update: if request.auth != null &&
                       request.resource.contentType.matches('image/.*') &&
                       request.resource.size < 5 * 1024 * 1024; // Maks 5 MB
-
       // Alle autentificerede kan slette (egen bruger + admin via admin-panelet)
       allow delete: if request.auth != null;
     }

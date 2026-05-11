@@ -20,6 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { STATUS_TAGS, StatusTagId } from '../../statusTags';
 import { eventExpiryFromTime } from '../../events';
+import ScheduleEventModal from './ScheduleEventModal';
+import TagIcon from '../../components/TagIcon';
 
 interface CreateEventModalProps {
   visible: boolean;
@@ -40,6 +42,8 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
   const [minutesFromNow, setMinutesFromNow] = useState(60);
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(visible);
+  const [scheduledTime, setScheduledTime] = useState<Date | null>(null);
+  const [showScheduler, setShowScheduler] = useState(false);
   const translateY = useRef(new Animated.Value(600)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -60,10 +64,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 5 && Math.abs(g.dy) > Math.abs(g.dx),
       onPanResponderMove: (_, g) => {
         if (g.dy > 0) translateY.setValue(g.dy);
       },
@@ -76,9 +77,18 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
           Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 8 }).start();
         }
       },
-      onPanResponderTerminationRequest: () => false,
     }),
   ).current;
+
+  // Rund tid op til nærmeste halve time (00 eller 30 min)
+  const computeEventTime = (minsFromNow: number): Date => {
+    if (scheduledTime) return scheduledTime;
+    const t = new Date(Date.now() + minsFromNow * 60 * 1000);
+    const mins = t.getMinutes();
+    const roundedMins = Math.round(mins / 30) * 30;
+    t.setMinutes(roundedMins, 0, 0);
+    return t;
+  };
 
   const reset = () => {
     setTitle('');
@@ -87,6 +97,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
     setTag(null);
     setMaxParticipants('');
     setMinutesFromNow(60);
+    setScheduledTime(null);
   };
 
   const handleClose = () => {
@@ -105,7 +116,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
     const user = auth().currentUser;
     if (!user) return;
 
-    const time = new Date(Date.now() + minutesFromNow * 60 * 1000);
+    const time = computeEventTime(minutesFromNow);
     const expiresAt = eventExpiryFromTime(time);
     const max = parseInt(maxParticipants, 10);
 
@@ -153,8 +164,8 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
   };
 
   const presetLabel = (mins: number) => {
-    if (mins < 60) return `${mins}m`;
-    return `${mins / 60}t`;
+    if (mins < 60) return `${mins}${t.eventsUnitMin}`;
+    return `${mins / 60}${t.eventsUnitHour}`;
   };
 
   return (
@@ -189,7 +200,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsTimeLabel}</Text>
               <View style={styles.chipRow}>
                 {TIME_PRESETS.map(mins => {
-                  const isActive = minutesFromNow === mins;
+                  const isActive = !scheduledTime && minutesFromNow === mins;
                   return (
                     <TouchableOpacity
                       key={mins}
@@ -198,7 +209,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
                         { backgroundColor: colors.card, borderColor: colors.inputBorder },
                         isActive && { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue },
                       ]}
-                      onPress={() => setMinutesFromNow(mins)}
+                      onPress={() => { setScheduledTime(null); setMinutesFromNow(mins); }}
                     >
                       <Text style={[styles.chipText, { color: colors.textPrimary }, isActive && { color: '#fff' }]}>
                         {presetLabel(mins)}
@@ -206,21 +217,42 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
                     </TouchableOpacity>
                   );
                 })}
+                <TouchableOpacity
+                  style={[
+                    styles.chip,
+                    { backgroundColor: colors.card, borderColor: colors.inputBorder },
+                    !!scheduledTime && { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue },
+                  ]}
+                  onPress={() => setShowScheduler(true)}
+                >
+                  <Text style={[styles.chipText, { color: colors.textPrimary }, !!scheduledTime && { color: '#fff' }]}>
+                    📅 {t.eventsSchedule}
+                  </Text>
+                </TouchableOpacity>
               </View>
               {(() => {
-                const expiry = eventExpiryFromTime(new Date(Date.now() + minutesFromNow * 60 * 1000));
+                const eventTime = computeEventTime(minutesFromNow);
+                const expiry = eventExpiryFromTime(eventTime);
                 const today = new Date();
-                const isToday = today.toDateString() === expiry.toDateString();
                 const tomorrow = new Date(today);
                 tomorrow.setDate(tomorrow.getDate() + 1);
-                const isTomorrow = tomorrow.toDateString() === expiry.toDateString();
-                const hh = expiry.getHours().toString().padStart(2, '0');
-                const mm = expiry.getMinutes().toString().padStart(2, '0');
-                const day = isToday ? t.eventsTimeToday : isTomorrow ? t.eventsTimeTomorrow : expiry.toLocaleDateString();
+                const formatLabel = (d: Date) => {
+                  const isToday = today.toDateString() === d.toDateString();
+                  const isTomorrow = tomorrow.toDateString() === d.toDateString();
+                  const hh = d.getHours().toString().padStart(2, '0');
+                  const mm = d.getMinutes().toString().padStart(2, '0');
+                  const day = isToday ? t.eventsTimeToday : isTomorrow ? t.eventsTimeTomorrow : d.toLocaleDateString();
+                  return `${day} ${hh}:${mm}`;
+                };
                 return (
-                  <Text style={[styles.hint, { color: colors.textMuted }]}>
-                    {t.eventsVisibleUntil(`${day} ${hh}:${mm}`)}
-                  </Text>
+                  <>
+                    <Text style={[styles.hint, { color: colors.textMuted }]}>
+                      {t.eventsStartsAt(formatLabel(eventTime))}
+                    </Text>
+                    <Text style={[styles.hint, { color: colors.textMuted, marginTop: 2 }]}>
+                      {t.eventsVisibleUntil(formatLabel(expiry))}
+                    </Text>
+                  </>
                 );
               })()}
 
@@ -249,8 +281,8 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
                       ]}
                       onPress={() => setTag(isActive ? null : s.id)}
                     >
-                      <Text style={[styles.chipEmoji]}>{s.emoji}</Text>
-                      <Text style={[styles.chipText, { color: colors.textPrimary }, isActive && { color: '#fff' }]}>
+                      <TagIcon tag={s.id} size={14} color={isActive ? '#fff' : colors.textPrimary} />
+                      <Text style={[styles.chipText, { color: colors.textPrimary, marginLeft: 5 }, isActive && { color: '#fff' }]}>
                         {String(t[labelKey] ?? s.id)}
                       </Text>
                     </TouchableOpacity>
@@ -296,6 +328,12 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
+      <ScheduleEventModal
+        visible={showScheduler}
+        initial={scheduledTime}
+        onClose={() => setShowScheduler(false)}
+        onConfirm={(d) => setScheduledTime(d)}
+      />
     </Modal>
   );
 }

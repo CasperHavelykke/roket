@@ -16,6 +16,8 @@ import firestore from '@react-native-firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { getStatusTag } from '../../statusTags';
+import TagIcon from '../../components/TagIcon';
+import { Clock, MapPin, Users, MessagesSquare } from 'lucide-react-native';
 import { EventDoc, isEventFull } from '../../events';
 
 interface EventDetailModalProps {
@@ -26,7 +28,7 @@ interface EventDetailModalProps {
 }
 
 export default function EventDetailModal({ visible, event, onClose, onOpenChat }: EventDetailModalProps) {
-  const { colors, t } = useTheme();
+  const { colors, t, timeFormat, language } = useTheme();
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
   const [mounted, setMounted] = useState(visible);
@@ -60,10 +62,7 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 5 && Math.abs(g.dy) > Math.abs(g.dx),
       onPanResponderMove: (_, g) => {
         if (g.dy > 0) translateY.setValue(g.dy);
       },
@@ -74,7 +73,6 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
           Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 8 }).start();
         }
       },
-      onPanResponderTerminationRequest: () => false,
     }),
   ).current;
 
@@ -152,16 +150,28 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
     ]);
   };
 
+  const localeMap: Record<string, string> = {
+    da: 'da-DK', en: 'en-GB', es: 'es-ES', de: 'de-DE', fr: 'fr-FR', pt: 'pt-PT',
+  };
+  const locale = localeMap[language] || 'en-GB';
+
   const formatDateTime = (d: Date) => {
-    const hh = d.getHours().toString().padStart(2, '0');
-    const mm = d.getMinutes().toString().padStart(2, '0');
     const today = new Date();
     const isToday = today.toDateString() === d.toDateString();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const isTomorrow = tomorrow.toDateString() === d.toDateString();
-    const dayLabel = isToday ? t.eventsTimeToday : isTomorrow ? t.eventsTimeTomorrow : d.toLocaleDateString();
-    return `${dayLabel} ${hh}:${mm}`;
+    const timeStr = d.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: timeFormat === '12h',
+    });
+    const dayLabel = isToday
+      ? t.eventsTimeToday
+      : isTomorrow
+        ? t.eventsTimeTomorrow
+        : d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return `${dayLabel} ${timeStr}`;
   };
 
   return (
@@ -176,30 +186,44 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
           </View>
           <ScrollView style={styles.content}>
             <View style={styles.headerRow}>
-              {tag && <Text style={styles.emoji}>{tag.emoji}</Text>}
+              {tag && <TagIcon tag={tag.id} size={28} color={colors.textPrimary} />}
               <Text style={[styles.title, { color: colors.textPrimary }]}>{ev.title}</Text>
             </View>
 
             <View style={[styles.infoBox, { backgroundColor: colors.card }]}>
-              <Text style={[styles.infoLine, { color: colors.textPrimary }]}>
-                🕐 {formatDateTime(ev.time)}
-              </Text>
-              {ev.meetingPlace ? (
+              <View style={styles.infoRow}>
+                <Clock size={18} color={colors.textPrimary} />
                 <Text style={[styles.infoLine, { color: colors.textPrimary }]}>
-                  📍 {ev.meetingPlace}
+                  {formatDateTime(ev.time)}
                 </Text>
+              </View>
+              {ev.meetingPlace ? (
+                <View style={styles.infoRow}>
+                  <MapPin size={18} color={colors.textPrimary} />
+                  <Text style={[styles.infoLine, { color: colors.textPrimary }]}>
+                    {ev.meetingPlace}
+                  </Text>
+                </View>
               ) : null}
-              <Text style={[styles.infoLine, { color: colors.textSecondary }]}>
-                👥 {ev.maxParticipants
-                  ? t.eventsParticipantsOf(ev.participantIds.length, ev.maxParticipants)
-                  : t.eventsParticipants(ev.participantIds.length)}
-              </Text>
+              <View style={styles.infoRow}>
+                <Users size={18} color={colors.textSecondary} />
+                <Text style={[styles.infoLine, { color: colors.textSecondary }]}>
+                  {ev.maxParticipants
+                    ? t.eventsParticipantsOf(ev.participantIds.length, ev.maxParticipants)
+                    : t.eventsParticipants(ev.participantIds.length)}
+                </Text>
+              </View>
             </View>
 
             {ev.description ? (
-              <Text style={[styles.description, { color: colors.textPrimary }]}>
-                {ev.description}
-              </Text>
+              <>
+                <Text style={[styles.descriptionLabel, { color: colors.textSecondary }]}>
+                  {t.descriptionLabel}
+                </Text>
+                <Text style={[styles.description, { color: colors.textPrimary }]}>
+                  {ev.description}
+                </Text>
+              </>
             ) : null}
           </ScrollView>
 
@@ -210,7 +234,8 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
                   style={[styles.cta, { backgroundColor: colors.primaryBlue }]}
                   onPress={() => onOpenChat(ev.chatId, ev.title)}
                 >
-                  <Text style={styles.ctaText}>💬 Chat</Text>
+                  <MessagesSquare size={18} color="#fff" />
+                  <Text style={[styles.ctaText, { marginLeft: 8 }]}>Chat</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.ctaSecondary, { borderColor: colors.primaryRed }]}
@@ -226,7 +251,8 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
                   style={[styles.cta, { backgroundColor: colors.primaryBlue }]}
                   onPress={() => onOpenChat(ev.chatId, ev.title)}
                 >
-                  <Text style={styles.ctaText}>💬 Chat</Text>
+                  <MessagesSquare size={18} color="#fff" />
+                  <Text style={[styles.ctaText, { marginLeft: 8 }]}>Chat</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.ctaSecondary, { borderColor: colors.border }]}
@@ -308,9 +334,22 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 16,
   },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   infoLine: {
     fontSize: 15,
     fontWeight: '500',
+    flex: 1,
+  },
+  descriptionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: 6,
+    textTransform: 'uppercase',
   },
   description: {
     fontSize: 15,
@@ -325,6 +364,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
   },
   ctaText: {
     color: '#fff',

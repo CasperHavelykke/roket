@@ -88,7 +88,7 @@ class LocationService {
             });
           },
           (error) => {
-            console.error('Location error:', error);
+            console.warn('Location error:', error);
             resolve(null);
           },
           {

@@ -21,22 +21,19 @@ import firestore from '@react-native-firebase/firestore';
 import LocationService from '../../services/LocationService';
 import { useTheme } from '../../theme';
 import DisclosureModal from '../../components/DisclosureModal';
-import PinMapIcon from '../../assets/pin-map.svg';
-import SettingsIcon from '../../assets/settings.svg';
-import ProfileIcon from '../../assets/profile.svg';
-import MessagesIcon from '../../assets/messages.svg';
+import { MapPin as PinMapIcon, Settings as SettingsIcon, User as ProfileIcon, MessagesSquare as MessagesIcon, Plus as PlusIcon, Calendar as CalendarIcon, Mail as MailIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaskedView from '@react-native-masked-view/masked-view';
 import CardCarousel from './CardCarousel';
 import ProfilePreviewModal from './ProfilePreviewModal';
 import RoketLogo from '../../assets/roket-logo-3.svg';
-import PlusIcon from '../../assets/plus.svg';
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { STATUS_TAGS, StatusTagId, getStatusTag } from '../../statusTags';
 import CreateEventModal from '../events/CreateEventModal';
 import EventCard from '../events/EventCard';
 import EventDetailModal from '../events/EventDetailModal';
 import { EventDoc } from '../../events';
+import TagIcon from '../../components/TagIcon';
 
 const BANNER_AD_ID = __DEV__
   ? TestIds.ADAPTIVE_BANNER
@@ -570,14 +567,11 @@ export default function HomeScreen({ navigation }: any) {
           ) : null}
         </View>
       )}
-      {item.statusTag && (() => {
-        const tag = getStatusTag(item.statusTag);
-        return tag ? (
-          <View style={[styles.tagBadge, isCompact && styles.tagBadgeCompact]} pointerEvents="none">
-            <Text style={[styles.tagBadgeText, isCompact && { fontSize: 14 }]}>{tag.emoji}</Text>
-          </View>
-        ) : null;
-      })()}
+      {item.statusTag && (
+        <View style={[styles.tagBadge, isCompact && styles.tagBadgeCompact]} pointerEvents="none">
+          <TagIcon tag={item.statusTag} size={isCompact ? 14 : 18} color="#fff" />
+        </View>
+      )}
       {showTestBadges && item.testAccount && !isCompact && (
         <View style={styles.testBadge}>
           <Text style={styles.testBadgeText}>{t.testAccount}</Text>
@@ -588,13 +582,13 @@ export default function HomeScreen({ navigation }: any) {
           <View style={[styles.unreadBorder, { borderColor: colors.primaryBlue }]} pointerEvents="none" />
           {!isCompact && (
             <View
-              style={[styles.messageBadge, { backgroundColor: colors.primaryRed }, isSingle && styles.messageBadgeSingle]}
+              style={[styles.messageBadge, { backgroundColor: '#fff' }, isSingle && styles.messageBadgeSingle]}
               onStartShouldSetResponder={() => true}
               onResponderRelease={() => navigation.navigate('Chat', {
                 otherUser: { id: item.id, displayName: item.displayName, testAccount: item.testAccount },
               })}
             >
-              <MessagesIcon width={isSingle ? 28 : 22} height={isSingle ? 28 : 22} stroke="#fff" />
+              <MailIcon size={isSingle ? 28 : 22} color={colors.primaryBlue} />
             </View>
           )}
         </>
@@ -660,7 +654,7 @@ export default function HomeScreen({ navigation }: any) {
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t.homeLoadingText}</Text>
         <DisclosureModal
           visible={showLocationDisclosure}
-          icon={<PinMapIcon width={32} height={64} />}
+          icon={<PinMapIcon size={48} />}
           title={t.disclosureLocationTitle}
           message={t.disclosureLocationMessage}
           acceptLabel={t.disclosureLocationAccept}
@@ -757,7 +751,7 @@ export default function HomeScreen({ navigation }: any) {
                 ]}
                 onPress={() => { setEventsFilterActive(!eventsFilterActive); setActiveFilter(null); }}
               >
-                <Text style={styles.filterChipEmoji}>📅</Text>
+                <CalendarIcon size={14} color={eventsFilterActive ? '#fff' : colors.textPrimary} />
                 <Text style={[styles.filterChipText, { color: colors.textPrimary }, eventsFilterActive && { color: '#fff' }]}>
                   {t.tagEvents}
                 </Text>
@@ -775,7 +769,7 @@ export default function HomeScreen({ navigation }: any) {
                     ]}
                     onPress={() => setActiveFilter(isActive ? null : tag.id)}
                   >
-                    <Text style={styles.filterChipEmoji}>{tag.emoji}</Text>
+                    <TagIcon tag={tag.id} size={14} color={isActive ? '#fff' : colors.textPrimary} />
                     <Text style={[styles.filterChipText, { color: colors.textPrimary }, isActive && { color: '#fff' }]}>
                       {String(t[labelKey] ?? tag.id)}
                     </Text>
@@ -806,8 +800,8 @@ export default function HomeScreen({ navigation }: any) {
         };
 
         const fabButtons = [
-          { icon: <ProfileIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <Animated.View style={[styles.fabPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.8, 0] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.4] }) }] }]} /> },
-          { icon: <MessagesIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread ? (btnLeft: number) => (
+          { icon: <ProfileIcon size={30} color="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <Animated.View style={[styles.fabPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.8, 0] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.4] }) }] }]} /> },
+          { icon: <MessagesIcon size={30} color="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread ? (btnLeft: number) => (
             <GradientView
               colors={[colors.primaryBlue, colors.primaryRed]}
               start={{ x: -btnLeft / 20, y: 0 }}
@@ -817,7 +811,7 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={styles.fabUnreadBadgeText}>{totalUnreadCount > 9 ? '9+' : totalUnreadCount}</Text>
             </GradientView>
           ) : null, inverted: hasUnread },
-          { icon: <SettingsIcon width={30} height={30} stroke="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null },
+          { icon: <SettingsIcon size={30} color="#fff" />, onPress: () => navigation.navigate('Settings'), badge: null },
         ];
 
         return (
@@ -920,7 +914,7 @@ export default function HomeScreen({ navigation }: any) {
                       <View style={[styles.fabButton, { backgroundColor: '#fff' }]}>
                         <MaskedView
                           style={{ width: 30, height: 30 }}
-                          maskElement={<MessagesIcon width={30} height={30} stroke="#000" fill="none" />}
+                          maskElement={<MessagesIcon size={30} color="#000" />}
                         >
                           <GradientView
                             colors={[colors.primaryBlue, colors.primaryRed]}
@@ -950,7 +944,7 @@ export default function HomeScreen({ navigation }: any) {
       })()}
       <DisclosureModal
         visible={showLocationDisclosure}
-        icon={<PinMapIcon width={32} height={64} />}
+        icon={<PinMapIcon size={48} />}
         title={t.disclosureLocationTitle}
         message={t.disclosureLocationMessage}
         acceptLabel={t.disclosureLocationAccept}
@@ -1002,7 +996,7 @@ export default function HomeScreen({ navigation }: any) {
           onPress={() => setShowCreateEvent(true)}
         >
           <View style={[styles.fabButton, { backgroundColor: colors.primaryBlue }]}>
-            <PlusIcon width={30} height={30} stroke="#fff" />
+            <PlusIcon size={30} color="#fff" />
           </View>
         </TouchableOpacity>
       )}
@@ -1228,6 +1222,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 18,
     includeFontPadding: false,
+    marginLeft: 5,
   },
   createEventFab: {
     position: 'absolute',

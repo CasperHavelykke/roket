@@ -26,8 +26,7 @@ import storage from '@react-native-firebase/storage';
 import { pickImages } from '../../utils/pickImage';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
-import CameraIcon from '../../assets/camera.svg';
-import SendIcon from '../../assets/send.svg';
+import { Camera as CameraIcon, SendHorizontal as SendIcon } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoSimpel from '../../assets/roket-logo-simpel.svg';
 import RoketStars from '../../assets/roket-logo-stars-only.svg';
@@ -883,7 +882,7 @@ export default function ChatScreen({ route, navigation }: any) {
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{t.chatSayHi(otherUser.displayName)}</Text>
+                <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{isEventChat ? t.chatSayHiGroup : t.chatSayHi(otherUser.displayName)}</Text>
               </View>
             }
           />
@@ -911,7 +910,7 @@ export default function ChatScreen({ route, navigation }: any) {
             {sendingImage ? (
               <ActivityIndicator size="small" color={colors.primaryRed} />
             ) : (
-              <CameraIcon width={22} height={22} fill={colors.primaryRed} />
+              <CameraIcon size={22} color={colors.primaryRed} />
             )}
           </TouchableOpacity>
           <TextInput
@@ -929,7 +928,7 @@ export default function ChatScreen({ route, navigation }: any) {
             onPress={sendMessage}
             disabled={!inputText.trim()}
           >
-            <SendIcon width={20} height={20} stroke={colors.textWhite} />
+            <SendIcon size={20} color={colors.textWhite} />
           </TouchableOpacity>
         </View>
         </View>

@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Calendar as CalendarIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme';
 import { getStatusTag } from '../../statusTags';
+import TagIcon from '../../components/TagIcon';
 import { EventDoc } from '../../events';
 
 interface EventCardProps {
@@ -13,7 +15,7 @@ interface EventCardProps {
   onPress: () => void;
 }
 
-function formatTime(time: Date, t: any): string {
+function formatTime(time: Date, t: any, locale: string, hour12: boolean): string {
   const now = Date.now();
   const diffMs = time.getTime() - now;
   const diffMins = Math.floor(diffMs / 60000);
@@ -28,19 +30,27 @@ function formatTime(time: Date, t: any): string {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const isTomorrow = tomorrow.toDateString() === eventDay.toDateString();
 
-  const hh = eventDay.getHours().toString().padStart(2, '0');
-  const mm = eventDay.getMinutes().toString().padStart(2, '0');
+  const timeStr = eventDay.toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12,
+  });
 
-  if (isToday) return `${t.eventsTimeToday} ${hh}:${mm}`;
-  if (isTomorrow) return `${t.eventsTimeTomorrow} ${hh}:${mm}`;
+  if (isToday) return `${t.eventsTimeToday} ${timeStr}`;
+  if (isTomorrow) return `${t.eventsTimeTomorrow} ${timeStr}`;
   return t.eventsTimeIn(diffMins);
 }
 
+const LOCALE_MAP: Record<string, string> = {
+  da: 'da-DK', en: 'en-GB', es: 'es-ES', de: 'de-DE', fr: 'fr-FR', pt: 'pt-PT',
+};
+
 export default function EventCard({ event, compact, tiny, isSingle, onPress }: EventCardProps) {
-  const { colors, t } = useTheme();
+  const { colors, t, timeFormat, language } = useTheme();
   const tag = getStatusTag(event.tag);
   const participantCount = event.participantIds.length;
-  const timeText = formatTime(event.time, t);
+  const locale = LOCALE_MAP[language] || 'en-GB';
+  const timeText = formatTime(event.time, t, locale, timeFormat === '12h');
 
   return (
     <Pressable
@@ -52,13 +62,13 @@ export default function EventCard({ event, compact, tiny, isSingle, onPress }: E
     >
       {/* Calendar/Event indicator badge top-left */}
       <View style={[styles.cornerBadge, styles.cornerLeft, compact && styles.cornerCompact]} pointerEvents="none">
-        <Text style={[styles.cornerEmoji, compact && { fontSize: 13 }]}>📅</Text>
+        <CalendarIcon size={compact ? 12 : 16} color="#fff" />
       </View>
 
       {/* Tag emoji top-right */}
       {tag && (
         <View style={[styles.cornerBadge, styles.cornerRight, styles.cornerDark, compact && styles.cornerCompact]} pointerEvents="none">
-          <Text style={[styles.cornerEmoji, compact && { fontSize: 13 }]}>{tag.emoji}</Text>
+          <TagIcon tag={tag.id} size={compact ? 12 : 16} color="#fff" />
         </View>
       )}
 
@@ -77,11 +87,11 @@ export default function EventCard({ event, compact, tiny, isSingle, onPress }: E
       </View>
 
       {/* Bottom info */}
-      <View style={[styles.bottom, compact && { padding: 6 }]} pointerEvents="none">
+      <View style={[styles.bottom, !isSingle && styles.bottomCompact, compact && { padding: 6 }]} pointerEvents="none">
         <Text style={[styles.timeText, compact && { fontSize: 10 }]} numberOfLines={1}>
           {timeText}
         </Text>
-        <Text style={[styles.participants, compact && { fontSize: 10 }]}>
+        <Text style={[styles.participants, compact && { fontSize: 10 }]} numberOfLines={1}>
           {tiny
             ? (event.maxParticipants ? `${participantCount}/${event.maxParticipants}` : `${participantCount}`)
             : event.maxParticipants
@@ -141,6 +151,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  bottomCompact: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 2,
   },
   timeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   participants: { color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: '600' },

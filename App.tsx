@@ -13,7 +13,7 @@ import NotificationService from './src/services/NotificationService';
 import LocationService from './src/services/LocationService';
 import NotificationBanner, { NotificationBannerRef, NotificationData } from './src/components/NotificationBanner';
 import DisclosureModal from './src/components/DisclosureModal';
-import BellIcon from './src/assets/bell.svg';
+import { Bell as BellIcon } from 'lucide-react-native';
 import { ThemeContext, useThemeProvider } from './src/theme';
 import LoginScreen from './src/features/auth/LoginScreen';
 import SignupScreen from './src/features/auth/SignupScreen';
@@ -370,7 +370,7 @@ function App() {
         )}
         <DisclosureModal
           visible={showNotifDisclosure}
-          icon={<BellIcon width={64} height={64} />}
+          icon={<BellIcon size={64} />}
           title={theme.t.disclosureNotificationTitle}
           message={theme.t.disclosureNotificationMessage}
           acceptLabel={theme.t.disclosureNotificationAccept}

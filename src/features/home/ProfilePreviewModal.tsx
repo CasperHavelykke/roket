@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import GradientView from '../../components/GradientView';
 import { useTheme } from '../../theme';
-import MessageIcon from '../../assets/message.svg';
-import MessagesIcon from '../../assets/messages.svg';
+import { MessageSquare as MessageIcon } from 'lucide-react-native';
 import { getStatusTag } from '../../statusTags';
+import TagIcon from '../../components/TagIcon';
 
 interface PreviewUser {
   id: string;
@@ -109,8 +109,8 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
                 const tag = getStatusTag(user.statusTag);
                 return tag ? (
                   <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
-                    <Text style={styles.tagPillEmoji}>{tag.emoji}</Text>
-                    <Text style={styles.tagPillText}>{String((t as any)[`tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}`] ?? tag.id)}</Text>
+                    <TagIcon tag={tag.id} size={14} color="#fff" />
+                    <Text style={[styles.tagPillText, { marginLeft: 5 }]}>{String((t as any)[`tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}`] ?? tag.id)}</Text>
                   </View>
                 ) : null;
               })()}
@@ -138,7 +138,7 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
                 end={{ x: 1, y: 0 }}
                 style={styles.sendButton}
               >
-                <MessageIcon width={20} height={20} stroke="#fff" />
+                <MessageIcon size={20} color="#fff" />
                 <Text style={styles.actionButtonText}>{t.profileSendMessage}</Text>
               </GradientView>
             </Pressable>

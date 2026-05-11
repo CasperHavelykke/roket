@@ -22,10 +22,11 @@ import storage from '@react-native-firebase/storage';
 import pickImage from '../../utils/pickImage';
 import getFirebaseError from '../../utils/getFirebaseError';
 import { useTheme } from '../../theme';
-import CameraIcon from '../../assets/camera.svg';
+import { Camera as CameraIcon } from 'lucide-react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { STATUS_TAGS, StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
+import TagIcon from '../../components/TagIcon';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -343,7 +344,7 @@ export default function EditProfileScreen({ navigation }: any) {
               {!photoURL && (
                 <Animated.View style={[styles.cameraPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.8, 0] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.4] }) }] }]} />
               )}
-              <CameraIcon width={16} height={16} fill={colors.primaryBlueText} />
+              <CameraIcon size={16} color={colors.primaryBlueText} />
             </View>
           </TouchableOpacity>
 
@@ -400,8 +401,8 @@ export default function EditProfileScreen({ navigation }: any) {
                     ]}
                     onPress={() => setStatusTag(isSelected ? null : tag.id)}
                   >
-                    <Text style={styles.tagEmoji}>{tag.emoji}</Text>
-                    <Text style={[styles.tagText, { color: colors.textPrimary }, isSelected && { color: '#fff' }]}>
+                    <TagIcon tag={tag.id} size={14} color={isSelected ? '#fff' : colors.textPrimary} />
+                    <Text style={[styles.tagText, { color: colors.textPrimary, marginLeft: 5 }, isSelected && { color: '#fff' }]}>
                       {String(t[labelKey] ?? tag.id)}
                     </Text>
                   </TouchableOpacity>

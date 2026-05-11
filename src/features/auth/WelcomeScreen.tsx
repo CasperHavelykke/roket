@@ -11,9 +11,7 @@ import GradientView from '../../components/GradientView';
 import { useTheme } from '../../theme';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketIndicator from '../../assets/roket-logo-simpel.svg';
-import MessagesIcon from '../../assets/messages.svg';
-import PinMapIconWhite from '../../assets/pin-map-white.svg';
-import ProfileIcon from '../../assets/profile.svg';
+import { MessageCircle as MessagesIcon, MapPin as PinMapIconWhite, User as ProfileIcon } from 'lucide-react-native';
 
 interface Page {
   key: string;
@@ -55,11 +53,11 @@ export default function WelcomeScreen({ navigation }: any) {
       case 'logo':
         return <RoketLogo width={100} height={100} fill="#fff" />;
       case 'messages':
-        return circle(<MessagesIcon width={48} height={48} stroke="#fff" />);
+        return circle(<MessagesIcon size={48} color="#fff" />);
       case 'distance':
-        return circle(<PinMapIconWhite width={48} height={48} />);
+        return circle(<PinMapIconWhite size={48} color="#fff" />);
       case 'guidelines':
-        return circle(<ProfileIcon width={48} height={48} stroke="#fff" />);
+        return circle(<ProfileIcon size={48} color="#fff" />);
     }
   };
 
