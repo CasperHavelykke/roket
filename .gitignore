@@ -82,9 +82,13 @@ web/dist/
 
 # Claude Code
 .claude/
+CLAUDE.md
 
 # Admin scripts
 admin/
+
+# Personal planning/notes (not part of source)
+roket-scalability-plan.html
 
 # Android build outputs
 android/app/release/
