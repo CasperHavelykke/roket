@@ -9,11 +9,10 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Animated,
   PanResponder,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -116,6 +115,10 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
       Alert.alert(t.error, t.eventsErrorTitle);
       return;
     }
+    if (scheduledTime && !meetingLocation) {
+      Alert.alert(t.error, t.eventsErrorLocation);
+      return;
+    }
     if (!userLocation) return;
 
     const user = auth().currentUser;
@@ -178,7 +181,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
   return (
     <Modal visible={mounted} animationType="none" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         style={styles.flex}
       >
         <View style={styles.overlay}>
@@ -276,15 +279,17 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
               <TouchableOpacity
                 style={[
                   styles.locationButton,
-                  { borderColor: meetingLocation ? colors.primaryBlue : colors.inputBorder },
+                  { borderColor: meetingLocation ? colors.primaryBlue : (scheduledTime ? colors.primaryRed : colors.inputBorder) },
                 ]}
                 onPress={() => setShowMapPicker(true)}
               >
-                <MapPin size={16} color={meetingLocation ? colors.primaryBlue : colors.textSecondary} />
-                <Text style={[styles.locationButtonText, { color: meetingLocation ? colors.primaryBlueText : colors.textSecondary }]}>
+                <MapPin size={16} color={meetingLocation ? colors.primaryBlue : (scheduledTime ? colors.primaryRed : colors.textSecondary)} />
+                <Text style={[styles.locationButtonText, { color: meetingLocation ? colors.primaryBlueText : (scheduledTime ? colors.primaryRed : colors.textSecondary) }]}>
                   {meetingLocation
                     ? `${meetingLocation.latitude.toFixed(4)}, ${meetingLocation.longitude.toFixed(4)}`
-                    : ((t as any).eventsPickLocationOptional ?? 'Tilføj pin på kort (valgfri)')}
+                    : (scheduledTime
+                      ? (t.eventsPickLocationCta ?? 'Vælg mødested')
+                      : ((t as any).eventsPickLocationOptional ?? 'Tilføj pin på kort (valgfri)'))}
                 </Text>
                 {meetingLocation && (
                   <TouchableOpacity

@@ -219,7 +219,6 @@ export default function HomeScreen({ navigation }: any) {
             expiresAt: data.expiresAt?.toDate?.() ?? new Date(),
           });
         });
-        list.sort((a, b) => a.time.getTime() - b.time.getTime());
         setEvents(list);
       }, err => console.warn('Events subscription error:', err));
 
@@ -475,8 +474,19 @@ export default function HomeScreen({ navigation }: any) {
     const rows: GridRow[] = [];
 
     if (eventsFilterActive) {
-      for (let i = 0; i < events.length; i += numColumns) {
-        rows.push({ type: 'events', events: events.slice(i, i + numColumns), key: `events-${i}` });
+      const eventsByDistance = userLocationCoords
+        ? [...events].map(ev => ({
+            ev,
+            distance: calculateDistance(
+              userLocationCoords.latitude,
+              userLocationCoords.longitude,
+              ev.location.latitude,
+              ev.location.longitude,
+            ),
+          })).sort((a, b) => a.distance - b.distance).map(x => x.ev)
+        : events;
+      for (let i = 0; i < eventsByDistance.length; i += numColumns) {
+        rows.push({ type: 'events', events: eventsByDistance.slice(i, i + numColumns), key: `events-${i}` });
       }
       return rows;
     }
@@ -559,7 +569,7 @@ export default function HomeScreen({ navigation }: any) {
         <View style={[styles.cardOverlay, !item.status && { backgroundColor: 'transparent' }, unreadFromUsers.has(item.id) && { backgroundColor: 'rgba(67,97,238,0.5)' }]} pointerEvents="none">
           {item.status ? (
             <>
-              <Text style={[styles.cardName, isCompact && { fontSize: 12 }, isSingle && { fontSize: 22, lineHeight: 28 }]} numberOfLines={2}>{item.status}</Text>
+              <Text style={[styles.cardName, isCompact && { fontSize: 12 }, isSingle && { fontSize: 22, lineHeight: 28 }]} numberOfLines={3}>{item.status}</Text>
               {isSingle && item.bio ? (
                 <Text style={styles.cardBio}>{item.bio}</Text>
               ) : null}
@@ -608,13 +618,16 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       );
     }
-    // Beregn absolut X-position for gradient der spænder fra skærmkant til skærmkant
+    // Beregn absolut X-position for gradient der spænder fra skærmkant til skærmkant.
+    // Baseret på faktisk antal celler i rækken — flex-containeren centrerer dem.
     const cellOuterWidth = cardWidth + 2 * cardMargin;
-    const rowWidth = numColumns * cellOuterWidth;
-    const rowLeft = (screenWidth - rowWidth) / 2;
-    const cardLeftAt = (colIdx: number) => rowLeft + colIdx * cellOuterWidth + cardMargin;
+    const cardLeftAt = (colIdx: number, rowCellCount: number) => {
+      const rowWidth = rowCellCount * cellOuterWidth;
+      const rowLeft = (screenWidth - rowWidth) / 2;
+      return rowLeft + colIdx * cellOuterWidth + cardMargin;
+    };
 
-    const renderEventCard = (ev: EventDoc, colIdx: number) => (
+    const renderEventCard = (ev: EventDoc, colIdx: number, rowCellCount: number) => (
       <View key={`e-${ev.id}`} style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin }, isSingle && { aspectRatio: 1.2 }]}>
         <EventCard
           event={ev}
@@ -622,7 +635,7 @@ export default function HomeScreen({ navigation }: any) {
           compact={isCompact}
           tiny={numColumns === 4}
           isSingle={isSingle}
-          cardLeft={cardLeftAt(colIdx)}
+          cardLeft={cardLeftAt(colIdx, rowCellCount)}
           screenWidth={screenWidth}
           onPress={() => setPreviewEvent(ev)}
         />
@@ -630,21 +643,23 @@ export default function HomeScreen({ navigation }: any) {
     );
 
     if (item.type === 'mixed') {
+      const cellCount = item.cells.length;
       return (
         <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
           {item.cells.map((cell, i) => {
             if (cell.kind === 'user') {
               return <React.Fragment key={`u-${cell.user.id}`}>{renderUserCard(cell.user)}</React.Fragment>;
             }
-            return renderEventCard(cell.event, i);
+            return renderEventCard(cell.event, i, cellCount);
           })}
         </View>
       );
     }
     if (item.type === 'events') {
+      const cellCount = item.events.length;
       return (
         <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-          {item.events.map((ev, i) => renderEventCard(ev, i))}
+          {item.events.map((ev, i) => renderEventCard(ev, i, cellCount))}
         </View>
       );
     }
@@ -997,17 +1012,26 @@ export default function HomeScreen({ navigation }: any) {
           navigation.navigate('Chat', { otherUser: { id: chatId, displayName: eventTitle, testAccount: false }, eventChatId: chatId, eventTitle });
         }}
       />
-      {eventsFilterActive && (
-        <TouchableOpacity
-          style={[styles.fabShadow, styles.createEventFab, { bottom: insets.bottom + (showColumnPicker ? 314 : 100) }]}
-          activeOpacity={0.8}
-          onPress={() => setShowCreateEvent(true)}
-        >
-          <View style={[styles.fabButton, { backgroundColor: colors.primaryBlue }]}>
-            <PlusIcon size={30} color="#fff" />
-          </View>
-        </TouchableOpacity>
-      )}
+      {eventsFilterActive && (() => {
+        const createFabSize = 64;
+        const createBtnLeft = screenWidth - 32 - createFabSize;
+        return (
+          <TouchableOpacity
+            style={[styles.fabShadow, styles.createEventFab, { bottom: insets.bottom + (showColumnPicker ? 314 : 100) }]}
+            activeOpacity={0.8}
+            onPress={() => setShowCreateEvent(true)}
+          >
+            <GradientView
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: -createBtnLeft / createFabSize, y: 0 }}
+              end={{ x: (screenWidth - createBtnLeft) / createFabSize, y: 0 }}
+              style={styles.fabButton}
+            >
+              <PlusIcon size={30} color="#fff" />
+            </GradientView>
+          </TouchableOpacity>
+        );
+      })()}
     </View>
   );
 }

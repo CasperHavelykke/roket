@@ -23,7 +23,7 @@ import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
 import PhotoGalleryModal from './PhotoGalleryModal';
-import { MessageSquare as MessageIcon, MessagesSquare as MessagesIcon } from 'lucide-react-native';
+import { MessageSquare as MessageIcon, MessagesSquare as MessagesIcon, MapPin } from 'lucide-react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 
@@ -264,7 +264,10 @@ export default function ProfileViewScreen({ route, navigation }: any) {
           <View style={{ marginTop: 12 }}>
             <Text style={[{ fontSize: 15, color: colors.textMuted }]}>{user.displayName || ''}{user.displayName && user.age ? `, ${user.age}` : user.age ? `${user.age}` : ''}</Text>
             {locationGranted && user.distance !== undefined && formatDistance(user.distance) !== '' && (
-              <Text style={[{ fontSize: 13, color: colors.textMuted, marginTop: 2 }]}>📍 {formatDistance(user.distance)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                <MapPin size={13} color={colors.textMuted} />
+                <Text style={[{ fontSize: 13, color: colors.textMuted }]}>{formatDistance(user.distance)}</Text>
+              </View>
             )}
           </View>
         </View>

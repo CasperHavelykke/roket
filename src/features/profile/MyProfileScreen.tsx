@@ -18,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
 import PhotoGalleryModal from './PhotoGalleryModal';
+import { MapPin } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 
 export default function MyProfileScreen({ navigation }: any) {
@@ -192,9 +193,12 @@ export default function MyProfileScreen({ navigation }: any) {
           <View style={{ marginTop: 12 }}>
             <Text style={[{ fontSize: 15, color: colors.textMuted }]}>{displayName || ''}{displayName && age ? `, ${age}` : age ? `${age}` : ''}</Text>
             {locationGranted && distanceModeValue && distanceModeValue !== 'hidden' && (
-              <Text style={[{ fontSize: 13, color: colors.textMuted, marginTop: 2 }]}>
-                📍 {distanceModeValue === 'fuzzy' ? (distanceUnit === 'mi' ? t.distanceUnder100ft : t.distanceUnder30) : (distanceUnit === 'mi' ? t.distanceFeet(0) : t.distanceMeters(0))}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                <MapPin size={13} color={colors.textMuted} />
+                <Text style={[{ fontSize: 13, color: colors.textMuted }]}>
+                  {distanceModeValue === 'fuzzy' ? (distanceUnit === 'mi' ? t.distanceUnder100ft : t.distanceUnder30) : (distanceUnit === 'mi' ? t.distanceFeet(0) : t.distanceMeters(0))}
+                </Text>
+              </View>
             )}
           </View>
         </View>
