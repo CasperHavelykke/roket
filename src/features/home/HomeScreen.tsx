@@ -109,6 +109,8 @@ export default function HomeScreen({ navigation }: any) {
   const [visibleCount, setVisibleCount] = useState(12);
   const [activeFilter, setActiveFilter] = useState<StatusTagId | null>(null);
   const [eventsFilterActive, setEventsFilterActive] = useState(false);
+  const [chipLayouts, setChipLayouts] = useState<Record<string, { x: number; width: number }>>({});
+  const [filterScrollX, setFilterScrollX] = useState(0);
   const [events, setEvents] = useState<EventDoc[]>([]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [previewEvent, setPreviewEvent] = useState<EventDoc | null>(null);
@@ -470,6 +472,29 @@ export default function HomeScreen({ navigation }: any) {
     return users.filter(u => u.statusTag === activeFilter);
   }, [users, activeFilter]);
 
+  const renderChipGradient = (id: string) => {
+    const layout = chipLayouts[id];
+    if (!layout) return null;
+    const chipScreenX = layout.x - filterScrollX;
+    return (
+      <GradientView
+        colors={[colors.primaryBlue, colors.primaryRed]}
+        start={{ x: -chipScreenX / layout.width, y: 0 }}
+        end={{ x: (screenWidth - chipScreenX) / layout.width, y: 0 }}
+        style={StyleSheet.absoluteFill}
+      />
+    );
+  };
+
+  const onChipLayout = (id: string) => (e: { nativeEvent: { layout: { x: number; width: number } } }) => {
+    const { x, width } = e.nativeEvent.layout;
+    setChipLayouts(prev => {
+      const existing = prev[id];
+      if (existing && existing.x === x && existing.width === width) return prev;
+      return { ...prev, [id]: { x, width } };
+    });
+  };
+
   const gridRows = React.useMemo((): GridRow[] => {
     const rows: GridRow[] = [];
 
@@ -569,7 +594,7 @@ export default function HomeScreen({ navigation }: any) {
         <View style={[styles.cardOverlay, !item.status && { backgroundColor: 'transparent' }, unreadFromUsers.has(item.id) && { backgroundColor: 'rgba(67,97,238,0.5)' }]} pointerEvents="none">
           {item.status ? (
             <>
-              <Text style={[styles.cardName, isCompact && { fontSize: 12 }, isSingle && { fontSize: 22, lineHeight: 28 }]} numberOfLines={3}>{item.status}</Text>
+              <Text style={[styles.cardName, isCompact && { fontSize: 12, lineHeight: 15 }, numColumns === 4 && { fontSize: 10, lineHeight: 13 }, isSingle && { fontSize: 22, lineHeight: 28 }]} numberOfLines={numColumns >= 2 && numColumns <= 4 ? 5 : 4}>{item.status}</Text>
               {isSingle && item.bio ? (
                 <Text style={styles.cardBio}>{item.bio}</Text>
               ) : null}
@@ -753,27 +778,30 @@ export default function HomeScreen({ navigation }: any) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filterBarContent}
               style={[styles.filterBar, { backgroundColor: colors.background, marginHorizontal: -gridPadding }]}
+              onScroll={e => setFilterScrollX(e.nativeEvent.contentOffset.x)}
+              scrollEventThrottle={16}
             >
+              {(() => {
+                const allActive = activeFilter === null && !eventsFilterActive;
+                return (
+                  <TouchableOpacity
+                    style={[styles.filterChip, { backgroundColor: colors.card, overflow: 'hidden' }]}
+                    onLayout={onChipLayout('all')}
+                    onPress={() => { setActiveFilter(null); setEventsFilterActive(false); }}
+                  >
+                    {allActive && renderChipGradient('all')}
+                    <Text style={[styles.filterChipText, { color: colors.textPrimary }, allActive && { color: '#fff' }]}>
+                      {t.tagAll}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })()}
               <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  { backgroundColor: colors.card },
-                  activeFilter === null && !eventsFilterActive && { backgroundColor: colors.primaryBlue },
-                ]}
-                onPress={() => { setActiveFilter(null); setEventsFilterActive(false); }}
-              >
-                <Text style={[styles.filterChipText, { color: colors.textPrimary }, activeFilter === null && !eventsFilterActive && { color: '#fff' }]}>
-                  {t.tagAll}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  { backgroundColor: colors.card },
-                  eventsFilterActive && { backgroundColor: colors.primaryBlue },
-                ]}
+                style={[styles.filterChip, { backgroundColor: colors.card, overflow: 'hidden' }]}
+                onLayout={onChipLayout('events')}
                 onPress={() => { setEventsFilterActive(!eventsFilterActive); setActiveFilter(null); }}
               >
+                {eventsFilterActive && renderChipGradient('events')}
                 <CalendarIcon size={14} color={eventsFilterActive ? '#fff' : colors.textPrimary} />
                 <Text style={[styles.filterChipText, { color: colors.textPrimary }, eventsFilterActive && { color: '#fff' }]}>
                   {t.tagEvents}
@@ -785,13 +813,11 @@ export default function HomeScreen({ navigation }: any) {
                 return (
                   <TouchableOpacity
                     key={tag.id}
-                    style={[
-                      styles.filterChip,
-                      { backgroundColor: colors.card },
-                      isActive && { backgroundColor: colors.primaryBlue },
-                    ]}
+                    style={[styles.filterChip, { backgroundColor: colors.card, overflow: 'hidden' }]}
+                    onLayout={onChipLayout(tag.id)}
                     onPress={() => setActiveFilter(isActive ? null : tag.id)}
                   >
+                    {isActive && renderChipGradient(tag.id)}
                     <TagIcon tag={tag.id} size={14} color={isActive ? '#fff' : colors.textPrimary} />
                     <Text style={[styles.filterChipText, { color: colors.textPrimary }, isActive && { color: '#fff' }]}>
                       {String(t[labelKey] ?? tag.id)}

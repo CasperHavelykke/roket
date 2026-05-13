@@ -5,6 +5,7 @@ import {
   Modal,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   Alert,
   ActivityIndicator,
@@ -199,7 +200,7 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
                 </Text>
               </View>
               {(ev.meetingPlace || ev.location) ? (
-                <TouchableOpacity
+                <Pressable
                   style={styles.infoRow}
                   onPress={() => {
                     const q = ev.location
@@ -210,11 +211,15 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
                   }}
                   disabled={!ev.location && !ev.meetingPlace}
                 >
-                  <MapPin size={18} color={colors.textPrimary} />
-                  <Text style={[styles.infoLine, { color: colors.primaryBlueText }]}>
-                    {ev.meetingPlace || ((t as any).eventsOpenInMaps ?? 'Vis på kort')}
-                  </Text>
-                </TouchableOpacity>
+                  {({ pressed }) => (
+                    <>
+                      <MapPin size={18} color={colors.textPrimary} />
+                      <Text style={[styles.infoLine, { color: colors.primaryBlueText, opacity: pressed ? 0.5 : 1 }]}>
+                        {ev.meetingPlace || ((t as any).eventsOpenInMaps ?? 'Vis på kort')}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
               ) : null}
               <View style={styles.infoRow}>
                 <Users size={18} color={colors.textSecondary} />

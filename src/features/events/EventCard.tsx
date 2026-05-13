@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Calendar as CalendarIcon } from 'lucide-react-native';
+import { Calendar as CalendarIcon, Users } from 'lucide-react-native';
 import { useTheme } from '../../theme';
 import { getStatusTag } from '../../statusTags';
 import TagIcon from '../../components/TagIcon';
@@ -41,7 +41,8 @@ function formatTime(time: Date, t: any, locale: string, hour12: boolean): string
 
   if (isToday) return `${t.eventsTimeToday} ${timeStr}`;
   if (isTomorrow) return `${t.eventsTimeTomorrow} ${timeStr}`;
-  return t.eventsTimeIn(diffMins);
+  const dateStr = eventDay.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
+  return `${dateStr} ${timeStr}`;
 }
 
 const LOCALE_MAP: Record<string, string> = {
@@ -90,15 +91,28 @@ export default function EventCard({ event, width, compact, tiny, isSingle, cardL
         <CalendarIcon size={compact ? 12 : 16} color="#fff" />
       </View>
 
+      {/* Participants pill top-right */}
+      <View style={[styles.participantPill, compact && styles.participantPillCompact]} pointerEvents="none">
+        <Users size={compact ? 11 : 14} color="#fff" />
+        <Text style={[styles.participantPillText, compact && { fontSize: 11 }]} numberOfLines={1}>
+          {event.maxParticipants ? `${participantCount}/${event.maxParticipants}` : `${participantCount}`}
+        </Text>
+      </View>
+
       {/* Center content */}
-      <View style={styles.center}>
+      <View style={[
+        styles.center,
+        compact && { paddingTop: 26, paddingBottom: 28 },
+        tiny && { paddingTop: 22, paddingBottom: 22, paddingHorizontal: 6 },
+      ]}>
         <Text
           style={[
             styles.title,
-            compact && { fontSize: 13, lineHeight: 17 },
+            compact && { fontSize: 12, lineHeight: 15 },
+            tiny && { fontSize: 10, lineHeight: 13 },
             isSingle && { fontSize: 22, lineHeight: 28 },
           ]}
-          numberOfLines={compact ? 3 : 4}
+          numberOfLines={isSingle ? 4 : 5}
         >
           {event.title}
         </Text>
@@ -110,16 +124,9 @@ export default function EventCard({ event, width, compact, tiny, isSingle, cardL
       </View>
 
       {/* Bottom info */}
-      <View style={[styles.bottom, !isSingle && styles.bottomCompact, compact && { padding: 6 }]} pointerEvents="none">
+      <View style={[styles.bottom, compact && { padding: 6 }]} pointerEvents="none">
         <Text style={[styles.timeText, compact && { fontSize: 10 }]} numberOfLines={1}>
           {timeText}
-        </Text>
-        <Text style={[styles.participants, compact && { fontSize: 10 }]} numberOfLines={1}>
-          {tiny
-            ? (event.maxParticipants ? `${participantCount}/${event.maxParticipants}` : `${participantCount}`)
-            : event.maxParticipants
-              ? t.eventsParticipantsOf(participantCount, event.maxParticipants)
-              : t.eventsParticipants(participantCount)}
         </Text>
       </View>
     </Pressable>
@@ -198,4 +205,29 @@ const styles = StyleSheet.create({
   },
   timeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   participants: { color: 'rgba(255,255,255,0.95)', fontSize: 11, fontWeight: '600' },
+  participantPill: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    zIndex: 1,
+  },
+  participantPillCompact: {
+    top: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    gap: 3,
+  },
+  participantPillText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });

@@ -158,6 +158,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
         participants: [user.uid],
         eventId: eventRef.id,
         eventTitle: title.trim(),
+        expiresAt: firestore.Timestamp.fromDate(expiresAt),
         createdAt: firestore.FieldValue.serverTimestamp(),
         lastMessage: '',
         lastMessageTime: firestore.FieldValue.serverTimestamp(),
@@ -204,7 +205,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
                 onChangeText={setTitle}
                 placeholder={t.eventsTitlePlaceholder}
                 placeholderTextColor={colors.textMuted}
-                maxLength={100}
+                maxLength={75}
               />
 
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsTimeLabel}</Text>
@@ -300,6 +301,11 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
+              {!meetingLocation && !scheduledTime && (
+                <Text style={[styles.hint, { color: colors.textMuted, marginTop: 6 }]}>
+                  {(t as any).eventsPlaceFallbackHint}
+                </Text>
+              )}
 
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsTagLabel}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRowScroll}>

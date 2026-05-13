@@ -21,12 +21,12 @@ import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import { pickImages } from '../../utils/pickImage';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
-import { Camera as CameraIcon, SendHorizontal as SendIcon } from 'lucide-react-native';
+import { Camera as CameraIcon, SendHorizontal as SendIcon, MessageCircleHeart } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoSimpel from '../../assets/roket-logo-simpel.svg';
 import RoketStars from '../../assets/roket-logo-stars-only.svg';
@@ -253,6 +253,7 @@ export default function ChatScreen({ route, navigation }: any) {
 
   const unsubscribeRef = useRef<(() => void) | undefined>();
   const chatCreatedRef = useRef(false);
+  const chatExpiresAtRef = useRef<FirebaseFirestoreTypes.Timestamp | null>(null);
 
   const startListener = () => {
     if (unsubscribeRef.current || !currentUser) return;
@@ -322,6 +323,7 @@ export default function ChatScreen({ route, navigation }: any) {
         const chatDoc = await firestore().collection('chats').doc(chatId).get();
         if (chatDoc.exists) {
           chatCreatedRef.current = true;
+          chatExpiresAtRef.current = chatDoc.data()?.expiresAt ?? null;
           startListener();
           return;
         }
@@ -407,6 +409,7 @@ export default function ChatScreen({ route, navigation }: any) {
       senderId: currentUser.uid,
       text,
       timestamp: firestore.FieldValue.serverTimestamp(),
+      ...(chatExpiresAtRef.current ? { expiresAt: chatExpiresAtRef.current } : {}),
     });
 
     await chatRef.set(
@@ -436,6 +439,7 @@ export default function ChatScreen({ route, navigation }: any) {
           senderId: currentUser.uid,
           moderated: false,
           timestamp: firestore.FieldValue.serverTimestamp(),
+          ...(chatExpiresAtRef.current ? { expiresAt: chatExpiresAtRef.current } : {}),
         });
 
         const ref = storage().ref(`chatImages/${chatId}/${messageRef.id}.jpg`);
@@ -882,7 +886,10 @@ export default function ChatScreen({ route, navigation }: any) {
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{isEventChat ? t.chatSayHiGroup : t.chatSayHi(otherUser.displayName)}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{isEventChat ? t.chatSayHiGroup : t.chatSayHi(otherUser.displayName)}</Text>
+                  <MessageCircleHeart size={18} color={colors.textMuted} />
+                </View>
               </View>
             }
           />
@@ -1068,7 +1075,8 @@ const styles = StyleSheet.create({
   },
   emptyGreeting: {
     fontSize: 16,
-    marginBottom: 32,
+    lineHeight: 18,
+    marginBottom: 1,
   },
   tipsContainer: {
     gap: 10,

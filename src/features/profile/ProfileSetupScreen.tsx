@@ -252,7 +252,7 @@ export default function ProfileSetupScreen() {
             }}
             placeholder={t.setupStatusLabel}
             placeholderTextColor="rgba(255,255,255,0.5)"
-            maxLength={80}
+            maxLength={75}
           />
           <View style={styles.chipRow}>
             {statusOptions.map((opt, i) => (

@@ -24,6 +24,8 @@ import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
 import PhotoGalleryModal from './PhotoGalleryModal';
 import { MessageSquare as MessageIcon, MessagesSquare as MessagesIcon, MapPin } from 'lucide-react-native';
+import TagIcon from '../../components/TagIcon';
+import { StatusTagId } from '../../statusTags';
 import MaskedView from '@react-native-masked-view/masked-view';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 
@@ -33,6 +35,7 @@ interface RouteParams {
     displayName: string;
     bio: string;
     status?: string;
+    statusTag?: StatusTagId | null;
     photoURL: string | null;
     distance?: number;
     lastSeen?: number; // millisekunder siden epoch
@@ -247,6 +250,14 @@ export default function ProfileViewScreen({ route, navigation }: any) {
         <View style={[styles.infoContainer, { backgroundColor: colors.white }]}>
           {user.status ? (
             <Text style={[styles.name, { color: colors.textPrimary }]}>{user.status}</Text>
+          ) : null}
+          {user.statusTag ? (
+            <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
+              <TagIcon tag={user.statusTag} size={14} color="#fff" />
+              <Text style={styles.tagPillText}>
+                {String((t as any)[`tag${user.statusTag.charAt(0).toUpperCase() + user.statusTag.slice(1)}`] ?? user.statusTag)}
+              </Text>
+            </View>
           ) : null}
 
           {user.lastSeen !== undefined && formatLastSeen(user.lastSeen) !== '' && (
@@ -509,6 +520,21 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 6,
+  },
+  tagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginBottom: 10,
+    gap: 5,
+  },
+  tagPillText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   onlineStatus: {
     fontSize: 14,

@@ -425,7 +425,7 @@ export default function EditProfileScreen({ navigation }: any) {
                 onChangeText={setStatus}
                 placeholder={t.editProfileStatusPlaceholder}
                 placeholderTextColor={colors.textMuted}
-                maxLength={80}
+                maxLength={75}
                 autoCorrect={false}
               />
             </View>

@@ -19,6 +19,8 @@ import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
 import PhotoGalleryModal from './PhotoGalleryModal';
 import { MapPin } from 'lucide-react-native';
+import TagIcon from '../../components/TagIcon';
+import { StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 
 export default function MyProfileScreen({ navigation }: any) {
@@ -27,6 +29,7 @@ export default function MyProfileScreen({ navigation }: any) {
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [status, setStatus] = useState('');
+  const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [age, setAge] = useState<number | null>(null);
   const [gender, setGender] = useState<string | null>(null);
@@ -87,6 +90,7 @@ export default function MyProfileScreen({ navigation }: any) {
             setDisplayName(data.displayName ?? '');
             setBio(data.bio ?? '');
             setStatus(data.status ?? '');
+            setStatusTag(data.statusTag ?? null);
             setPhotoURL(data.photoURL ?? null);
             if (data.birthday && data.showAge !== false) {
               const today = new Date();
@@ -176,6 +180,14 @@ export default function MyProfileScreen({ navigation }: any) {
         <View style={[styles.infoContainer, { backgroundColor: colors.white }]}>
           {status ? (
             <Text style={[styles.name, { color: colors.textPrimary }]}>{status}</Text>
+          ) : null}
+          {statusTag ? (
+            <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
+              <TagIcon tag={statusTag} size={14} color="#fff" />
+              <Text style={styles.tagPillText}>
+                {String((t as any)[`tag${statusTag.charAt(0).toUpperCase() + statusTag.slice(1)}`] ?? statusTag)}
+              </Text>
+            </View>
           ) : null}
 
           {lastSeen !== null && formatLastSeen(lastSeen) !== '' && (
@@ -305,6 +317,21 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 6,
+  },
+  tagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginBottom: 10,
+    gap: 5,
+  },
+  tagPillText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   onlineStatus: {
     fontSize: 14,
