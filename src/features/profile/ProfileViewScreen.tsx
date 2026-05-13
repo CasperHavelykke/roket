@@ -78,7 +78,6 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   const [reportText, setReportText] = useState('');
   const [showGallery, setShowGallery] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
   const [hasConversation, setHasConversation] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -195,100 +194,134 @@ export default function ProfileViewScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}>
-        <View style={styles.photoContainer}>
-          {allPhotos.length > 1 ? (
-            <View style={[styles.photoCarousel, { width: photoSize, height: photoSize }]}>
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                bounces={false}
-                onMomentumScrollEnd={(e) => {
-                  setCurrentPhotoIndex(Math.round(e.nativeEvent.contentOffset.x / photoSize));
-                }}
-              >
-                {allPhotos.map((uri, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    activeOpacity={0.9}
-                    onPress={() => { setGalleryIndex(i); setShowGallery(true); }}
-                  >
-                    <Image source={{ uri }} style={{ width: photoSize, height: photoSize }} resizeMode="cover" />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-              <View style={styles.photoCountBadge} pointerEvents="none">
-                <Text style={styles.photoCountText}>{currentPhotoIndex + 1}/{allPhotos.length}</Text>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 + insets.bottom }]}>
+        {(() => {
+          const hasStatus = !!user.status?.trim();
+          const hasTag = !!user.statusTag;
+          const hasBio = !!user.bio?.trim();
+          const hasPhotos = allPhotos.length > 0;
+          const hasName = !!user.displayName;
+          const hasAge = user.age != null;
+          const lastSeenText = user.lastSeen !== undefined ? formatLastSeen(user.lastSeen) : '';
+          const distanceText = locationGranted && user.distance !== undefined ? formatDistance(user.distance) : '';
+          const hasDistance = !!distanceText;
+          const hasLastSeen = !!lastSeenText;
+          const hasIdentityFooter = hasName || hasAge || hasDistance || hasLastSeen;
+          const isEmpty = !hasStatus && !hasTag && !hasBio && !hasPhotos;
+          const initials = (() => {
+            if (!hasName) return '';
+            const parts = user.displayName.trim().split(/\s+/).slice(0, 2);
+            return parts.map(p => p.charAt(0).toUpperCase()).join('');
+          })();
+
+          if (isEmpty) {
+            return (
+              <View style={styles.emptyProfileWrap}>
+                <RoketLogo width={120} height={120} fill={colors.cardBackgroundIcon} />
+                <Text style={[styles.emptyProfileText, { color: colors.textMuted }]}>
+                  {((t as any).profileEmptyState ?? 'Brugeren arbejder på sin profil')}
+                </Text>
+                {showTestBadges && user.testAccount && (
+                  <View style={[styles.testDisclaimer, { backgroundColor: colors.card, borderColor: colors.borderLight, marginTop: 20 }]}>
+                    <Text style={[styles.testDisclaimerText, { color: colors.textSecondary }]}>{t.testAccountDisclaimer}</Text>
+                  </View>
+                )}
               </View>
-            </View>
-          ) : (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => allPhotos.length > 0 && setShowGallery(true)}
-              disabled={allPhotos.length === 0}
-            >
-              {user.photoURL ? (
-                <Image
-                  source={{ uri: user.photoURL }}
-                  style={[styles.photo, { width: photoSize, height: photoSize }]}
-                />
-              ) : (
-                <View style={[styles.photo, styles.photoFallback, { width: photoSize, height: photoSize, backgroundColor: colors.cardBackground }]}>
-                  <RoketLogo width={photoSize * 0.5} height={photoSize * 0.5} fill={colors.cardBackgroundIcon} />
+            );
+          }
+
+          return (
+            <>
+              {hasStatus && (
+                <View style={styles.statusQuoteWrap}>
+                  <View style={styles.statusAccent}>
+                    <GradientView
+                      colors={[colors.primaryBlue, colors.primaryRed]}
+                      start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                      style={styles.statusAccentFill}
+                    />
+                  </View>
+                  <Text style={[styles.statusQuote, { color: colors.textPrimary }]}>
+                    {'“'}{user.status}{'”'}
+                  </Text>
                 </View>
               )}
-            </TouchableOpacity>
-          )}
-          {showTestBadges && user.testAccount && (
-            <View style={styles.testBadge}>
-              <Text style={styles.testBadgeText}>{t.testAccount}</Text>
-            </View>
-          )}
-        </View>
 
-        <View style={[styles.infoContainer, { backgroundColor: colors.white }]}>
-          {user.status ? (
-            <Text style={[styles.name, { color: colors.textPrimary }]}>{user.status}</Text>
-          ) : null}
-          {user.statusTag ? (
-            <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
-              <TagIcon tag={user.statusTag} size={14} color="#fff" />
-              <Text style={styles.tagPillText}>
-                {String((t as any)[`tag${user.statusTag.charAt(0).toUpperCase() + user.statusTag.slice(1)}`] ?? user.statusTag)}
-              </Text>
-            </View>
-          ) : null}
+              {hasTag && (
+                <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
+                  <TagIcon tag={user.statusTag!} size={14} color="#fff" />
+                  <Text style={styles.tagPillText}>
+                    {String((t as any)[`tag${user.statusTag!.charAt(0).toUpperCase() + user.statusTag!.slice(1)}`] ?? user.statusTag)}
+                  </Text>
+                </View>
+              )}
 
-          {user.lastSeen !== undefined && formatLastSeen(user.lastSeen) !== '' && (
-            <Text style={[styles.onlineStatus, { color: colors.offline }]}>
-              {formatLastSeen(user.lastSeen)}
-            </Text>
-          )}
+              {hasPhotos && (
+                <View style={styles.photoGrid}>
+                  {allPhotos.map((uri, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      activeOpacity={0.9}
+                      style={styles.photoSlot}
+                      onPress={() => { setGalleryIndex(i); setShowGallery(true); }}
+                    >
+                      <Image source={{ uri }} style={styles.photoSlotImg} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
-          {user.bio ? (
-            <View style={[styles.bioContainer, (user.status || (user.lastSeen !== undefined && formatLastSeen(user.lastSeen) !== '')) && { borderTopColor: colors.borderLight, borderTopWidth: 1 }]}>
-              <Text style={[styles.bio, { color: colors.textPrimary }]}>{user.bio}</Text>
-            </View>
-          ) : null}
+              {hasBio && (
+                <View style={styles.aboutSection}>
+                  <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{(t as any).descriptionLabel ?? t.editProfileBioLabel ?? 'OM'}</Text>
+                  <Text style={[styles.bioText, { color: colors.textPrimary }]}>{user.bio}</Text>
+                </View>
+              )}
 
-          <View style={{ marginTop: 12 }}>
-            <Text style={[{ fontSize: 15, color: colors.textMuted }]}>{user.displayName || ''}{user.displayName && user.age ? `, ${user.age}` : user.age ? `${user.age}` : ''}</Text>
-            {locationGranted && user.distance !== undefined && formatDistance(user.distance) !== '' && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                <MapPin size={13} color={colors.textMuted} />
-                <Text style={[{ fontSize: 13, color: colors.textMuted }]}>{formatDistance(user.distance)}</Text>
-              </View>
-            )}
-          </View>
-        </View>
+              {hasIdentityFooter && (
+                <View style={[styles.identityFooter, { borderTopColor: colors.borderLight }]}>
+                  <View style={styles.identityLeft}>
+                    {initials ? (
+                      <GradientView
+                        colors={[colors.primaryBlue, colors.primaryRed]}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                        style={styles.identityAvatar}
+                      >
+                        <Text style={styles.identityAvatarText}>{initials}</Text>
+                      </GradientView>
+                    ) : (
+                      <View style={[styles.identityAvatar, { backgroundColor: colors.cardBackground }]}>
+                        <RoketLogo width={14} height={14} fill={colors.cardBackgroundIcon} />
+                      </View>
+                    )}
+                    <View style={styles.identityText}>
+                      {(hasName || hasAge) && (
+                        <Text style={[styles.identityName, { color: colors.textPrimary }]}>
+                          {user.displayName || ''}{user.displayName && hasAge ? `, ${user.age}` : hasAge ? `${user.age}` : ''}
+                        </Text>
+                      )}
+                      {hasLastSeen && (
+                        <Text style={[styles.identityMeta, { color: colors.textMuted }]}>{lastSeenText}</Text>
+                      )}
+                    </View>
+                  </View>
+                  {hasDistance && (
+                    <View style={styles.identityDistance}>
+                      <MapPin size={13} color={colors.textMuted} />
+                      <Text style={[styles.identityDistanceText, { color: colors.textMuted }]}>{distanceText}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
 
-        {showTestBadges && user.testAccount && (
-          <View style={[styles.testDisclaimer, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
-            <Text style={[styles.testDisclaimerText, { color: colors.textSecondary }]}>{t.testAccountDisclaimer}</Text>
-          </View>
-        )}
-
+              {showTestBadges && user.testAccount && (
+                <View style={[styles.testDisclaimer, { backgroundColor: colors.card, borderColor: colors.borderLight }]}>
+                  <Text style={[styles.testDisclaimerText, { color: colors.textSecondary }]}>{t.testAccountDisclaimer}</Text>
+                </View>
+              )}
+            </>
+          );
+        })()}
       </ScrollView>
 
       {!fromChat && (
@@ -461,7 +494,120 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 40,
+  },
+  emptyProfileWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 120,
+    paddingHorizontal: 24,
+    gap: 24,
+  },
+  emptyProfileText: {
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  statusQuoteWrap: {
+    flexDirection: 'row',
+    paddingTop: 8,
+    paddingBottom: 18,
+    paddingLeft: 8,
+  },
+  statusAccent: {
+    width: 3,
+    marginRight: 16,
+    borderRadius: 100,
+    overflow: 'hidden',
+  },
+  statusAccentFill: { flex: 1 },
+  statusQuote: {
+    flex: 1,
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '400',
+    fontStyle: 'italic',
+    letterSpacing: -0.3,
+  },
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 24,
+  },
+  photoSlot: {
+    width: '31.5%',
+    aspectRatio: 1,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  photoSlotImg: { width: '100%', height: '100%' },
+  aboutSection: {
+    marginTop: 28,
+  },
+  aboutLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  bioText: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  identityFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 32,
+    paddingTop: 20,
+    borderTopWidth: 1,
+  },
+  identityLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    minWidth: 0,
+  },
+  identityAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  identityAvatarText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  identityText: {
+    flex: 1,
+  },
+  identityName: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  identityMeta: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  identityDistance: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+    marginLeft: 12,
+  },
+  identityDistanceText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   photoContainer: {
     alignItems: 'center',

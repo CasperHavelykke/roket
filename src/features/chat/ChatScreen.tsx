@@ -820,6 +820,8 @@ export default function ChatScreen({ route, navigation }: any) {
                 user: {
                   id: otherUser.id,
                   displayName: data.displayName,
+                  status: data.status || '',
+                  statusTag: data.statusTag ?? null,
                   bio: data.bio || '',
                   photoURL: data.photoURL || null,
                   lastSeen: data.lastSeen?.toDate?.()?.getTime(),
