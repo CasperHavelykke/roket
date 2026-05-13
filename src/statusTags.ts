@@ -8,7 +8,11 @@ export type StatusTagId =
   | 'gaming'
   | 'bored'
   | 'food'
-  | 'walk';
+  | 'walk'
+  | 'music'
+  | 'art'
+  | 'shopping'
+  | 'hike';
 
 export interface StatusTag {
   id: StatusTagId;
@@ -26,6 +30,10 @@ export const STATUS_TAGS: StatusTag[] = [
   { id: 'bored', emoji: '😴' },
   { id: 'food', emoji: '🍽️' },
   { id: 'walk', emoji: '🚶' },
+  { id: 'music', emoji: '🎵' },
+  { id: 'art', emoji: '🎨' },
+  { id: 'shopping', emoji: '🛍️' },
+  { id: 'hike', emoji: '🥾' },
 ];
 
 export function getStatusTag(id: string | null | undefined): StatusTag | null {

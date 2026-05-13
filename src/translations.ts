@@ -94,6 +94,10 @@ const da = {
   tagBored: 'Keder mig',
   tagFood: 'Mad',
   tagWalk: 'Gåtur',
+  tagMusic: 'Musik',
+  tagArt: 'Kunst',
+  tagShopping: 'Shopping',
+  tagHike: 'Vandring',
   tagPickerLabel: 'Aktivitet',
 
   // Events / open invitations
@@ -564,6 +568,10 @@ const en: typeof da = {
   tagBored: 'Bored',
   tagFood: 'Food',
   tagWalk: 'Walk',
+  tagMusic: 'Music',
+  tagArt: 'Art',
+  tagShopping: 'Shopping',
+  tagHike: 'Hike',
   tagPickerLabel: 'Activity',
 
   // Events / open invitations
@@ -1034,6 +1042,10 @@ const es: typeof da = {
   tagBored: 'Aburrido',
   tagFood: 'Comida',
   tagWalk: 'Paseo',
+  tagMusic: 'Música',
+  tagArt: 'Arte',
+  tagShopping: 'Compras',
+  tagHike: 'Senderismo',
   tagPickerLabel: 'Actividad',
 
   // Events / open invitations
@@ -1504,6 +1516,10 @@ const de: typeof da = {
   tagBored: 'Gelangweilt',
   tagFood: 'Essen',
   tagWalk: 'Spaziergang',
+  tagMusic: 'Musik',
+  tagArt: 'Kunst',
+  tagShopping: 'Shopping',
+  tagHike: 'Wandern',
   tagPickerLabel: 'Aktivität',
 
   // Events / open invitations
@@ -1974,6 +1990,10 @@ const fr: typeof da = {
   tagBored: 'Je m\'ennuie',
   tagFood: 'Manger',
   tagWalk: 'Promenade',
+  tagMusic: 'Musique',
+  tagArt: 'Art',
+  tagShopping: 'Shopping',
+  tagHike: 'Randonnée',
   tagPickerLabel: 'Activité',
 
   // Events / open invitations
@@ -2444,6 +2464,10 @@ const pt: typeof da = {
   tagBored: 'Entediado',
   tagFood: 'Comida',
   tagWalk: 'Passeio',
+  tagMusic: 'Música',
+  tagArt: 'Arte',
+  tagShopping: 'Compras',
+  tagHike: 'Caminhada',
   tagPickerLabel: 'Atividade',
 
   // Events / open invitations

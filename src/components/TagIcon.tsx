@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Coffee, BookOpen, Dumbbell, PartyPopper, Globe, Beer,
   Gamepad2, Moon, Utensils, Footprints,
+  Music, Palette, ShoppingBag, Mountain,
 } from 'lucide-react-native';
 import { StatusTagId } from '../statusTags';
 
@@ -23,6 +24,10 @@ const ICON_MAP: Record<StatusTagId, React.ComponentType<any>> = {
   bored: Moon,
   food: Utensils,
   walk: Footprints,
+  music: Music,
+  art: Palette,
+  shopping: ShoppingBag,
+  hike: Mountain,
 };
 
 export default function TagIcon({ tag, size = 16, color, strokeWidth = 2 }: TagIconProps) {

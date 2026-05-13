@@ -136,6 +136,12 @@ service cloud.firestore {
       allow create: if request.auth != null &&
                        request.auth.uid in request.resource.data.participants;
 
+      // Staff kan oprette chats (admin-panel events)
+      allow create: if isStaff();
+
+      // Staff kan opdatere chat-felter (admin-panel events: eventTitle, eventTag, expiresAt)
+      allow update: if isStaff();
+
       // Kun deltagere kan opdatere (lastMessage, lastMessageTime)
       allow update: if request.auth != null &&
                        request.auth.uid in resource.data.participants &&
@@ -200,9 +206,15 @@ service cloud.firestore {
                        (!('description' in request.resource.data) || (request.resource.data.description is string && request.resource.data.description.size() <= 500)) &&
                        (!('meetingPlace' in request.resource.data) || (request.resource.data.meetingPlace is string && request.resource.data.meetingPlace.size() <= 100));
 
+      // Staff kan oprette events på vegne af enhver bruger (admin-panel)
+      allow create: if isStaff();
+
       // Creator kan opdatere alle felter, andre kan kun ændre participantIds (join/leave)
       allow update: if request.auth != null &&
                        request.auth.uid == resource.data.creatorId;
+
+      // Staff kan opdatere alle felter (admin-panel redigering)
+      allow update: if isStaff();
       allow update: if request.auth != null &&
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantIds']) &&
                        (

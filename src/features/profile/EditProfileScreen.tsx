@@ -22,13 +22,9 @@ import storage from '@react-native-firebase/storage';
 import pickImage from '../../utils/pickImage';
 import getFirebaseError from '../../utils/getFirebaseError';
 import { useTheme } from '../../theme';
-import { Camera as CameraIcon } from 'lucide-react-native';
-import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { STATUS_TAGS, StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import TagIcon from '../../components/TagIcon';
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export default function EditProfileScreen({ navigation }: any) {
   const { colors, isDark, t, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit } = useTheme();
@@ -49,27 +45,19 @@ export default function EditProfileScreen({ navigation }: any) {
   const [photos, setPhotos] = useState<string[]>([]);
   const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
   const currentUser = auth().currentUser;
-  const MAX_EXTRA_PHOTOS = 5;
 
-  const pulseAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (photoURL) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.delay(200),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [photoURL]);
+  const hasAnyPhoto = !!photoURL || (photos && photos.length > 0);
+  const PROFILE_STEPS = 4;
+  const profileCompletion = (hasAnyPhoto ? 1 : 0) + (status.trim() ? 1 : 0) + (statusTag ? 1 : 0) + (bio.trim() ? 1 : 0);
+  const profilePercent = Math.round((profileCompletion / PROFILE_STEPS) * 100);
 
-  const profileCompletion = (photoURL ? 1 : 0) + (status.trim() ? 1 : 0) + (bio.trim() ? 1 : 0);
-
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(progressAnim, { toValue: profileCompletion, duration: 500, useNativeDriver: false }).start();
-  }, [profileCompletion]);
+  // 6 slots: slot 0 = photoURL, slots 1-5 = photos[0-4]
+  const slotPhotos: (string | null)[] = [
+    photoURL,
+    ...Array.from({ length: 5 }, (_, i) => photos[i] ?? null),
+  ];
+  const filledSlots = slotPhotos.filter(Boolean).length;
+  const firstEmptyIdx = slotPhotos.findIndex(p => !p);
 
   const fieldPulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -130,7 +118,6 @@ export default function EditProfileScreen({ navigation }: any) {
           dataLoaded.current = true;
           nameHighlight.setValue((data.status ?? '').trim() ? 0 : 1);
           bioHighlight.setValue((data.bio ?? '').trim() ? 0 : 1);
-          progressAnim.setValue((data.photoURL ? 1 : 0) + ((data.status ?? '').trim() ? 1 : 0) + ((data.bio ?? '').trim() ? 1 : 0));
 
           // Vis alert hvis et billede blev afvist af moderation
           if (data.photoRejected) {
@@ -150,80 +137,41 @@ export default function EditProfileScreen({ navigation }: any) {
 
   if (!currentUser) return null;
 
-  const pickAndUploadPhoto = async () => {
+  // Upload til en specifik slot (0 = photoURL, 1-5 = photos[0-4])
+  const uploadToSlot = async (slotIdx: number) => {
     const uri = await pickImage();
     if (!uri) return;
 
-    setUploading(true);
+    const isPrimary = slotIdx === 0;
+    if (isPrimary) setUploading(true);
+    else setUploadingExtra(true);
     try {
-      const ref = storage().ref(`profilePhotos/${currentUser.uid}.jpg`);
+      const refPath = isPrimary
+        ? `profilePhotos/${currentUser.uid}.jpg`
+        : `profilePhotos/${currentUser.uid}_extra_${slotIdx - 1}.jpg`;
+      const ref = storage().ref(refPath);
       await ref.putFile(uri);
       const url = await ref.getDownloadURL();
 
-      await firestore().collection('users').doc(currentUser.uid).update({
-        photoURL: url,
-      });
-
-      setPhotoURL(url);
+      if (isPrimary) {
+        await firestore().collection('users').doc(currentUser.uid).update({ photoURL: url });
+        setPhotoURL(url);
+      } else {
+        const updated = [...photos];
+        updated[slotIdx - 1] = url;
+        await firestore().collection('users').doc(currentUser.uid).update({ photos: updated });
+        setPhotos(updated);
+      }
     } catch (error: any) {
       Alert.alert(t.error, getFirebaseError(error, t));
     } finally {
-      setUploading(false);
+      if (isPrimary) setUploading(false);
+      else setUploadingExtra(false);
     }
   };
 
-  const handleRemovePhoto = async () => {
-    setUploading(true);
-    try {
-      await firestore().collection('users').doc(currentUser.uid).update({
-        photoURL: null,
-      });
-      storage().ref(`profilePhotos/${currentUser.uid}.jpg`).delete().catch(() => {});
-      setPhotoURL(null);
-    } catch (error: any) {
-      Alert.alert(t.error, getFirebaseError(error, t));
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleChangePhoto = () => {
-    if (photoURL) {
-      Alert.alert(t.editProfileTitle, undefined, [
-        { text: t.editProfileChangePhoto, onPress: pickAndUploadPhoto },
-        { text: t.editProfileRemovePhoto, style: 'destructive', onPress: handleRemovePhoto },
-        { text: t.cancel, style: 'cancel' },
-      ]);
-    } else {
-      pickAndUploadPhoto();
-    }
-  };
-
-  const handleAddExtraPhoto = async () => {
-    if (photos.length >= MAX_EXTRA_PHOTOS) return;
-    const uri = await pickImage();
-    if (!uri) return;
-
-    setUploadingExtra(true);
-    try {
-      const index = photos.length;
-      const ref = storage().ref(`profilePhotos/${currentUser.uid}_extra_${index}.jpg`);
-      await ref.putFile(uri);
-      const url = await ref.getDownloadURL();
-
-      const updated = [...photos, url];
-      await firestore().collection('users').doc(currentUser.uid).update({
-        photos: updated,
-      });
-      setPhotos(updated);
-    } catch (error: any) {
-      Alert.alert(t.error, getFirebaseError(error, t));
-    } finally {
-      setUploadingExtra(false);
-    }
-  };
-
-  const handleRemoveExtraPhoto = (index: number) => {
+  // Fjern fra slot — kompakter ved at flytte efterfølgende slots
+  const handleRemoveSlot = (slotIdx: number) => {
     Alert.alert(t.delete, undefined, [
       {
         text: t.remove,
@@ -231,13 +179,22 @@ export default function EditProfileScreen({ navigation }: any) {
         onPress: async () => {
           setUploadingExtra(true);
           try {
-            const removedUrl = photos[index];
-            const updated = photos.filter((_, i) => i !== index);
+            const allUrls = slotPhotos.filter((p): p is string => !!p);
+            const removedUrl = slotPhotos[slotIdx];
+            const remaining = allUrls.filter((_, i) => (slotIdx === 0 ? i !== 0 : slotPhotos.indexOf(allUrls[i]) !== slotIdx));
+            // Simpler: rebuild from slotPhotos minus the slot
+            const newSlots = slotPhotos.filter((_, i) => i !== slotIdx);
+            const newPhotoURL = newSlots[0] ?? null;
+            const newPhotos = newSlots.slice(1).filter((p): p is string => !!p);
+
             await firestore().collection('users').doc(currentUser.uid).update({
-              photos: updated,
+              photoURL: newPhotoURL,
+              photos: newPhotos,
             });
             if (removedUrl) storage().refFromURL(removedUrl).delete().catch(() => {});
-            setPhotos(updated);
+            setPhotoURL(newPhotoURL);
+            setPhotos(newPhotos);
+            void remaining; // unused, kept for clarity
           } catch (error: any) {
             Alert.alert(t.error, getFirebaseError(error, t));
           } finally {
@@ -247,6 +204,20 @@ export default function EditProfileScreen({ navigation }: any) {
       },
       { text: t.cancel, style: 'cancel' },
     ]);
+  };
+
+  // Tap på en slot: tom → upload til den slot, fyldt → vis replace/remove
+  const handleSlotPress = (slotIdx: number) => {
+    const current = slotPhotos[slotIdx];
+    if (current) {
+      Alert.alert(t.editProfileTitle, undefined, [
+        { text: t.editProfileChangePhoto, onPress: () => uploadToSlot(slotIdx) },
+        { text: t.editProfileRemovePhoto, style: 'destructive', onPress: () => handleRemoveSlot(slotIdx) },
+        { text: t.cancel, style: 'cancel' },
+      ]);
+    } else {
+      uploadToSlot(slotIdx);
+    }
   };
 
   const handleSave = async () => {
@@ -290,93 +261,53 @@ export default function EditProfileScreen({ navigation }: any) {
         behavior="padding"
       >
         <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 20 + insets.bottom }]}>
-          <TouchableOpacity onPress={handleChangePhoto} style={styles.photoContainer}>
-            {(() => {
-              const size = 134;
-              const strokeW = 3.5;
-              const r = (size - strokeW) / 2;
-              const circumference = 2 * Math.PI * r;
-              const animatedOffset = progressAnim.interpolate({
-                inputRange: [0, 3],
-                outputRange: [circumference, 0],
-              });
-              return (
-                <Svg width={size} height={size} style={styles.progressRing}>
-                  <Defs>
-                    <SvgGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-                      <Stop offset="0" stopColor={colors.primaryBlue} />
-                      <Stop offset="1" stopColor={colors.primaryRed} />
-                    </SvgGradient>
-                  </Defs>
-                  <Circle
-                    cx={size / 2} cy={size / 2} r={r}
-                    stroke={isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)'}
-                    strokeWidth={strokeW} fill="none"
-                  />
-                  <AnimatedCircle
-                    cx={size / 2} cy={size / 2} r={r}
-                    stroke="url(#ringGrad)"
-                    strokeWidth={strokeW} fill="none"
-                    strokeDasharray={`${circumference}`}
-                    strokeDashoffset={animatedOffset}
-                    strokeLinecap="round"
-                    rotation="-90" origin={`${size / 2}, ${size / 2}`}
-                  />
-                </Svg>
-              );
-            })()}
-            {photoURL ? (
-              <Image source={{ uri: photoURL }} style={styles.photo} />
-            ) : (
-              <View style={[styles.photo, styles.photoFallback, { backgroundColor: colors.cardBackground }]}>
-                <RoketLogo width={56} height={56} fill={colors.cardBackgroundIcon} />
+          {/* Profil-komplethed progress bar */}
+          <View style={styles.progressBarSection}>
+            <View style={[styles.progressBarTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }]}>
+              <View style={[styles.progressBarFill, { width: `${profilePercent}%` }]}>
+                <GradientView
+                  colors={[colors.primaryBlue, colors.primaryRed]}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={{ flex: 1, borderRadius: 3 }}
+                />
               </View>
-            )}
-            {uploading && (
-              <GradientView
-                colors={[colors.primaryBlue, colors.primaryRed]}
-                style={[styles.photoPlaceholder, { position: 'absolute', opacity: 0.7 }]}
-              >
-                <ActivityIndicator color={colors.textWhite} />
-              </GradientView>
-            )}
-            <View style={[styles.editBadge, { backgroundColor: colors.white }]}>
-              {!photoURL && (
-                <Animated.View style={[styles.cameraPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.8, 0] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.4] }) }] }]} />
-              )}
-              <CameraIcon size={16} color={colors.primaryBlueText} />
             </View>
-          </TouchableOpacity>
+            <Text style={[styles.progressBarPercent, { color: colors.textMuted }]}>{profilePercent}%</Text>
+          </View>
 
-          <Text style={styles.photoHint}>{t.editProfilePhotoHint}</Text>
-          <Text style={[styles.photoGuideline, { color: colors.textMuted }]}>{t.photoGuideline}</Text>
-
-          <View style={styles.extraPhotosSection}>
+          <View style={styles.photoSection}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>
-              {t.editProfilePhotos} <Text style={{ fontWeight: '400' }}>({t.editProfilePhotosDesc(photos.length, MAX_EXTRA_PHOTOS)})</Text>
+              {t.editProfilePhotos} <Text style={{ fontWeight: '400' }}>({filledSlots}/6)</Text>
             </Text>
-            {!photoURL && photos.length > 0 && (
-              <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: 10 }}>{t.editProfilePhotosHidden}</Text>
-            )}
-            <View style={styles.extraPhotosGrid}>
-              {photos.map((url, i) => (
-                <TouchableOpacity key={i} onPress={() => handleRemoveExtraPhoto(i)} style={styles.extraPhotoSlot}>
-                  <Image source={{ uri: url }} style={styles.extraPhotoImage} />
-                  <View style={[styles.removePhotoOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-                    <Text style={styles.removePhotoText}>✕</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-              {photos.length < MAX_EXTRA_PHOTOS && (
-                <TouchableOpacity
-                  onPress={handleAddExtraPhoto}
-                  style={[styles.extraPhotoSlot, styles.addPhotoSlot, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}
-                  disabled={uploadingExtra}
-                >
-                  <Text style={[styles.addPhotoIcon, { color: colors.textMuted }]}>+</Text>
-                  <Text style={[styles.addPhotoLabel, { color: colors.textMuted }]}>{t.editProfileAddPhoto}</Text>
-                </TouchableOpacity>
-              )}
+            <View style={styles.slotsGrid}>
+              {slotPhotos.map((url, i) => {
+                const isFilled = !!url;
+                const isFirstEmpty = !isFilled && i === firstEmptyIdx;
+                const isInactive = !isFilled && !isFirstEmpty;
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => handleSlotPress(i)}
+                    style={[
+                      styles.photoSlot,
+                      { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground },
+                      isFirstEmpty && { borderColor: colors.primaryBlue, borderStyle: 'solid' },
+                      isInactive && { opacity: 0.4 },
+                    ]}
+                    disabled={uploading || uploadingExtra || isInactive}
+                  >
+                    {isFilled ? (
+                      <Image source={{ uri: url }} style={styles.slotImage} />
+                    ) : isFirstEmpty ? (
+                      <Text style={[styles.slotPlusIcon, { color: colors.primaryBlue }]}>+</Text>
+                    ) : (
+                      <View style={styles.slotPlaceholder}>
+                        <RoketLogo width={28} height={28} fill={colors.cardBackgroundIcon} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -741,6 +672,64 @@ const styles = StyleSheet.create({
   extraPhotosSection: {
     width: '100%',
     marginBottom: 16,
+  },
+  progressBarSection: {
+    alignSelf: 'stretch',
+    marginTop: -16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  progressBarTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    opacity: 0.7,
+  },
+  progressBarPercent: {
+    fontSize: 12,
+    fontWeight: '600',
+    minWidth: 36,
+    textAlign: 'right',
+  },
+  photoSection: {
+    alignSelf: 'stretch',
+    marginBottom: 20,
+  },
+  slotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 8,
+  },
+  photoSlot: {
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  slotImage: {
+    width: '100%',
+    height: '100%',
+  },
+  slotPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  slotPlusIcon: {
+    fontSize: 40,
+    fontWeight: '300',
   },
   extraPhotosGrid: {
     flexDirection: 'row',

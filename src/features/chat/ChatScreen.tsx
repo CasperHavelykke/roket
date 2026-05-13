@@ -26,7 +26,7 @@ import storage from '@react-native-firebase/storage';
 import { pickImages } from '../../utils/pickImage';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
-import { Camera as CameraIcon, SendHorizontal as SendIcon, MessageCircleHeart } from 'lucide-react-native';
+import { Camera as CameraIcon, SendHorizontal as SendIcon, MessageSquareMore } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoSimpel from '../../assets/roket-logo-simpel.svg';
 import RoketStars from '../../assets/roket-logo-stars-only.svg';
@@ -888,7 +888,7 @@ export default function ChatScreen({ route, navigation }: any) {
               <View style={styles.emptyContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{isEventChat ? t.chatSayHiGroup : t.chatSayHi(otherUser.displayName)}</Text>
-                  <MessageCircleHeart size={18} color={colors.textMuted} />
+                  <MessageSquareMore size={18} color={colors.textMuted} />
                 </View>
               </View>
             }
