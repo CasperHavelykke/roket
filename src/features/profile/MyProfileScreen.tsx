@@ -145,7 +145,7 @@ export default function MyProfileScreen({ navigation }: any) {
                   <RoketLogo width={logoSize} height={logoSize} fill={colors.cardBackgroundIcon} />
                 </View>
                 <Text style={[styles.emptyProfileText, { color: colors.textMuted }]}>
-                  {((t as any).profileEmptyStateSelf ?? 'Færdiggør din profil')}
+                  {(t as any).profileEmptyStateSelf}
                 </Text>
                 {showTestBadges && testAccount && (
                   <View style={[styles.testDisclaimer, { backgroundColor: colors.card, borderColor: colors.borderLight, marginTop: 12 }]}>

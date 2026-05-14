@@ -213,7 +213,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
                   <RoketLogo width={logoSize} height={logoSize} fill={colors.cardBackgroundIcon} />
                 </View>
                 <Text style={[styles.emptyProfileText, { color: colors.textMuted }]}>
-                  {((t as any).profileEmptyState ?? 'Brugeren arbejder på sin profil')}
+                  {(t as any).profileEmptyState}
                 </Text>
                 {showTestBadges && user.testAccount && (
                   <View style={[styles.testDisclaimer, { backgroundColor: colors.card, borderColor: colors.borderLight, marginTop: 20 }]}>
