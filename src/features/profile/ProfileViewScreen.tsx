@@ -215,9 +215,12 @@ export default function ProfileViewScreen({ route, navigation }: any) {
           })();
 
           if (isEmpty) {
+            const logoSize = Dimensions.get('window').width * 0.66;
             return (
               <View style={styles.emptyProfileWrap}>
-                <RoketLogo width={120} height={120} fill={colors.cardBackgroundIcon} />
+                <View style={{ opacity: 0.35 }}>
+                  <RoketLogo width={logoSize} height={logoSize} fill={colors.cardBackgroundIcon} />
+                </View>
                 <Text style={[styles.emptyProfileText, { color: colors.textMuted }]}>
                   {((t as any).profileEmptyState ?? 'Brugeren arbejder på sin profil')}
                 </Text>

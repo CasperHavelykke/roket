@@ -360,7 +360,7 @@ export default function EditProfileScreen({ navigation }: any) {
                 autoCorrect={false}
               />
             </View>
-            <Text style={styles.charCount}>{status.length}/80</Text>
+            <Text style={styles.charCount}>{status.length}/75</Text>
 
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t.editProfileBioLabel}</Text>
             <View style={styles.inputWrap}>
@@ -437,15 +437,22 @@ export default function EditProfileScreen({ navigation }: any) {
           </View>
 
           <TouchableOpacity
-            style={[styles.saveButton, { backgroundColor: colors.primaryRed }, saving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={saving}
+            activeOpacity={0.85}
+            style={[{ alignSelf: 'stretch', borderRadius: 12, overflow: 'hidden', marginTop: 8 }, saving && styles.saveButtonDisabled]}
           >
-            {saving ? (
-              <ActivityIndicator color={colors.textWhite} />
-            ) : (
-              <Text style={[styles.saveButtonText, { color: colors.textWhite }]}>{t.editProfileSave}</Text>
-            )}
+            <GradientView
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+              style={styles.saveButton}
+            >
+              {saving ? (
+                <ActivityIndicator color={colors.textWhite} />
+              ) : (
+                <Text style={[styles.saveButtonText, { color: colors.textWhite }]}>{t.editProfileSave}</Text>
+              )}
+            </GradientView>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -656,11 +663,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveButton: {
-    width: '100%',
     paddingVertical: 16,
-    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 8,
   },
   saveButtonDisabled: {
     backgroundColor: '#aaa',
