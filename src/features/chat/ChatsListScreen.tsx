@@ -9,7 +9,10 @@ import {
   Image,
   Animated,
   PanResponder,
+  Dimensions,
 } from 'react-native';
+
+const SCREEN_W = Dimensions.get('window').width;
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../../components/GradientView';
@@ -206,7 +209,7 @@ export default function ChatsListScreen({ navigation }: any) {
             .get();
           const otherUserData = otherUserDoc.data();
           const otherUserName = otherUserData?.displayName ?? t.chatsUnknown;
-          const otherUserPhoto: string | null = otherUserData?.photoURL ?? null;
+          const otherUserPhoto: string | null = otherUserData?.avatarURL ?? null;
           const otherUserTestAccount = otherUserData?.testAccount ?? false;
 
           // Spring over hvis de har blokeret os
@@ -321,6 +324,17 @@ export default function ChatsListScreen({ navigation }: any) {
             <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.cardBackground }]}>
               <TagIcon tag={item.eventTag} size={28} color={colors.cardBackgroundIcon} />
             </View>
+          ) : item.otherUserName ? (
+            <GradientView
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: -16 / 52, y: 0 }}
+              end={{ x: (SCREEN_W - 16) / 52, y: 0 }}
+              style={[styles.avatar, styles.avatarFallback]}
+            >
+              <Text style={styles.avatarInitials}>
+                {item.otherUserName.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('')}
+              </Text>
+            </GradientView>
           ) : (
             <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.cardBackground }]}>
               <RoketLogo width={32} height={32} fill={colors.cardBackgroundIcon} />
@@ -481,6 +495,12 @@ const styles = StyleSheet.create({
   avatarFallback: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarInitials: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.4,
   },
   chatInfo: {
     flex: 1,

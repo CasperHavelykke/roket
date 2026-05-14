@@ -212,7 +212,8 @@ export default function MyProfileScreen({ navigation }: any) {
                     ) : initials ? (
                       <GradientView
                         colors={[colors.primaryBlue, colors.primaryRed]}
-                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                        start={{ x: -20 / 32, y: 0 }}
+                        end={{ x: (Dimensions.get('window').width - 20) / 32, y: 0 }}
                         style={styles.identityAvatar}
                       >
                         <Text style={styles.identityAvatarText}>{initials}</Text>

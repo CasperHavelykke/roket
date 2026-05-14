@@ -231,7 +231,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const [reportMessage, setReportMessage] = useState<Message | null>(null);
   const [eventDoc, setEventDoc] = useState<EventDoc | null>(null);
   const [showEventDetail, setShowEventDetail] = useState(false);
-  const [senderNames, setSenderNames] = useState<Record<string, string>>({});
+  const [senderProfiles, setSenderProfiles] = useState<Record<string, { name: string; avatarURL: string | null }>>({});
   const [reportText, setReportText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const lastTapRef = useRef<{ id: string; time: number }>({ id: '', time: 0 });
@@ -336,24 +336,28 @@ export default function ChatScreen({ route, navigation }: any) {
     return () => unsubscribeRef.current?.();
   }, [chatId]);
 
-  // Hent sender-navne for alle der har sendt beskeder i event-chat
+  // Hent sender-info (navn + avatar) for alle der har sendt beskeder i event-chat
   useEffect(() => {
     if (!isEventChat) return;
     const unknownSenderIds = new Set<string>();
     messages.forEach(m => {
-      if (m.senderId && m.senderId !== currentUser?.uid && !senderNames[m.senderId]) {
+      if (m.senderId && m.senderId !== currentUser?.uid && !senderProfiles[m.senderId]) {
         unknownSenderIds.add(m.senderId);
       }
     });
     if (unknownSenderIds.size === 0) return;
     Promise.all(
       Array.from(unknownSenderIds).map(uid =>
-        firestore().collection('users').doc(uid).get().then(snap => ({ uid, name: snap.data()?.displayName || '' })),
+        firestore().collection('users').doc(uid).get().then(snap => ({
+          uid,
+          name: snap.data()?.displayName || '',
+          avatarURL: snap.data()?.avatarURL ?? null,
+        })),
       ),
     ).then(results => {
-      setSenderNames(prev => {
+      setSenderProfiles(prev => {
         const next = { ...prev };
-        results.forEach(r => { next[r.uid] = r.name; });
+        results.forEach(r => { next[r.uid] = { name: r.name, avatarURL: r.avatarURL }; });
         return next;
       });
     });
@@ -662,9 +666,28 @@ export default function ChatScreen({ route, navigation }: any) {
         // Vis afsendernavn hvis den næste besked i visningen (= ovenfor) er fra en anden afsender
         const showName = !nextMsg || nextMsg.senderId !== item.senderId;
         if (!showName) return null;
-        const name = senderNames[item.senderId] || '...';
+        const profile = senderProfiles[item.senderId];
+        const name = profile?.name || '...';
+        const avatar = profile?.avatarURL;
+        const initials = profile?.name?.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('') || '';
         return (
-          <Text style={[styles.senderName, { color: colors.textSecondary }]}>{name}</Text>
+          <View style={styles.senderRow}>
+            {avatar ? (
+              <Image source={{ uri: avatar }} style={styles.senderAvatar} />
+            ) : initials ? (
+              <GradientView
+                colors={[colors.primaryBlue, colors.primaryRed]}
+                start={{ x: -12 / 18, y: 0 }}
+                end={{ x: (SCREEN_W - 12) / 18, y: 0 }}
+                style={styles.senderAvatar}
+              >
+                <Text style={styles.senderAvatarText}>{initials}</Text>
+              </GradientView>
+            ) : (
+              <View style={[styles.senderAvatar, { backgroundColor: colors.cardBackground }]} />
+            )}
+            <Text style={[styles.senderName, { color: colors.textSecondary }]}>{name}</Text>
+          </View>
         );
       })()}
       <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowThem]}>
@@ -1089,9 +1112,29 @@ const styles = StyleSheet.create({
   senderName: {
     fontSize: 12,
     fontWeight: '600',
-    marginLeft: 16,
-    marginBottom: 2,
+    marginBottom: 0,
+  },
+  senderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 12,
     marginTop: 4,
+    marginBottom: 2,
+  },
+  senderAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  senderAvatarText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   messageRow: {
     marginBottom: 12,
