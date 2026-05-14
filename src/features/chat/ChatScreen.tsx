@@ -232,13 +232,14 @@ export default function ChatScreen({ route, navigation }: any) {
   const [eventDoc, setEventDoc] = useState<EventDoc | null>(null);
   const [showEventDetail, setShowEventDetail] = useState(false);
   const [senderProfiles, setSenderProfiles] = useState<Record<string, { name: string; avatarURL: string | null }>>({});
+  const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [reportText, setReportText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const lastTapRef = useRef<{ id: string; time: number }>({ id: '', time: 0 });
 
-  // Tjek om en af parterne har blokeret den anden
+  // Tjek om en af parterne har blokeret den anden + hent avatarURL til header
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || isEventChat) return;
     const checkBlock = async () => {
       const [myDoc, theirDoc] = await Promise.all([
         firestore().collection('users').doc(currentUser.uid).get(),
@@ -247,6 +248,7 @@ export default function ChatScreen({ route, navigation }: any) {
       const myBlocked: string[] = myDoc.data()?.blockedUsers ?? [];
       const theirBlocked: string[] = theirDoc.data()?.blockedUsers ?? [];
       setBlocked(myBlocked.includes(otherUser.id) || theirBlocked.includes(currentUser.uid));
+      setOtherUserAvatar(theirDoc.data()?.avatarURL ?? null);
     };
     checkBlock();
   }, []);
@@ -809,6 +811,15 @@ export default function ChatScreen({ route, navigation }: any) {
         ) : fromProfile ? (
           <View style={styles.headerInfo}>
             <View style={styles.headerNameRow}>
+              {otherUserAvatar ? (
+                <Image source={{ uri: otherUserAvatar }} style={styles.headerAvatar} />
+              ) : (
+                <View style={[styles.headerAvatar, styles.headerAvatarFallback]}>
+                  <Text style={[styles.headerAvatarInitials, { color: colors.primaryBlueText }]}>
+                    {otherUser.displayName?.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('') || ''}
+                  </Text>
+                </View>
+              )}
               <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>
               {showTestBadges && otherUser.testAccount && <View style={styles.headerTestBadge}><Text style={styles.headerTestBadgeText}>{t.testAccount}</Text></View>}
             </View>
@@ -861,6 +872,15 @@ export default function ChatScreen({ route, navigation }: any) {
             }}
           >
             <View style={styles.headerNameRow}>
+              {otherUserAvatar ? (
+                <Image source={{ uri: otherUserAvatar }} style={styles.headerAvatar} />
+              ) : (
+                <View style={[styles.headerAvatar, styles.headerAvatarFallback]}>
+                  <Text style={[styles.headerAvatarInitials, { color: colors.primaryBlueText }]}>
+                    {otherUser.displayName?.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('') || ''}
+                  </Text>
+                </View>
+              )}
               <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>
               {showTestBadges && otherUser.testAccount && <View style={styles.headerTestBadge}><Text style={styles.headerTestBadgeText}>{t.testAccount}</Text></View>}
             </View>
@@ -1071,6 +1091,22 @@ const styles = StyleSheet.create({
   headerName: {
     fontSize: 18,
     fontWeight: '700',
+  },
+  headerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  headerAvatarFallback: {
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerAvatarInitials: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   headerTestBadge: {
     backgroundColor: 'rgba(255,255,255,0.25)',

@@ -19,7 +19,7 @@ import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
-import { Camera as CameraIcon } from 'lucide-react-native';
+import { Camera as CameraIcon, Calendar as CalendarIcon } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoHeader from '../../assets/roket-logo-simpel.svg';
 import TagIcon from '../../components/TagIcon';
@@ -320,10 +320,17 @@ export default function ChatsListScreen({ navigation }: any) {
         >
           {item.otherUserPhoto ? (
             <Image source={{ uri: item.otherUserPhoto }} style={styles.avatar} />
-          ) : item.isEvent && item.eventTag ? (
-            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.cardBackground }]}>
-              <TagIcon tag={item.eventTag} size={28} color={colors.cardBackgroundIcon} />
-            </View>
+          ) : item.isEvent ? (
+            <GradientView
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: -16 / 52, y: 0 }}
+              end={{ x: (SCREEN_W - 16) / 52, y: 0 }}
+              style={[styles.avatar, styles.avatarFallback]}
+            >
+              {item.eventTag
+                ? <TagIcon tag={item.eventTag} size={26} color="#fff" />
+                : <CalendarIcon size={26} color="#fff" />}
+            </GradientView>
           ) : item.otherUserName ? (
             <GradientView
               colors={[colors.primaryBlue, colors.primaryRed]}

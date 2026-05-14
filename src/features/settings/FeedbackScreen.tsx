@@ -122,7 +122,7 @@ export default function FeedbackScreen({ route, navigation }: any) {
                   ]}>
                     <Text style={[
                       styles.categoryEmojiText,
-                      { color: isActive ? colors.textWhite : colors.primaryBlue },
+                      { color: isActive ? colors.textWhite : colors.primaryBlueText },
                     ]}>
                       {cat.emoji}
                     </Text>

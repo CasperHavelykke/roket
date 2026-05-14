@@ -79,6 +79,7 @@ export default function EventCard({ event, width, compact, tiny, isSingle, cardL
         end={gradientEnd}
         style={StyleSheet.absoluteFill}
       />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.12)' }]} pointerEvents="none" />
       {/* Tag-watermark i baggrunden */}
       {tag && (
         <View style={[styles.watermark, { opacity: 0.18 }]} pointerEvents="none">
