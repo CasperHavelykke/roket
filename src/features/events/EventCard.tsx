@@ -81,8 +81,8 @@ export default function EventCard({ event, width, compact, tiny, isSingle, cardL
       />
       {/* Tag-watermark i baggrunden */}
       {tag && (
-        <View style={styles.watermark} pointerEvents="none">
-          <TagIcon tag={tag.id} size={width * 0.7} color="rgba(255,255,255,0.18)" strokeWidth={1.5} />
+        <View style={[styles.watermark, { opacity: 0.18 }]} pointerEvents="none">
+          <TagIcon tag={tag.id} size={width * 0.7} color="#fff" strokeWidth={1.5} />
         </View>
       )}
 
