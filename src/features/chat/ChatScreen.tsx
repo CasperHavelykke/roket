@@ -824,6 +824,7 @@ export default function ChatScreen({ route, navigation }: any) {
                   statusTag: data.statusTag ?? null,
                   bio: data.bio || '',
                   photoURL: data.photoURL || null,
+                  avatarURL: data.avatarURL || null,
                   lastSeen: data.lastSeen?.toDate?.()?.getTime(),
                   distanceMode: data.distanceMode ?? 'exact',
                   age: data.age,

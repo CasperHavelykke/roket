@@ -33,6 +33,8 @@ export default function EditProfileScreen({ navigation }: any) {
   const [status, setStatus] = useState('');
   const [bio, setBio] = useState('');
   const [photoURL, setPhotoURL] = useState<string | null>(null);
+  const [avatarURL, setAvatarURL] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingExtra, setUploadingExtra] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -93,6 +95,7 @@ export default function EditProfileScreen({ navigation }: any) {
           setStatus(data.status ?? '');
           setBio(data.bio ?? '');
           setPhotoURL(data.photoURL ?? null);
+          setAvatarURL(data.avatarURL ?? null);
           setShowAge(data.showAge !== false);
           setHasBirthday(!!data.birthday);
           setPhotos(data.photos ?? []);
@@ -119,6 +122,48 @@ export default function EditProfileScreen({ navigation }: any) {
   }, []);
 
   if (!currentUser) return null;
+
+  const uploadAvatar = async () => {
+    const uri = await pickImage();
+    if (!uri) return;
+    setUploadingAvatar(true);
+    try {
+      const ref = storage().ref(`profileAvatars/${currentUser.uid}.jpg`);
+      await ref.putFile(uri);
+      const url = await ref.getDownloadURL();
+      await firestore().collection('users').doc(currentUser.uid).update({ avatarURL: url });
+      setAvatarURL(url);
+    } catch (error: any) {
+      Alert.alert(t.error, getFirebaseError(error, t));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const removeAvatar = async () => {
+    setUploadingAvatar(true);
+    try {
+      await firestore().collection('users').doc(currentUser.uid).update({ avatarURL: null });
+      storage().ref(`profileAvatars/${currentUser.uid}.jpg`).delete().catch(() => {});
+      setAvatarURL(null);
+    } catch (error: any) {
+      Alert.alert(t.error, getFirebaseError(error, t));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleAvatarPress = () => {
+    if (avatarURL) {
+      Alert.alert(t.editProfileTitle, undefined, [
+        { text: t.editProfileChangePhoto, onPress: uploadAvatar },
+        { text: t.editProfileRemovePhoto, style: 'destructive', onPress: removeAvatar },
+        { text: t.cancel, style: 'cancel' },
+      ]);
+    } else {
+      uploadAvatar();
+    }
+  };
 
   // Upload til en specifik slot (0 = photoURL, 1-5 = photos[0-4])
   const uploadToSlot = async (slotIdx: number) => {
@@ -280,7 +325,7 @@ export default function EditProfileScreen({ navigation }: any) {
                     {isFilled ? (
                       <Image source={{ uri: url }} style={styles.slotImage} />
                     ) : isFirstEmpty ? (
-                      <Text style={[styles.slotPlusIcon, { color: colors.primaryBlue }]}>+</Text>
+                      <Text style={[styles.slotPlusIcon, { color: colors.primaryBlueText }]}>+</Text>
                     ) : (
                       <View style={styles.slotPlaceholder}>
                         <RoketLogo width={28} height={28} fill={colors.cardBackgroundIcon} />
@@ -378,6 +423,27 @@ export default function EditProfileScreen({ navigation }: any) {
                 maxLength={50}
                 autoCorrect={false}
               />
+            </View>
+
+            {/* Lille avatar — bruges i gruppechat, notifikationer etc. */}
+            <View style={styles.avatarSection}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{(t as any).editProfileAvatarLabel ?? 'Avatar'}</Text>
+              <TouchableOpacity
+                onPress={handleAvatarPress}
+                disabled={uploadingAvatar}
+                style={[styles.avatarUpload, { borderColor: avatarURL ? colors.primaryBlue : colors.inputBorder, backgroundColor: colors.inputBackground }]}
+              >
+                {uploadingAvatar ? (
+                  <ActivityIndicator color={colors.primaryBlue} />
+                ) : avatarURL ? (
+                  <Image source={{ uri: avatarURL }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={[styles.avatarPlusIcon, { color: colors.primaryBlueText }]}>+</Text>
+                )}
+              </TouchableOpacity>
+              <Text style={[styles.avatarHint, { color: colors.textMuted }]}>
+                {(t as any).editProfileAvatarHint ?? 'Lille profilbillede til gruppechats og notifikationer'}
+              </Text>
             </View>
           </View>
 
@@ -685,6 +751,35 @@ const styles = StyleSheet.create({
   photoSection: {
     alignSelf: 'stretch',
     marginBottom: 20,
+  },
+  avatarSection: {
+    alignSelf: 'stretch',
+    marginBottom: 24,
+    alignItems: 'flex-start',
+  },
+  avatarUpload: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarPlusIcon: {
+    fontSize: 26,
+    fontWeight: '300',
+  },
+  avatarHint: {
+    fontSize: 12,
+    marginTop: 8,
+    lineHeight: 16,
   },
   slotsGrid: {
     flexDirection: 'row',

@@ -441,6 +441,8 @@ const da = {
 
   // Photo gallery
   editProfilePhotos: 'Billeder',
+  editProfileAvatarLabel: 'Avatar',
+  editProfileAvatarHint: 'Lille profilbillede til gruppechats og notifikationer',
   editProfilePhotosDesc: (count: number, max: number) => `${count}/${max} billeder`,
   editProfilePhotosHidden: 'Dine ekstra billeder er skjult indtil du uploader et profilbillede.',
   editProfileAddPhoto: 'Tilføj',
@@ -915,6 +917,8 @@ const en: typeof da = {
 
   // Photo gallery
   editProfilePhotos: 'Photos',
+  editProfileAvatarLabel: 'Avatar',
+  editProfileAvatarHint: 'Small profile picture for group chats and notifications',
   editProfilePhotosDesc: (count: number, max: number) => `${count}/${max} photos`,
   editProfilePhotosHidden: 'Your extra photos are hidden until you upload a profile photo.',
   editProfileAddPhoto: 'Add',
@@ -1389,6 +1393,8 @@ const es: typeof da = {
 
   // Photo gallery
   editProfilePhotos: 'Fotos',
+  editProfileAvatarLabel: 'Avatar',
+  editProfileAvatarHint: 'Pequeña foto de perfil para chats grupales y notificaciones',
   editProfilePhotosDesc: (count: number, max: number) => `${count}/${max} fotos`,
   editProfilePhotosHidden: 'Tus fotos extra están ocultas hasta que subas una foto de perfil.',
   editProfileAddPhoto: 'Añadir',
@@ -1863,6 +1869,8 @@ const de: typeof da = {
 
   // Photo gallery
   editProfilePhotos: 'Fotos',
+  editProfileAvatarLabel: 'Avatar',
+  editProfileAvatarHint: 'Kleines Profilbild für Gruppenchats und Benachrichtigungen',
   editProfilePhotosDesc: (count: number, max: number) => `${count}/${max} Fotos`,
   editProfilePhotosHidden: 'Deine zusätzlichen Fotos sind ausgeblendet, bis du ein Profilbild hochlädst.',
   editProfileAddPhoto: 'Hinzufügen',
@@ -2337,6 +2345,8 @@ const fr: typeof da = {
 
   // Photo gallery
   editProfilePhotos: 'Photos',
+  editProfileAvatarLabel: 'Avatar',
+  editProfileAvatarHint: 'Petite photo de profil pour les chats de groupe et notifications',
   editProfilePhotosDesc: (count: number, max: number) => `${count}/${max} photos`,
   editProfilePhotosHidden: 'Vos photos supplémentaires sont masquées tant que vous n\'avez pas de photo de profil.',
   editProfileAddPhoto: 'Ajouter',
@@ -2811,6 +2821,8 @@ const pt: typeof da = {
 
   // Photo gallery
   editProfilePhotos: 'Fotos',
+  editProfileAvatarLabel: 'Avatar',
+  editProfileAvatarHint: 'Pequena foto de perfil para chats de grupo e notificações',
   editProfilePhotosDesc: (count: number, max: number) => `${count}/${max} fotos`,
   editProfilePhotosHidden: 'As tuas fotos extra estão ocultas até carregares uma foto de perfil.',
   editProfileAddPhoto: 'Adicionar',

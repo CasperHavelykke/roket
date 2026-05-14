@@ -37,6 +37,7 @@ interface RouteParams {
     status?: string;
     statusTag?: StatusTagId | null;
     photoURL: string | null;
+    avatarURL?: string | null;
     distance?: number;
     lastSeen?: number; // millisekunder siden epoch
     distanceMode?: string;
@@ -274,7 +275,9 @@ export default function ProfileViewScreen({ route, navigation }: any) {
               {hasIdentityFooter && (
                 <View style={[styles.identityFooter, { borderTopColor: colors.borderLight }]}>
                   <View style={styles.identityLeft}>
-                    {initials ? (
+                    {user.avatarURL ? (
+                      <Image source={{ uri: user.avatarURL }} style={styles.identityAvatar} />
+                    ) : initials ? (
                       <GradientView
                         colors={[colors.primaryBlue, colors.primaryRed]}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}

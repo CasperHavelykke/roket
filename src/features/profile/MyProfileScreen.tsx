@@ -31,6 +31,7 @@ export default function MyProfileScreen({ navigation }: any) {
   const [status, setStatus] = useState('');
   const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
   const [photoURL, setPhotoURL] = useState<string | null>(null);
+  const [avatarURL, setAvatarURL] = useState<string | null>(null);
   const [age, setAge] = useState<number | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [lastSeen, setLastSeen] = useState<number | null>(null);
@@ -81,6 +82,7 @@ export default function MyProfileScreen({ navigation }: any) {
             setStatus(data.status ?? '');
             setStatusTag(data.statusTag ?? null);
             setPhotoURL(data.photoURL ?? null);
+            setAvatarURL(data.avatarURL ?? null);
             if (data.birthday && data.showAge !== false) {
               const today = new Date();
               const birth = new Date(data.birthday.year, data.birthday.month - 1, data.birthday.day);
@@ -205,7 +207,9 @@ export default function MyProfileScreen({ navigation }: any) {
               {hasIdentityFooter && (
                 <View style={[styles.identityFooter, { borderTopColor: colors.borderLight }]}>
                   <View style={styles.identityLeft}>
-                    {initials ? (
+                    {avatarURL ? (
+                      <Image source={{ uri: avatarURL }} style={styles.identityAvatar} />
+                    ) : initials ? (
                       <GradientView
                         colors={[colors.primaryBlue, colors.primaryRed]}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}

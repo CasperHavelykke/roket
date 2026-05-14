@@ -59,6 +59,7 @@ interface User {
   status?: string;
   statusTag?: StatusTagId | null;
   photoURL: string | null;
+  avatarURL?: string | null;
   location: {
     latitude: number;
     longitude: number;
@@ -372,6 +373,7 @@ export default function HomeScreen({ navigation }: any) {
             status: data.status || '',
             statusTag: data.statusTag ?? null,
             photoURL: data.photoURL,
+            avatarURL: data.avatarURL ?? null,
             location: theirLoc,
             distance: distance,
             lastSeen: data.lastSeen?.toDate?.() ?? undefined,
