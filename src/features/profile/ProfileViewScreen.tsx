@@ -41,8 +41,6 @@ interface RouteParams {
     lastSeen?: number; // millisekunder siden epoch
     distanceMode?: string;
     age?: number;
-    gender?: string;
-    sexuality?: string;
     photos?: string[];
     testAccount?: boolean;
   };
@@ -62,14 +60,6 @@ export default function ProfileViewScreen({ route, navigation }: any) {
     const diff = Date.now() - lastSeenMs;
     if (diff < 24 * 60 * 60 * 1000) return '';
     return t.profileLastSeenDays(Math.floor(diff / 86400000));
-  };
-  const genderLabels: Record<string, string> = {
-    male: t.genderMale, female: t.genderFemale, nonbinary: t.genderNonBinary,
-    trans: t.genderTrans,
-  };
-  const sexualityLabels: Record<string, string> = {
-    straight: t.sexualityStraight, gay: t.sexualityGay, bisexual: t.sexualityBisexual,
-    pansexual: t.sexualityPansexual, other: t.sexualityOther,
   };
 
   const { user, fromChat } = route.params as RouteParams & { fromChat?: boolean };

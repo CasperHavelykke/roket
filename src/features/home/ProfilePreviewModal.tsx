@@ -26,8 +26,6 @@ interface PreviewUser {
   lastSeen?: Date;
   distanceMode?: string;
   age?: number;
-  gender?: string;
-  sexuality?: string;
   photos?: string[];
 }
 
@@ -79,14 +77,6 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
     if ((distanceMode === 'fuzzy' || user.distanceMode === 'fuzzy') && d < 0.03) return t.distanceUnder30;
     if (d < 1) return t.distanceMeters(Math.round(d * 1000));
     return t.distanceKm(d.toFixed(1).replace('.', ','));
-  };
-
-  const genderLabels: Record<string, string> = {
-    male: t.genderMale, female: t.genderFemale, nonbinary: t.genderNonBinary, trans: t.genderTrans,
-  };
-  const sexualityLabels: Record<string, string> = {
-    straight: t.sexualityStraight, gay: t.sexualityGay, bisexual: t.sexualityBisexual,
-    pansexual: t.sexualityPansexual, other: t.sexualityOther,
   };
 
   const distStr = formatDistance();

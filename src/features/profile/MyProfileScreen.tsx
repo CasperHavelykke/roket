@@ -32,8 +32,6 @@ export default function MyProfileScreen({ navigation }: any) {
   const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [age, setAge] = useState<number | null>(null);
-  const [gender, setGender] = useState<string | null>(null);
-  const [sexuality, setSexuality] = useState<string | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [lastSeen, setLastSeen] = useState<number | null>(null);
   const [distanceModeValue, setDistanceModeValue] = useState<string | null>(null);
@@ -61,15 +59,6 @@ export default function MyProfileScreen({ navigation }: any) {
   useEffect(() => {
     LocationService.checkCurrentPrecision().then(p => setLocationGranted(p !== 'denied'));
   }, []);
-
-  const genderLabels: Record<string, string> = {
-    male: t.genderMale, female: t.genderFemale, nonbinary: t.genderNonBinary,
-    trans: t.genderTrans,
-  };
-  const sexualityLabels: Record<string, string> = {
-    straight: t.sexualityStraight, gay: t.sexualityGay, bisexual: t.sexualityBisexual,
-    pansexual: t.sexualityPansexual, other: t.sexualityOther,
-  };
 
   const formatLastSeen = (lastSeenMs: number): string => {
     const diff = Date.now() - lastSeenMs;
@@ -102,8 +91,6 @@ export default function MyProfileScreen({ navigation }: any) {
             } else {
               setAge(null);
             }
-            setGender(data.gender && data.showGender !== false ? data.gender : null);
-            setSexuality(data.sexuality && data.showSexuality !== false ? data.sexuality : null);
             setPhotos(data.photos ?? []);
             setLastSeen(data.lastSeen?.toMillis?.() ?? null);
             setDistanceModeValue(data.distanceMode ?? null);

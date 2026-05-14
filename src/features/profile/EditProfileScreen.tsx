@@ -38,10 +38,6 @@ export default function EditProfileScreen({ navigation }: any) {
   const [saving, setSaving] = useState(false);
   const [showAge, setShowAge] = useState(true);
   const [hasBirthday, setHasBirthday] = useState(false);
-  const [gender, setGender] = useState('');
-  const [showGender, setShowGender] = useState(true);
-  const [sexuality, setSexuality] = useState('');
-  const [showSexuality, setShowSexuality] = useState(true);
   const [photos, setPhotos] = useState<string[]>([]);
   const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
   const currentUser = auth().currentUser;
@@ -84,15 +80,6 @@ export default function EditProfileScreen({ navigation }: any) {
     Animated.timing(bioHighlight, { toValue: bio.trim() ? 0 : 1, duration: 400, useNativeDriver: true }).start();
   }, [!!bio.trim()]);
 
-  const genderLabel = (key: string) => {
-    const map: Record<string, string> = { male: t.genderMale, female: t.genderFemale, nonbinary: t.genderNonBinary, trans: t.genderTrans };
-    return map[key] ?? '';
-  };
-  const sexualityLabel = (key: string) => {
-    const map: Record<string, string> = { straight: t.sexualityStraight, gay: t.sexualityGay, bisexual: t.sexualityBisexual };
-    return map[key] ?? '';
-  };
-
   useEffect(() => {
     if (!currentUser) return;
     firestore()
@@ -108,10 +95,6 @@ export default function EditProfileScreen({ navigation }: any) {
           setPhotoURL(data.photoURL ?? null);
           setShowAge(data.showAge !== false);
           setHasBirthday(!!data.birthday);
-          setGender(data.gender ?? '');
-          setShowGender(data.showGender !== false);
-          setSexuality(data.sexuality ?? '');
-          setShowSexuality(data.showSexuality !== false);
           setPhotos(data.photos ?? []);
           setStatusTag(data.statusTag ?? null);
 
@@ -231,8 +214,6 @@ export default function EditProfileScreen({ navigation }: any) {
         statusTag: statusTag,
         bio: bio.trim(),
         showAge,
-        showGender,
-        showSexuality,
       });
       navigation.goBack();
     } catch (error: any) {

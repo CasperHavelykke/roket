@@ -67,8 +67,6 @@ interface User {
   lastSeen?: Date;
   distanceMode?: string;
   age?: number;
-  gender?: string;
-  sexuality?: string;
   photos?: string[];
   testAccount?: boolean;
   datingOnly?: boolean;
@@ -379,8 +377,6 @@ export default function HomeScreen({ navigation }: any) {
             lastSeen: data.lastSeen?.toDate?.() ?? undefined,
             distanceMode: data.distanceMode ?? 'exact',
             age: data.birthday && data.showAge !== false ? getAge(data.birthday) : undefined,
-            gender: data.gender && data.showGender !== false ? data.gender : undefined,
-            sexuality: data.sexuality && data.showSexuality !== false ? data.sexuality : undefined,
             photos: data.photos ?? [],
             testAccount: data.testAccount ?? false,
             datingOnly: data.datingOnly ?? false,
@@ -563,8 +559,6 @@ export default function HomeScreen({ navigation }: any) {
     lastSeen: item.lastSeen?.getTime(),
     distanceMode: item.distanceMode,
     age: item.age,
-    gender: item.gender,
-    sexuality: item.sexuality,
     photos: item.photos,
     testAccount: item.testAccount,
     datingOnly: item.datingOnly,

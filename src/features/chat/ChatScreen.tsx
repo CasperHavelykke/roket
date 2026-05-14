@@ -827,8 +827,6 @@ export default function ChatScreen({ route, navigation }: any) {
                   lastSeen: data.lastSeen?.toDate?.()?.getTime(),
                   distanceMode: data.distanceMode ?? 'exact',
                   age: data.age,
-                  gender: data.gender,
-                  sexuality: data.sexuality,
                   photos: data.photos,
                   testAccount: data.testAccount ?? false,
                   distance,
