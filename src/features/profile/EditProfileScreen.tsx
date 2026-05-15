@@ -174,10 +174,10 @@ export default function EditProfileScreen({ navigation }: any) {
     if (isPrimary) setUploading(true);
     else setUploadingExtra(true);
     try {
-      const refPath = isPrimary
-        ? `profilePhotos/${currentUser.uid}.jpg`
-        : `profilePhotos/${currentUser.uid}_extra_${slotIdx - 1}.jpg`;
-      const ref = storage().ref(refPath);
+      const oldUrl = slotPhotos[slotIdx];
+      // Unik sti pr. upload — afkoblet fra slot-position, så omarrangering/
+      // sletning aldrig overskriver en fil en anden slot stadig refererer.
+      const ref = storage().ref(`profilePhotos/${currentUser.uid}_${Date.now()}.jpg`);
       await ref.putFile(uri);
       const url = await ref.getDownloadURL();
 
@@ -190,6 +190,8 @@ export default function EditProfileScreen({ navigation }: any) {
         await firestore().collection('users').doc(currentUser.uid).update({ photos: updated });
         setPhotos(updated);
       }
+      // Slet det gamle billede i denne slot (erstatning) — efter Firestore-update
+      if (oldUrl) storage().refFromURL(oldUrl).delete().catch(() => {});
     } catch (error: any) {
       Alert.alert(t.error, getFirebaseError(error, t));
     } finally {

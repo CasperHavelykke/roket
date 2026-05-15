@@ -815,9 +815,14 @@ export default function ChatScreen({ route, navigation }: any) {
                 <Image source={{ uri: otherUserAvatar }} style={styles.headerAvatar} />
               ) : (
                 <View style={[styles.headerAvatar, styles.headerAvatarFallback]}>
-                  <Text style={[styles.headerAvatarInitials, { color: colors.primaryBlueText }]}>
-                    {otherUser.displayName?.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('') || ''}
-                  </Text>
+                  {(() => {
+                    const ini = otherUser.displayName?.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('') || '';
+                    return ini ? (
+                      <Text style={[styles.headerAvatarInitials, { color: colors.primaryBlueText }]}>{ini}</Text>
+                    ) : (
+                      <RoketLogo width={16} height={16} fill={colors.cardBackgroundIcon} />
+                    );
+                  })()}
                 </View>
               )}
               <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>
@@ -876,9 +881,14 @@ export default function ChatScreen({ route, navigation }: any) {
                 <Image source={{ uri: otherUserAvatar }} style={styles.headerAvatar} />
               ) : (
                 <View style={[styles.headerAvatar, styles.headerAvatarFallback]}>
-                  <Text style={[styles.headerAvatarInitials, { color: colors.primaryBlueText }]}>
-                    {otherUser.displayName?.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('') || ''}
-                  </Text>
+                  {(() => {
+                    const ini = otherUser.displayName?.trim().split(/\s+/).slice(0, 2).map(p => p.charAt(0).toUpperCase()).join('') || '';
+                    return ini ? (
+                      <Text style={[styles.headerAvatarInitials, { color: colors.primaryBlueText }]}>{ini}</Text>
+                    ) : (
+                      <RoketLogo width={16} height={16} fill={colors.cardBackgroundIcon} />
+                    );
+                  })()}
                 </View>
               )}
               <Text style={[styles.headerName, { color: colors.textWhite }]}>{otherUser.displayName}</Text>

@@ -98,6 +98,7 @@ const da = {
   tagArt: 'Kunst',
   tagShopping: 'Shopping',
   tagHike: 'Vandring',
+  tagPets: 'Kæledyr',
   tagPickerLabel: 'Aktivitet',
 
   // Events / open invitations
@@ -576,6 +577,7 @@ const en: typeof da = {
   tagArt: 'Art',
   tagShopping: 'Shopping',
   tagHike: 'Hike',
+  tagPets: 'Pets',
   tagPickerLabel: 'Activity',
 
   // Events / open invitations
@@ -1054,6 +1056,7 @@ const es: typeof da = {
   tagArt: 'Arte',
   tagShopping: 'Compras',
   tagHike: 'Senderismo',
+  tagPets: 'Mascotas',
   tagPickerLabel: 'Actividad',
 
   // Events / open invitations
@@ -1532,6 +1535,7 @@ const de: typeof da = {
   tagArt: 'Kunst',
   tagShopping: 'Shopping',
   tagHike: 'Wandern',
+  tagPets: 'Haustiere',
   tagPickerLabel: 'Aktivität',
 
   // Events / open invitations
@@ -2010,6 +2014,7 @@ const fr: typeof da = {
   tagArt: 'Art',
   tagShopping: 'Shopping',
   tagHike: 'Randonnée',
+  tagPets: 'Animaux',
   tagPickerLabel: 'Activité',
 
   // Events / open invitations
@@ -2488,6 +2493,7 @@ const pt: typeof da = {
   tagArt: 'Arte',
   tagShopping: 'Compras',
   tagHike: 'Caminhada',
+  tagPets: 'Animais',
   tagPickerLabel: 'Atividade',
 
   // Events / open invitations

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import GradientView from '../../components/GradientView';
 import { useTheme } from '../../theme';
-import { MessageSquare as MessageIcon, MapPin } from 'lucide-react-native';
+import { MapPin } from 'lucide-react-native';
 import { getStatusTag } from '../../statusTags';
 import TagIcon from '../../components/TagIcon';
 import RoketLogo from '../../assets/roket-logo-2.svg';
@@ -36,7 +36,6 @@ interface ProfilePreviewModalProps {
   user: PreviewUser | null;
   onClose: () => void;
   onViewProfile: () => void;
-  onSendMessage: () => void;
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -45,8 +44,10 @@ const CARD_PADDING = 20;
 const CARD_LEFT = (SCREEN_WIDTH - CARD_WIDTH) / 2;
 const AVATAR_SIZE = 32;
 const AVATAR_LEFT_IN_SCREEN = CARD_LEFT + CARD_PADDING;
+const PHOTO_GAP = 6;
+const PHOTO_SIZE = (CARD_WIDTH - CARD_PADDING * 2 - PHOTO_GAP * 2) / 3;
 
-export default function ProfilePreviewModal({ visible, user, onClose, onViewProfile, onSendMessage }: ProfilePreviewModalProps) {
+export default function ProfilePreviewModal({ visible, user, onClose, onViewProfile }: ProfilePreviewModalProps) {
   const { colors, t, distanceMode, distanceUnit } = useTheme();
 
   if (!user) return null;
@@ -109,6 +110,15 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
               </View>
             ) : (
               <View>
+            {tag && (
+              <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
+                <TagIcon tag={tag.id} size={13} color="#fff" />
+                <Text style={styles.tagPillText}>
+                  {String((t as any)[`tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}`] ?? tag.id)}
+                </Text>
+              </View>
+            )}
+
             {hasStatus && (
               <View style={styles.statusQuoteWrap}>
                 <View style={styles.statusAccent}>
@@ -124,15 +134,6 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
               </View>
             )}
 
-            {tag && (
-              <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
-                <TagIcon tag={tag.id} size={13} color="#fff" />
-                <Text style={styles.tagPillText}>
-                  {String((t as any)[`tag${tag.id.charAt(0).toUpperCase() + tag.id.slice(1)}`] ?? tag.id)}
-                </Text>
-              </View>
-            )}
-
             {hasPhotos && (
               <View style={styles.photoRow}>
                 {allPhotos.slice(0, 3).map((uri, i) => (
@@ -142,7 +143,7 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
             )}
 
             {hasBio && (
-              <Text style={[styles.bio, { color: colors.textPrimary }]} numberOfLines={3}>{user.bio}</Text>
+              <Text style={[styles.bio, { color: colors.textPrimary }]}>{user.bio}</Text>
             )}
 
             {hasIdentityFooter && (
@@ -160,7 +161,9 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
                       <Text style={styles.identityAvatarText}>{initials}</Text>
                     </GradientView>
                   ) : (
-                    <View style={[styles.identityAvatar, { backgroundColor: colors.cardBackground }]} />
+                    <View style={[styles.identityAvatar, { backgroundColor: colors.cardBackground }]}>
+                      <RoketLogo width={14} height={14} fill={colors.cardBackgroundIcon} />
+                    </View>
                   )}
                   <View style={styles.identityText}>
                     {(hasName || hasAge) && (
@@ -184,20 +187,6 @@ export default function ProfilePreviewModal({ visible, user, onClose, onViewProf
               </View>
             )}
           </ScrollView>
-
-          <Pressable
-            onPress={(e) => { e.stopPropagation(); onSendMessage(); }}
-            style={({ pressed }) => [styles.ctaWrap, { opacity: pressed ? 0.85 : 1 }]}
-          >
-            <GradientView
-              colors={[colors.primaryBlue, colors.primaryRed]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={styles.cta}
-            >
-              <MessageIcon size={18} color="#fff" />
-              <Text style={styles.ctaText}>{t.profileSendMessage}</Text>
-            </GradientView>
-          </Pressable>
         </Pressable>
       </View>
     </Modal>
@@ -211,7 +200,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   overlayBackground: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    inset: 0,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   card: {
@@ -227,7 +217,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: CARD_PADDING,
-    paddingBottom: 8,
   },
   emptyWrap: {
     alignItems: 'center',
@@ -276,12 +265,12 @@ const styles = StyleSheet.create({
   },
   photoRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: PHOTO_GAP,
     marginBottom: 16,
   },
   photo: {
-    flex: 1,
-    aspectRatio: 1,
+    width: PHOTO_SIZE,
+    height: PHOTO_SIZE,
     borderRadius: 10,
   },
   bio: {
@@ -336,23 +325,5 @@ const styles = StyleSheet.create({
   identityDistanceText: {
     fontSize: 12,
     fontWeight: '500',
-  },
-  ctaWrap: {
-    paddingHorizontal: CARD_PADDING,
-    paddingBottom: CARD_PADDING,
-    paddingTop: 4,
-  },
-  cta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  ctaText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
   },
 });

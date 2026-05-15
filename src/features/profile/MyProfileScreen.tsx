@@ -141,7 +141,7 @@ export default function MyProfileScreen({ navigation }: any) {
             const logoSize = Dimensions.get('window').width * 0.66;
             return (
               <View style={styles.emptyProfileWrap}>
-                <View style={{ opacity: 0.35 }}>
+                <View style={{ opacity: isDark ? 0.5 : 0.35 }}>
                   <RoketLogo width={logoSize} height={logoSize} fill={colors.cardBackgroundIcon} />
                 </View>
                 <Text style={[styles.emptyProfileText, { color: colors.textMuted }]}>
@@ -158,6 +158,15 @@ export default function MyProfileScreen({ navigation }: any) {
 
           return (
             <View style={styles.content}>
+              {hasTag && (
+                <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
+                  <TagIcon tag={statusTag!} size={14} color="#fff" />
+                  <Text style={styles.tagPillText}>
+                    {String((t as any)[`tag${statusTag!.charAt(0).toUpperCase() + statusTag!.slice(1)}`] ?? statusTag)}
+                  </Text>
+                </View>
+              )}
+
               {hasStatus && (
                 <View style={styles.statusQuoteWrap}>
                   <View style={styles.statusAccent}>
@@ -169,15 +178,6 @@ export default function MyProfileScreen({ navigation }: any) {
                   </View>
                   <Text style={[styles.statusQuote, { color: colors.textPrimary }]}>
                     {'“'}{status}{'”'}
-                  </Text>
-                </View>
-              )}
-
-              {hasTag && (
-                <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
-                  <TagIcon tag={statusTag!} size={14} color="#fff" />
-                  <Text style={styles.tagPillText}>
-                    {String((t as any)[`tag${statusTag!.charAt(0).toUpperCase() + statusTag!.slice(1)}`] ?? statusTag)}
                   </Text>
                 </View>
               )}
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   statusQuoteWrap: {
     flexDirection: 'row',
     paddingTop: 8,
-    paddingBottom: 18,
+    paddingBottom: 8,
     paddingLeft: 8,
   },
   statusAccent: {

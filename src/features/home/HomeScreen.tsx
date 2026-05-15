@@ -13,6 +13,7 @@ import {
   Platform,
   Pressable,
   Animated,
+  ImageSourcePropType,
 } from 'react-native';
 import GradientView from '../../components/GradientView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -74,6 +75,83 @@ interface User {
 }
 
 const INACTIVE_HOURS = 24; // Skjul profiler der ikke har været online i X timer
+
+interface UserCardProps {
+  item: User;
+  cardWidth: number;
+  cardMargin: number;
+  isCompact: boolean;
+  isSingle: boolean;
+  numColumns: number;
+  backgroundColor: string;
+  primaryBlue: string;
+  fallbackSource: ImageSourcePropType;
+  isUnread: boolean;
+  showTestBadge: boolean;
+  testBadgeLabel: string;
+  onPress: (item: User) => void;
+  onLongPress: (item: User) => void;
+  onMessagePress: (item: User) => void;
+}
+
+const UserCard = React.memo(function UserCard({
+  item, cardWidth, cardMargin, isCompact, isSingle, numColumns,
+  backgroundColor, primaryBlue, fallbackSource, isUnread, showTestBadge,
+  testBadgeLabel, onPress, onLongPress, onMessagePress,
+}: UserCardProps) {
+  const allPhotos = item.photoURL ? [item.photoURL, ...(item.photos || [])] : [];
+  return (
+    <View
+      style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin, backgroundColor }, isSingle && { aspectRatio: 1.2 }]}
+    >
+      <CardCarousel
+        photos={allPhotos}
+        width={cardWidth}
+        fallbackSource={fallbackSource}
+        compact={isCompact}
+        isSingle={isSingle}
+        onPress={() => onPress(item)}
+        onLongPress={() => onLongPress(item)}
+      />
+      {(item.status || isUnread) && (
+        <View style={[styles.cardOverlay, !item.status && { backgroundColor: 'transparent' }, isUnread && { backgroundColor: 'rgba(67,97,238,0.5)' }]} pointerEvents="none">
+          {item.status ? (
+            <>
+              <Text style={[styles.cardName, isCompact && { fontSize: 12, lineHeight: 15 }, numColumns === 4 && { fontSize: 10, lineHeight: 13 }, isSingle && { fontSize: 22, lineHeight: 28 }]} numberOfLines={numColumns >= 2 && numColumns <= 4 ? 5 : 4}>{item.status}</Text>
+              {isSingle && item.bio ? (
+                <Text style={styles.cardBio}>{item.bio}</Text>
+              ) : null}
+            </>
+          ) : null}
+        </View>
+      )}
+      {item.statusTag && (
+        <View style={[styles.tagBadge, isCompact && styles.tagBadgeCompact]} pointerEvents="none">
+          <TagIcon tag={item.statusTag} size={isCompact ? 14 : 18} color="#fff" />
+        </View>
+      )}
+      {showTestBadge && (
+        <View style={styles.testBadge}>
+          <Text style={styles.testBadgeText}>{testBadgeLabel}</Text>
+        </View>
+      )}
+      {isUnread && (
+        <>
+          <View style={[styles.unreadBorder, { borderColor: primaryBlue }]} pointerEvents="none" />
+          {!isCompact && (
+            <View
+              style={[styles.messageBadge, { backgroundColor: '#fff' }, isSingle && styles.messageBadgeSingle]}
+              onStartShouldSetResponder={() => true}
+              onResponderRelease={() => onMessagePress(item)}
+            >
+              <MailIcon size={isSingle ? 28 : 22} color={primaryBlue} />
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+});
 
 const isOnline = (lastSeen?: Date): boolean => {
   if (!lastSeen) return false;
@@ -556,7 +634,7 @@ export default function HomeScreen({ navigation }: any) {
     return rows;
   }, [filteredUsers, visibleCount, numColumns, eventsFilterActive, events, userLocationCoords, activeFilter]);
 
-  const serializeUser = (item: User) => ({
+  const serializeUser = useCallback((item: User) => ({
     ...item,
     lastSeen: item.lastSeen?.getTime(),
     distanceMode: item.distanceMode,
@@ -565,70 +643,44 @@ export default function HomeScreen({ navigation }: any) {
     testAccount: item.testAccount,
     datingOnly: item.datingOnly,
     status: item.status,
-  });
+  }), []);
 
-  const renderUserCard = (item: User) => {
-    const allPhotos = item.photoURL ? [item.photoURL, ...(item.photos || [])] : [];
+  const handleProfilePress = useCallback((item: User) => {
+    navigation.navigate('ProfileView', { user: serializeUser(item) });
+  }, [navigation, serializeUser]);
 
-    const navigateToProfile = () => navigation.navigate('ProfileView', { user: serializeUser(item) });
+  const handlePreviewPress = useCallback((item: User) => {
+    setPreviewUser(item);
+  }, []);
 
-    return (
-    <View
+  const handleMessagePress = useCallback((item: User) => {
+    navigation.navigate('Chat', {
+      otherUser: { id: item.id, displayName: item.displayName, testAccount: item.testAccount },
+    });
+  }, [navigation]);
+
+  const renderUserCard = useCallback((item: User) => (
+    <UserCard
       key={item.id}
-      style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin, backgroundColor: colors.background }, isSingle && { aspectRatio: 1.2 }]}
-    >
-      <CardCarousel
-        photos={allPhotos}
-        width={cardWidth}
-        fallbackSource={fallbackSource}
-        compact={isCompact}
-        isSingle={isSingle}
-        onPress={navigateToProfile}
-        onLongPress={() => setPreviewUser(item)}
-      />
-      {(item.status || unreadFromUsers.has(item.id)) && (
-        <View style={[styles.cardOverlay, !item.status && { backgroundColor: 'transparent' }, unreadFromUsers.has(item.id) && { backgroundColor: 'rgba(67,97,238,0.5)' }]} pointerEvents="none">
-          {item.status ? (
-            <>
-              <Text style={[styles.cardName, isCompact && { fontSize: 12, lineHeight: 15 }, numColumns === 4 && { fontSize: 10, lineHeight: 13 }, isSingle && { fontSize: 22, lineHeight: 28 }]} numberOfLines={numColumns >= 2 && numColumns <= 4 ? 5 : 4}>{item.status}</Text>
-              {isSingle && item.bio ? (
-                <Text style={styles.cardBio}>{item.bio}</Text>
-              ) : null}
-            </>
-          ) : null}
-        </View>
-      )}
-      {item.statusTag && (
-        <View style={[styles.tagBadge, isCompact && styles.tagBadgeCompact]} pointerEvents="none">
-          <TagIcon tag={item.statusTag} size={isCompact ? 14 : 18} color="#fff" />
-        </View>
-      )}
-      {showTestBadges && item.testAccount && !isCompact && (
-        <View style={styles.testBadge}>
-          <Text style={styles.testBadgeText}>{t.testAccount}</Text>
-        </View>
-      )}
-      {unreadFromUsers.has(item.id) && (
-        <>
-          <View style={[styles.unreadBorder, { borderColor: colors.primaryBlue }]} pointerEvents="none" />
-          {!isCompact && (
-            <View
-              style={[styles.messageBadge, { backgroundColor: '#fff' }, isSingle && styles.messageBadgeSingle]}
-              onStartShouldSetResponder={() => true}
-              onResponderRelease={() => navigation.navigate('Chat', {
-                otherUser: { id: item.id, displayName: item.displayName, testAccount: item.testAccount },
-              })}
-            >
-              <MailIcon size={isSingle ? 28 : 22} color={colors.primaryBlue} />
-            </View>
-          )}
-        </>
-      )}
-    </View>
-  );
-  };
+      item={item}
+      cardWidth={cardWidth}
+      cardMargin={cardMargin}
+      isCompact={isCompact}
+      isSingle={isSingle}
+      numColumns={numColumns}
+      backgroundColor={colors.background}
+      primaryBlue={colors.primaryBlue}
+      fallbackSource={fallbackSource}
+      isUnread={unreadFromUsers.has(item.id)}
+      showTestBadge={!!(showTestBadges && item.testAccount && !isCompact)}
+      testBadgeLabel={t.testAccount}
+      onPress={handleProfilePress}
+      onLongPress={handlePreviewPress}
+      onMessagePress={handleMessagePress}
+    />
+  ), [cardWidth, cardMargin, isCompact, isSingle, numColumns, colors.background, colors.primaryBlue, fallbackSource, unreadFromUsers, showTestBadges, t.testAccount, handleProfilePress, handlePreviewPress, handleMessagePress]);
 
-  const renderGridRow = ({ item }: { item: GridRow }) => {
+  const renderGridRow = useCallback(({ item }: { item: GridRow }) => {
     if (item.type === 'ad') {
       return (
         <View style={styles.adBannerInline}>
@@ -689,7 +741,7 @@ export default function HomeScreen({ navigation }: any) {
         {item.users.map(user => renderUserCard(user))}
       </View>
     );
-  };
+  }, [cardWidth, cardMargin, isCompact, isSingle, numColumns, screenWidth, renderUserCard]);
 
   if (loading) {
     return (
@@ -765,6 +817,11 @@ export default function HomeScreen({ navigation }: any) {
           contentContainerStyle={[styles.grid, { padding: gridPadding, paddingBottom: gridPadding + insets.bottom }]}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.5}
+          removeClippedSubviews
+          windowSize={5}
+          maxToRenderPerBatch={4}
+          initialNumToRender={6}
+          updateCellsBatchingPeriod={50}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryRed} />
           }
@@ -1012,12 +1069,6 @@ export default function HomeScreen({ navigation }: any) {
           const u = serializeUser(previewUser);
           setPreviewUser(null);
           navigation.navigate('ProfileView', { user: u });
-        }}
-        onSendMessage={() => {
-          if (!previewUser) return;
-          const { id, displayName, testAccount } = previewUser;
-          setPreviewUser(null);
-          navigation.navigate('Chat', { otherUser: { id, displayName, testAccount } });
         }}
       />
       <CreateEventModal
