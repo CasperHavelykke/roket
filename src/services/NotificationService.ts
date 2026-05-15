@@ -36,8 +36,17 @@ class NotificationService {
   }
 
   private async saveFCMToken(): Promise<void> {
-    const token = await messaging().getToken();
-    await this.saveToken(token);
+    try {
+      // iOS kræver at enheden registreres for remote messages før getToken()
+      if (Platform.OS === 'ios') {
+        await messaging().registerDeviceForRemoteMessages();
+      }
+      const token = await messaging().getToken();
+      await this.saveToken(token);
+    } catch (err) {
+      // iOS-simulatorer understøtter ikke APNs/push — ignorér stille
+      console.log('FCM token kunne ikke hentes:', err);
+    }
   }
 
   private async saveToken(token: string): Promise<void> {
