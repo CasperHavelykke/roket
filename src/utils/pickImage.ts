@@ -1,4 +1,4 @@
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary, PhotoQuality } from 'react-native-image-picker';
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1 MB
 
@@ -20,7 +20,7 @@ export function pickImages(limit: number): Promise<string[]> {
 function tryPick(quality: number): Promise<string | null> {
   return new Promise(resolve => {
     launchImageLibrary(
-      { mediaType: 'photo', quality, maxWidth: 1080, maxHeight: 1080 },
+      { mediaType: 'photo', quality: quality as PhotoQuality, maxWidth: 1080, maxHeight: 1080 },
       response => {
         if (response.didCancel || response.errorCode) {
           resolve(null);
@@ -49,7 +49,7 @@ function tryPick(quality: number): Promise<string | null> {
 function tryPickMulti(quality: number, limit: number): Promise<string[]> {
   return new Promise(resolve => {
     launchImageLibrary(
-      { mediaType: 'photo', quality, maxWidth: 1080, maxHeight: 1080, selectionLimit: limit },
+      { mediaType: 'photo', quality: quality as PhotoQuality, maxWidth: 1080, maxHeight: 1080, selectionLimit: limit },
       response => {
         if (response.didCancel || response.errorCode || !response.assets) {
           resolve([]);

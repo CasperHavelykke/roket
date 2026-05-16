@@ -269,7 +269,7 @@ export default function SettingsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.copyright}>© 2026 Røket · v1.1.8 Beta</Text>
+        <Text style={styles.copyright}>© 2026 Røket · v1.1.9 Beta</Text>
       </ScrollView>
     </SafeAreaView>
   );

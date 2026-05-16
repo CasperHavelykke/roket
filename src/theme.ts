@@ -286,7 +286,7 @@ export function useThemeProvider() {
   useEffect(() => {
     const unsub = firestore().collection('config').doc('app').onSnapshot(
       snap => {
-        if (!snap.exists) {
+        if (!snap.exists()) {
           setShowTestBadges(true);
           return;
         }

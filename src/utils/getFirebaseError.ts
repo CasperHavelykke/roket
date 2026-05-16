@@ -17,5 +17,5 @@ const errorMap: Record<string, keyof Translations> = {
 
 export default function getFirebaseError(error: any, t: Translations): string {
   const key = error?.code && errorMap[error.code];
-  return key ? (t[key] as string) : t.firebaseErrorGeneric;
+  return key ? (t[key as keyof Translations] as string) : t.firebaseErrorGeneric;
 }

@@ -253,7 +253,7 @@ export default function ChatScreen({ route, navigation }: any) {
     checkBlock();
   }, []);
 
-  const unsubscribeRef = useRef<(() => void) | undefined>();
+  const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
   const chatCreatedRef = useRef(false);
   const chatExpiresAtRef = useRef<FirebaseFirestoreTypes.Timestamp | null>(null);
 
@@ -323,7 +323,7 @@ export default function ChatScreen({ route, navigation }: any) {
     const setup = async () => {
       try {
         const chatDoc = await firestore().collection('chats').doc(chatId).get();
-        if (chatDoc.exists) {
+        if (chatDoc.exists()) {
           chatCreatedRef.current = true;
           chatExpiresAtRef.current = chatDoc.data()?.expiresAt ?? null;
           startListener();
@@ -373,7 +373,7 @@ export default function ChatScreen({ route, navigation }: any) {
       const eventId = snap.data()?.eventId;
       if (!eventId) return;
       const unsub = firestore().collection('events').doc(eventId).onSnapshot(doc => {
-        if (!doc.exists) {
+        if (!doc.exists()) {
           setEventDoc(null);
           return;
         }
@@ -1004,7 +1004,6 @@ export default function ChatScreen({ route, navigation }: any) {
         <View style={styles.reportOverlay}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowChatInfo(false)} />
           <View style={[styles.reportCard, { backgroundColor: colors.card }]}>
-            <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipImageExpiry}</Text>
             <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipDeleted}</Text>
             <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipAutoScan}</Text>
             <Text style={[{ fontSize: 14, color: colors.textSecondary, lineHeight: 22, marginBottom: 8 }]}>- {t.chatTipBlurred}</Text>

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  Platform,
 } from 'react-native';
 import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
