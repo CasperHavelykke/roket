@@ -124,7 +124,9 @@ class LocationService {
         onUpdate(position.coords.latitude, position.coords.longitude);
       },
       (error) => {
-        console.error('Watch position error:', error);
+        // console.warn (ikke error) — undgår rød LogBox for transiente/forventede
+        // fejl (fx simulator code 2). Rigtig håndtering sker via onError.
+        console.warn('Watch position error:', error);
         if (onError) onError(error);
       },
       {
