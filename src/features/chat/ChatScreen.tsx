@@ -295,7 +295,7 @@ export default function ChatScreen({ route, navigation }: any) {
           [`lastRead.${currentUser.uid}`]: firestore.Timestamp.now(),
           [`unreadCount.${currentUser.uid}`]: 0,
         }).catch(() => {});
-      });
+      }, err => console.warn('Messages subscription error:', err));
   };
 
   const ensureChatExists = async () => {
@@ -393,7 +393,7 @@ export default function ChatScreen({ route, navigation }: any) {
           createdAt: data.createdAt?.toDate?.() ?? new Date(),
           expiresAt: data.expiresAt?.toDate?.() ?? new Date(),
         });
-      });
+      }, err => console.warn('Event subscription error:', err));
       return () => unsub();
     });
   }, [isEventChat, chatId]);

@@ -48,7 +48,7 @@ export default function BlockedUsersScreen({ navigation }: any) {
         );
         setBlockedUsers(users);
         setLoading(false);
-      });
+      }, err => console.warn('Blocked users subscription error:', err));
     return () => unsubscribe();
   }, [currentUser?.uid]);
 

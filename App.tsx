@@ -168,6 +168,11 @@ function App() {
               // Profildokument eksisterer ikke endnu — vent til signup-flow opretter det
             }
             setInitializing(false);
+          }, err => {
+            // Ved logout afviser Firestore-reglerne denne listener (permission-denied).
+            // Uden denne handler bliver det en unhandled exception → crash efter logout.
+            console.warn('Profile snapshot error:', err);
+            setInitializing(false);
           });
       } else {
         setAuthState(false);

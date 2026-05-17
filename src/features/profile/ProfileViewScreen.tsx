@@ -85,7 +85,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
         if (!data) return;
         const count = data.unreadCount?.[currentUser.uid] ?? 0;
         setUnreadCount(count);
-      });
+      }, err => console.warn('Conversation subscription error:', err));
       return () => unsub();
     }, [currentUser, user.id])
   );

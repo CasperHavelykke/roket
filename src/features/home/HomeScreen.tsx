@@ -223,7 +223,7 @@ export default function HomeScreen({ navigation }: any) {
       .onSnapshot(doc => {
         const data = doc.data();
         setNeedsProfile(!data?.photoURL);
-      });
+      }, err => console.warn('Profile subscription error:', err));
 
     return () => unsubscribe();
   }, []);
@@ -261,7 +261,7 @@ export default function HomeScreen({ navigation }: any) {
         setHasUnread(unreadUserIds.size > 0);
         setUnreadFromUsers(unreadUserIds);
         setTotalUnreadCount(total);
-      });
+      }, err => console.warn('Unread subscription error:', err));
 
     return () => unsubscribe();
   }, []);
