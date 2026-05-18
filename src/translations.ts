@@ -448,6 +448,7 @@ const da = {
   chatsLeaveConfirm: 'Forlad',
   chatSystemDeleted: (name: string) => `${name} har slettet samtalen`,
   chatSystemLeft: (name: string) => `${name} har forladt gruppen`,
+  cropperTitle: 'Beskær billede',
 
   // Photo gallery
   editProfilePhotos: 'Billeder',
@@ -933,6 +934,7 @@ const en: typeof da = {
   chatsLeaveConfirm: 'Leave',
   chatSystemDeleted: (name: string) => `${name} deleted the conversation`,
   chatSystemLeft: (name: string) => `${name} left the group`,
+  cropperTitle: 'Crop photo',
 
   // Notifications
   notificationNewMessage: 'New message',
@@ -1424,6 +1426,7 @@ const es: typeof da = {
   chatsLeaveConfirm: 'Salir',
   chatSystemDeleted: (name: string) => `${name} eliminó la conversación`,
   chatSystemLeft: (name: string) => `${name} salió del grupo`,
+  cropperTitle: 'Recortar foto',
 
   // Photo gallery
   editProfilePhotos: 'Fotos',
@@ -1912,6 +1915,7 @@ const de: typeof da = {
   chatsLeaveConfirm: 'Verlassen',
   chatSystemDeleted: (name: string) => `${name} hat die Unterhaltung gelöscht`,
   chatSystemLeft: (name: string) => `${name} hat die Gruppe verlassen`,
+  cropperTitle: 'Foto zuschneiden',
 
   // Photo gallery
   editProfilePhotos: 'Fotos',
@@ -2400,6 +2404,7 @@ const fr: typeof da = {
   chatsLeaveConfirm: 'Quitter',
   chatSystemDeleted: (name: string) => `${name} a supprimé la conversation`,
   chatSystemLeft: (name: string) => `${name} a quitté le groupe`,
+  cropperTitle: 'Recadrer la photo',
 
   // Photo gallery
   editProfilePhotos: 'Photos',
@@ -2888,6 +2893,7 @@ const pt: typeof da = {
   chatsLeaveConfirm: 'Sair',
   chatSystemDeleted: (name: string) => `${name} eliminou a conversa`,
   chatSystemLeft: (name: string) => `${name} saiu do grupo`,
+  cropperTitle: 'Recortar foto',
 
   // Photo gallery
   editProfilePhotos: 'Fotos',

@@ -20,6 +20,7 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import pickImage from '../../utils/pickImage';
+import ImageCropPicker from 'react-native-image-crop-picker';
 import getFirebaseError from '../../utils/getFirebaseError';
 import { useTheme } from '../../theme';
 import { STATUS_TAGS, StatusTagId } from '../../statusTags';
@@ -124,12 +125,32 @@ export default function EditProfileScreen({ navigation }: any) {
   if (!currentUser) return null;
 
   const uploadAvatar = async () => {
-    const uri = await pickImage();
-    if (!uri) return;
+    let cropped: { path: string } | undefined;
+    try {
+      cropped = await ImageCropPicker.openPicker({
+        width: 512,
+        height: 512,
+        cropping: true,
+        cropperCircleOverlay: true,
+        mediaType: 'photo',
+        compressImageQuality: 0.8,
+        forceJpg: true,
+        // Android crop-UI tema (iOS bruger native look — ikke konfigurerbart)
+        cropperToolbarTitle: t.cropperTitle,
+        cropperToolbarColor: colors.white,
+        cropperStatusBarColor: colors.white,
+        cropperToolbarWidgetColor: colors.textPrimary,
+        cropperActiveWidgetColor: colors.primaryBlueText,
+      });
+    } catch {
+      // Bruger annullerede billedvælgeren — gør intet
+      return;
+    }
+    if (!cropped?.path) return;
     setUploadingAvatar(true);
     try {
       const ref = storage().ref(`profileAvatars/${currentUser.uid}.jpg`);
-      await ref.putFile(uri);
+      await ref.putFile(cropped.path);
       const url = await ref.getDownloadURL();
       await firestore().collection('users').doc(currentUser.uid).update({ avatarURL: url });
       setAvatarURL(url);
@@ -430,22 +451,24 @@ export default function EditProfileScreen({ navigation }: any) {
             {/* Lille avatar — bruges i gruppechat, notifikationer etc. */}
             <View style={styles.avatarSection}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>{(t as any).editProfileAvatarLabel ?? 'Avatar'}</Text>
-              <TouchableOpacity
-                onPress={handleAvatarPress}
-                disabled={uploadingAvatar}
-                style={[styles.avatarUpload, { borderColor: avatarURL ? colors.primaryBlue : colors.inputBorder, backgroundColor: colors.inputBackground }]}
-              >
-                {uploadingAvatar ? (
-                  <ActivityIndicator color={colors.primaryBlue} />
-                ) : avatarURL ? (
-                  <Image source={{ uri: avatarURL }} style={styles.avatarImage} />
-                ) : (
-                  <Text style={[styles.avatarPlusIcon, { color: colors.primaryBlueText }]}>+</Text>
-                )}
-              </TouchableOpacity>
-              <Text style={[styles.avatarHint, { color: colors.textMuted }]}>
-                {(t as any).editProfileAvatarHint ?? 'Lille profilbillede til gruppechats og notifikationer'}
-              </Text>
+              <View style={styles.avatarRow}>
+                <TouchableOpacity
+                  onPress={handleAvatarPress}
+                  disabled={uploadingAvatar}
+                  style={[styles.avatarUpload, { borderColor: avatarURL ? colors.primaryBlue : colors.inputBorder, backgroundColor: colors.inputBackground }]}
+                >
+                  {uploadingAvatar ? (
+                    <ActivityIndicator color={colors.primaryBlue} />
+                  ) : avatarURL ? (
+                    <Image source={{ uri: avatarURL }} style={styles.avatarImage} />
+                  ) : (
+                    <Text style={[styles.avatarPlusIcon, { color: colors.primaryBlueText }]}>+</Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={[styles.avatarHint, { color: colors.textMuted }]}>
+                  {(t as any).editProfileAvatarHint ?? 'Lille profilbillede til gruppechats og notifikationer'}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -759,6 +782,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     alignItems: 'flex-start',
   },
+  avatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
   avatarUpload: {
     width: 60,
     height: 60,
@@ -768,7 +796,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    marginTop: 8,
   },
   avatarImage: {
     width: '100%',
@@ -780,7 +807,8 @@ const styles = StyleSheet.create({
   },
   avatarHint: {
     fontSize: 12,
-    marginTop: 8,
+    marginLeft: 12,
+    flex: 1,
     lineHeight: 16,
   },
   slotsGrid: {
