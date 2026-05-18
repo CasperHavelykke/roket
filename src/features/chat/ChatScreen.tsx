@@ -47,6 +47,7 @@ interface Message {
   flagged?: boolean;
   flaggedReason?: string;
   revealedBy?: string;
+  system?: boolean;
 }
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -280,6 +281,7 @@ export default function ChatScreen({ route, navigation }: any) {
           flagged: doc.data().flagged ?? false,
           flaggedReason: doc.data().flaggedReason,
           revealedBy: doc.data().revealedBy,
+          system: doc.data().system ?? false,
         }));
         msgs.sort((a, b) => {
           if (!a.timestamp) return -1;
@@ -655,6 +657,13 @@ export default function ChatScreen({ route, navigation }: any) {
     const isLiked = item.likedBy && item.likedBy.length > 0;
     const isFlaggedImage = item.flagged && item.imageURL && !expired && !item.deleted;
     const isRevealed = !!item.revealedBy;
+    if (item.system) {
+      return (
+        <View style={styles.systemRow}>
+          <Text style={[styles.systemText, { color: colors.textMuted }]}>{item.text}</Text>
+        </View>
+      );
+    }
     return (
       <View>
         {showDateSeparator && item.timestamp && (
@@ -1476,5 +1485,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginHorizontal: 12,
+  },
+  systemRow: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    marginVertical: 12,
+  },
+  systemText: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

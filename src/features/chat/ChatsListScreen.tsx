@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-  Animated,
-  PanResponder,
+  Alert,
   Dimensions,
 } from 'react-native';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 const SCREEN_W = Dimensions.get('window').width;
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +19,7 @@ import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
-import { Camera as CameraIcon, Calendar as CalendarIcon } from 'lucide-react-native';
+import { Camera as CameraIcon, Calendar as CalendarIcon, Pin as PinIcon } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoHeader from '../../assets/roket-logo-simpel.svg';
 import TagIcon from '../../components/TagIcon';
@@ -40,90 +40,41 @@ interface ChatPreview {
   eventTag?: StatusTagId | null;
 }
 
-const SWIPE_THRESHOLD = 70;
+type SwipeAction = { label: string; color: string; onPress: () => void };
 
-function SwipeableRow({ children, onAction, actionLabel, actionColor, rowBackground }: {
+function SwipeableRow({ children, actions, rowBackground }: {
   children: React.ReactNode;
-  onAction: () => void;
-  actionLabel: string;
-  actionColor: string;
+  actions: SwipeAction[];
   rowBackground: string;
 }) {
-  const translateX = useRef(new Animated.Value(0)).current;
-  const startOffset = useRef(0);
-  const lastValue = useRef(0);
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderGrant: () => {
-        translateX.stopAnimation((value) => {
-          startOffset.current = value;
-          lastValue.current = value;
-        });
-      },
-      onPanResponderMove: (_, gestureState) => {
-        const target = startOffset.current + gestureState.dx;
-        let value: number;
-        if (target > 0) {
-          value = target * 0.3;
-        } else if (target > -100) {
-          value = target;
-        } else {
-          value = -100 + (target + 100) * 0.3;
-        }
-        lastValue.current = value;
-        translateX.setValue(value);
-      },
-      onPanResponderRelease: () => {
-        if (lastValue.current < -SWIPE_THRESHOLD) {
-          startOffset.current = -100;
-          Animated.spring(translateX, {
-            toValue: -100,
-            useNativeDriver: true,
-            tension: 60,
-            friction: 9,
-          }).start();
-        } else {
-          startOffset.current = 0;
-          Animated.spring(translateX, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 60,
-            friction: 9,
-          }).start();
-        }
-      },
-    })
-  ).current;
+  const ref = useRef<any>(null);
 
-  const handleAction = () => {
-    startOffset.current = 0;
-    Animated.spring(translateX, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 60,
-      friction: 9,
-    }).start();
-    onAction();
-  };
+  const renderRightActions = () => (
+    <View style={styles.swipeActions}>
+      {actions.map((a, i) => (
+        <TouchableOpacity
+          key={i}
+          style={[styles.swipeAction, { backgroundColor: a.color }]}
+          activeOpacity={0.8}
+          onPress={() => { ref.current?.close?.(); a.onPress(); }}
+        >
+          <Text style={styles.swipeActionText}>{a.label}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
   return (
-    <View style={styles.swipeContainer}>
-      <TouchableOpacity
-        style={[styles.swipeAction, { backgroundColor: actionColor }]}
-        onPress={handleAction}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.swipeActionText}>{actionLabel}</Text>
-      </TouchableOpacity>
-      <Animated.View
-        style={{ transform: [{ translateX }], marginLeft: -20, paddingLeft: 20, backgroundColor: rowBackground }}
-        {...panResponder.panHandlers}
-      >
-        {children}
-      </Animated.View>
-    </View>
+    <ReanimatedSwipeable
+      ref={ref}
+      friction={2}
+      rightThreshold={40}
+      overshootRight={false}
+      renderRightActions={renderRightActions}
+      containerStyle={{ backgroundColor: rowBackground }}
+    >
+      {children}
+    </ReanimatedSwipeable>
   );
 }
 
@@ -168,6 +119,14 @@ export default function ChatsListScreen({ navigation }: any) {
         for (const doc of snapshot.docs) {
           const data = doc.data();
           if (!data.lastMessage) continue;
+
+          // Slet-for-mig: skjul samtalen medmindre der er kommet en nyere besked siden
+          const clearedAt = data.clearedBy?.[currentUser.uid];
+          if (clearedAt) {
+            const clearedMs = clearedAt.toMillis?.() ?? 0;
+            const lastMs = data.lastMessageTime?.toMillis?.() ?? 0;
+            if (lastMs <= clearedMs) continue;
+          }
 
           // Event/gruppechat: brug event-titel og status-ikon
           if (data.eventId) {
@@ -285,6 +244,86 @@ export default function ChatsListScreen({ navigation }: any) {
     });
   };
 
+  const confirmDelete = (item: ChatPreview) => {
+    Alert.alert(t.chatsDeleteTitle, t.chatsDeleteMessage, [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.chatsDeleteConfirm, style: 'destructive', onPress: () => deleteConversationForMe(item) },
+    ]);
+  };
+
+  const deleteConversationForMe = async (item: ChatPreview) => {
+    if (!currentUser) return;
+    const uid = currentUser.uid;
+    setChats(prev => prev.filter(c => c.chatId !== item.chatId));
+    try {
+      const chatRef = firestore().collection('chats').doc(item.chatId);
+      // Slet mine egne beskeder (batch-vis)
+      const ownMsgs = await chatRef.collection('messages').where('senderId', '==', uid).get();
+      const docs = ownMsgs.docs;
+      for (let i = 0; i < docs.length; i += 450) {
+        const batch = firestore().batch();
+        docs.slice(i, i + 450).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+      const myDoc = await firestore().collection('users').doc(uid).get();
+      const myName = myDoc.data()?.displayName || '';
+      const sysText = t.chatSystemDeleted(myName);
+      // System-besked (skrevet af mig, så modparten ser at samtalen er slettet)
+      await chatRef.collection('messages').add({
+        senderId: uid,
+        text: sysText,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        system: true,
+      });
+      // Marker ryddet for mig + opdatér lastMessage så modparten ser notitsen
+      await chatRef.update({
+        [`clearedBy.${uid}`]: firestore.FieldValue.serverTimestamp(),
+        lastMessage: sysText.slice(0, 500),
+        lastMessageTime: firestore.FieldValue.serverTimestamp(),
+        lastMessageSenderId: uid,
+      });
+    } catch (e) {
+      console.warn('Delete conversation error:', e);
+    }
+  };
+
+  const confirmLeave = (item: ChatPreview) => {
+    Alert.alert(t.chatsLeaveTitle, t.chatsLeaveMessage, [
+      { text: t.cancel, style: 'cancel' },
+      { text: t.chatsLeaveConfirm, style: 'destructive', onPress: () => leaveEventChat(item) },
+    ]);
+  };
+
+  const leaveEventChat = async (item: ChatPreview) => {
+    if (!currentUser || !item.eventId) return;
+    const uid = currentUser.uid;
+    setChats(prev => prev.filter(c => c.chatId !== item.chatId));
+    try {
+      const chatRef = firestore().collection('chats').doc(item.chatId);
+      const myDoc = await firestore().collection('users').doc(uid).get();
+      const myName = myDoc.data()?.displayName || '';
+      const sysText = t.chatSystemLeft(myName);
+      // System-besked først (mens jeg stadig er deltager)
+      await chatRef.collection('messages').add({
+        senderId: uid,
+        text: sysText,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        system: true,
+      });
+      await firestore().collection('events').doc(item.eventId).update({
+        participantIds: firestore.FieldValue.arrayRemove(uid),
+      });
+      await chatRef.update({
+        participants: firestore.FieldValue.arrayRemove(uid),
+        lastMessage: sysText.slice(0, 500),
+        lastMessageTime: firestore.FieldValue.serverTimestamp(),
+        lastMessageSenderId: uid,
+      });
+    } catch (e) {
+      console.warn('Leave event chat error:', e);
+    }
+  };
+
   const formatTime = (timestamp: any): string => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -300,11 +339,20 @@ export default function ChatsListScreen({ navigation }: any) {
     const unread = item.unreadCount > 0 && !openedChatIds.has(item.chatId);
     const isPinned = pinnedChatIds.has(item.chatId);
 
+    const swipeActions: SwipeAction[] = [
+      {
+        label: isPinned ? t.chatsUnpinChat : t.chatsPinChat,
+        color: isPinned ? colors.textMuted : colors.primaryBlue,
+        onPress: () => togglePin(item.chatId),
+      },
+      item.isEvent
+        ? { label: t.chatsLeave, color: colors.primaryRed, onPress: () => confirmLeave(item) }
+        : { label: t.chatsDelete, color: colors.primaryRed, onPress: () => confirmDelete(item) },
+    ];
+
     return (
       <SwipeableRow
-        onAction={() => togglePin(item.chatId)}
-        actionLabel={isPinned ? t.chatsUnpinChat : t.chatsPinChat}
-        actionColor={isPinned ? colors.textMuted : colors.primaryBlue}
+        actions={swipeActions}
         rowBackground={colors.white}
       >
         <TouchableOpacity
@@ -349,10 +397,10 @@ export default function ChatsListScreen({ navigation }: any) {
           )}
           <View style={styles.chatInfo}>
             <View style={styles.chatTop}>
-              <Text style={[styles.chatName, { color: colors.textPrimary }]}>{item.otherUserName}</Text>
+              <Text style={[styles.chatName, { color: colors.textPrimary }]} numberOfLines={1}>{item.otherUserName}</Text>
               {showTestBadges && item.otherUserTestAccount && <View style={styles.testTag}><Text style={styles.testTagText}>{t.testAccount}</Text></View>}
               <View style={styles.chatTopRight}>
-                {isPinned && <Text style={styles.pinIcon}>📌</Text>}
+                {isPinned && <PinIcon size={13} color={colors.textMuted} />}
                 <Text style={[styles.chatTime, unread && { color: colors.primaryBlueText, fontWeight: '600' }]}>
                   {formatTime(item.lastMessageTime)}
                 </Text>
@@ -469,23 +517,20 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  swipeContainer: {
-    overflow: 'hidden',
+  swipeActions: {
+    flexDirection: 'row',
   },
   swipeAction: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 200,
+    width: 76,
     justifyContent: 'center',
-    alignItems: 'flex-end',
-    paddingRight: 25,
+    alignItems: 'center',
+    paddingHorizontal: 4,
   },
   swipeActionText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
+    textAlign: 'center',
   },
   chatItem: {
     flexDirection: 'row',
@@ -514,6 +559,7 @@ const styles = StyleSheet.create({
   },
   chatTop: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 4,
   },
@@ -521,13 +567,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  pinIcon: {
-    fontSize: 12,
+    flexShrink: 0,
+    marginLeft: 8,
   },
   chatName: {
     fontSize: 16,
     fontWeight: '700',
+    flex: 1,
   },
   chatTime: {
     fontSize: 12,

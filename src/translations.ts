@@ -438,6 +438,16 @@ const da = {
   // Chats - pin
   chatsPinChat: 'Fastgør',
   chatsUnpinChat: 'Frigør',
+  chatsDelete: 'Slet',
+  chatsLeave: 'Forlad',
+  chatsDeleteTitle: 'Slet samtale?',
+  chatsDeleteMessage: 'Dine beskeder i denne samtale slettes permanent for begge parter, og samtalen fjernes fra din liste. Handlingen kan ikke fortrydes.',
+  chatsDeleteConfirm: 'Slet',
+  chatsLeaveTitle: 'Forlad gruppen?',
+  chatsLeaveMessage: 'Du fjernes fra både gruppechatten og begivenhedens deltagere. De andre får besked om at du har forladt den. Handlingen kan ikke fortrydes.',
+  chatsLeaveConfirm: 'Forlad',
+  chatSystemDeleted: (name: string) => `${name} har slettet samtalen`,
+  chatSystemLeft: (name: string) => `${name} har forladt gruppen`,
 
   // Photo gallery
   editProfilePhotos: 'Billeder',
@@ -913,6 +923,16 @@ const en: typeof da = {
   // Chats - pin
   chatsPinChat: 'Pin',
   chatsUnpinChat: 'Unpin',
+  chatsDelete: 'Delete',
+  chatsLeave: 'Leave',
+  chatsDeleteTitle: 'Delete conversation?',
+  chatsDeleteMessage: 'Your messages in this conversation will be permanently deleted for both of you, and the conversation will be removed from your list. This action cannot be undone.',
+  chatsDeleteConfirm: 'Delete',
+  chatsLeaveTitle: 'Leave group?',
+  chatsLeaveMessage: 'You\'ll be removed from both the group chat and the event\'s participants. The others will be notified that you left. This action cannot be undone.',
+  chatsLeaveConfirm: 'Leave',
+  chatSystemDeleted: (name: string) => `${name} deleted the conversation`,
+  chatSystemLeft: (name: string) => `${name} left the group`,
 
   // Notifications
   notificationNewMessage: 'New message',
@@ -1394,6 +1414,16 @@ const es: typeof da = {
   // Chats - pin
   chatsPinChat: 'Fijar',
   chatsUnpinChat: 'Desfijar',
+  chatsDelete: 'Eliminar',
+  chatsLeave: 'Salir',
+  chatsDeleteTitle: '¿Eliminar conversación?',
+  chatsDeleteMessage: 'Tus mensajes en esta conversación se eliminarán permanentemente para ambos, y la conversación se quitará de tu lista. Esta acción no se puede deshacer.',
+  chatsDeleteConfirm: 'Eliminar',
+  chatsLeaveTitle: '¿Salir del grupo?',
+  chatsLeaveMessage: 'Se te quitará del chat de grupo y de los participantes del evento. Los demás verán que has salido. Esta acción no se puede deshacer.',
+  chatsLeaveConfirm: 'Salir',
+  chatSystemDeleted: (name: string) => `${name} eliminó la conversación`,
+  chatSystemLeft: (name: string) => `${name} salió del grupo`,
 
   // Photo gallery
   editProfilePhotos: 'Fotos',
@@ -1872,6 +1902,16 @@ const de: typeof da = {
   // Chats - pin
   chatsPinChat: 'Anheften',
   chatsUnpinChat: 'Loslösen',
+  chatsDelete: 'Löschen',
+  chatsLeave: 'Verlassen',
+  chatsDeleteTitle: 'Unterhaltung löschen?',
+  chatsDeleteMessage: 'Deine Nachrichten in dieser Unterhaltung werden für beide dauerhaft gelöscht, und die Unterhaltung wird aus deiner Liste entfernt. Diese Aktion kann nicht rückgängig gemacht werden.',
+  chatsDeleteConfirm: 'Löschen',
+  chatsLeaveTitle: 'Gruppe verlassen?',
+  chatsLeaveMessage: 'Du wirst aus dem Gruppenchat und den Teilnehmern des Events entfernt. Die anderen werden benachrichtigt, dass du gegangen bist. Diese Aktion kann nicht rückgängig gemacht werden.',
+  chatsLeaveConfirm: 'Verlassen',
+  chatSystemDeleted: (name: string) => `${name} hat die Unterhaltung gelöscht`,
+  chatSystemLeft: (name: string) => `${name} hat die Gruppe verlassen`,
 
   // Photo gallery
   editProfilePhotos: 'Fotos',
@@ -2350,6 +2390,16 @@ const fr: typeof da = {
   // Chats - pin
   chatsPinChat: 'Épingler',
   chatsUnpinChat: 'Désépingler',
+  chatsDelete: 'Supprimer',
+  chatsLeave: 'Quitter',
+  chatsDeleteTitle: 'Supprimer la conversation ?',
+  chatsDeleteMessage: 'Vos messages dans cette conversation seront définitivement supprimés pour vous deux, et la conversation sera retirée de votre liste. Cette action est irréversible.',
+  chatsDeleteConfirm: 'Supprimer',
+  chatsLeaveTitle: 'Quitter le groupe ?',
+  chatsLeaveMessage: 'Vous serez retiré du chat de groupe et des participants à l\'événement. Les autres seront informés de votre départ. Cette action est irréversible.',
+  chatsLeaveConfirm: 'Quitter',
+  chatSystemDeleted: (name: string) => `${name} a supprimé la conversation`,
+  chatSystemLeft: (name: string) => `${name} a quitté le groupe`,
 
   // Photo gallery
   editProfilePhotos: 'Photos',
@@ -2828,6 +2878,16 @@ const pt: typeof da = {
   // Chats - pin
   chatsPinChat: 'Fixar',
   chatsUnpinChat: 'Desafixar',
+  chatsDelete: 'Eliminar',
+  chatsLeave: 'Sair',
+  chatsDeleteTitle: 'Eliminar conversa?',
+  chatsDeleteMessage: 'As tuas mensagens nesta conversa serão eliminadas permanentemente para ambos, e a conversa será removida da tua lista. Esta ação não pode ser desfeita.',
+  chatsDeleteConfirm: 'Eliminar',
+  chatsLeaveTitle: 'Sair do grupo?',
+  chatsLeaveMessage: 'Serás removido do chat de grupo e dos participantes do evento. Os outros serão notificados de que saíste. Esta ação não pode ser desfeita.',
+  chatsLeaveConfirm: 'Sair',
+  chatSystemDeleted: (name: string) => `${name} eliminou a conversa`,
+  chatSystemLeft: (name: string) => `${name} saiu do grupo`,
 
   // Photo gallery
   editProfilePhotos: 'Fotos',

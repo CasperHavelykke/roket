@@ -750,7 +750,7 @@ export default function HomeScreen({ navigation }: any) {
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t.homeLoadingText}</Text>
         <DisclosureModal
           visible={showLocationDisclosure}
-          icon={<PinMapIcon size={48} />}
+          icon={<PinMapIcon size={48} color={isDark ? '#fff' : colors.textPrimary} />}
           title={t.disclosureLocationTitle}
           message={t.disclosureLocationMessage}
           acceptLabel={t.disclosureLocationAccept}

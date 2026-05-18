@@ -158,6 +158,12 @@ service cloud.firestore {
                           !(request.auth.uid in request.resource.data.participants))
                        );
 
+      // Deltager kan markere samtalen som ryddet for sig selv (slet-for-mig).
+      // Kun feltet clearedBy må røres; chat-doc'et slettes aldrig så modparten beholder den.
+      allow update: if request.auth != null &&
+                       request.auth.uid in resource.data.participants &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clearedBy']);
+
       // Staff kan slette chats (til moderation/cleanup af events)
       allow delete: if isStaff();
 
@@ -188,6 +194,12 @@ service cloud.firestore {
 
         // Staff kan slette beskeder (til cleanup af events)
         allow delete: if isStaff();
+
+        // Deltager kan slette sine EGNE beskeder (slet-for-mig / tilbagetræk).
+        // Kun afsenderen, og kun hvis stadig deltager i chatten.
+        allow delete: if request.auth != null &&
+                         resource.data.senderId == request.auth.uid &&
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       }
     }
 

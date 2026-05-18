@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, StatusBar, Alert, AppState, TouchableOpacity, Platform } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 const KeyboardProvider = Platform.OS === 'android'
   ? require('react-native-keyboard-controller').KeyboardProvider
@@ -337,6 +338,7 @@ function App() {
     : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: theme.colors.background } };
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
       <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
@@ -375,7 +377,7 @@ function App() {
         )}
         <DisclosureModal
           visible={showNotifDisclosure}
-          icon={<BellIcon size={64} />}
+          icon={<BellIcon size={64} color={theme.isDark ? '#fff' : theme.colors.textPrimary} />}
           title={theme.t.disclosureNotificationTitle}
           message={theme.t.disclosureNotificationMessage}
           acceptLabel={theme.t.disclosureNotificationAccept}
@@ -387,6 +389,7 @@ function App() {
       </ThemeContext.Provider>
       </KeyboardProvider>
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
