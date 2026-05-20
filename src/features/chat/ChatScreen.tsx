@@ -993,14 +993,34 @@ export default function ChatScreen({ route, navigation }: any) {
             maxLength={1000}
             onSubmitEditing={sendMessage}
           />
-          <TouchableOpacity
-            style={[styles.sendButton, { backgroundColor: inputText.trim() ? colors.primaryRed : colors.inputBorder }]}
-            onPress={sendMessage}
-            disabled={!inputText.trim()}
-            activeOpacity={0.85}
-          >
-            <SendIcon size={20} color={inputText.trim() ? colors.textWhite : colors.textMuted} />
-          </TouchableOpacity>
+          {(() => {
+            const sendBtnSize = 44;
+            const sendBtnLeft = SCREEN_W - 12 - sendBtnSize;
+            const hasText = !!inputText.trim();
+            return (
+              <TouchableOpacity
+                style={styles.sendButtonTouch}
+                onPress={sendMessage}
+                disabled={!hasText}
+                activeOpacity={0.85}
+              >
+                {hasText ? (
+                  <GradientView
+                    colors={[colors.primaryBlue, colors.primaryRed]}
+                    start={{ x: -sendBtnLeft / sendBtnSize, y: 0 }}
+                    end={{ x: (SCREEN_W - sendBtnLeft) / sendBtnSize, y: 0 }}
+                    style={styles.sendButton}
+                  >
+                    <SendIcon size={20} color={colors.textWhite} />
+                  </GradientView>
+                ) : (
+                  <View style={[styles.sendButton, { borderWidth: 1.5, borderColor: colors.inputBorder }]}>
+                    <SendIcon size={20} color={colors.textMuted} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })()}
         </View>
         </View>
         )}
@@ -1268,8 +1288,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     maxHeight: 120,
   },
-  sendButton: {
+  sendButtonTouch: {
     marginLeft: 10,
+  },
+  sendButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
