@@ -26,6 +26,7 @@ import { useTheme } from '../../theme';
 import { STATUS_TAGS, StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import TagIcon from '../../components/TagIcon';
+import { LocateFixed, Locate, EyeOff } from 'lucide-react-native';
 
 export default function EditProfileScreen({ navigation }: any) {
   const { colors, isDark, t, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit } = useTheme();
@@ -473,7 +474,7 @@ export default function EditProfileScreen({ navigation }: any) {
           </View>
 
           {hasBirthday && (
-            <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
+            <View style={styles.toggleSection}>
               <View style={[styles.toggleRow, { borderTopWidth: 0, marginTop: 0, paddingTop: 0 }]}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 0 }]}>{t.editProfileShowAge}</Text>
@@ -489,18 +490,28 @@ export default function EditProfileScreen({ navigation }: any) {
             </View>
           )}
 
-          <View style={[styles.toggleSection, { backgroundColor: colors.white, borderColor: colors.inputBorder }]}>
+          <View style={styles.toggleSection}>
             <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 8, marginTop: 0 }]}>{t.settingsDistance}</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              {([{ value: 'exact', label: t.settingsDistanceExact }, { value: 'fuzzy', label: distanceUnit === 'mi' ? t.settingsDistanceFuzzyMi : t.settingsDistanceFuzzy }, { value: 'hidden', label: t.settingsDistanceHidden }] as const).map(opt => (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[styles.distanceOption, { borderColor: colors.inputBorder }, distanceMode === opt.value && { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue }]}
-                  onPress={() => setDistanceMode(opt.value)}
-                >
-                  <Text style={[styles.distanceOptionText, { color: colors.textPrimary }, distanceMode === opt.value && { color: colors.textWhite }]}>{opt.label}</Text>
-                </TouchableOpacity>
-              ))}
+              {([
+                { value: 'exact', label: t.settingsDistanceExact, Icon: LocateFixed },
+                { value: 'fuzzy', label: distanceUnit === 'mi' ? t.settingsDistanceFuzzyMi : t.settingsDistanceFuzzy, Icon: Locate },
+                { value: 'hidden', label: t.settingsDistanceHidden, Icon: EyeOff },
+              ] as const).map(opt => {
+                const selected = distanceMode === opt.value;
+                const fg = selected ? colors.textPrimary : colors.textMuted;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.distanceOption, { backgroundColor: selected ? colors.cardBackground : colors.card }]}
+                    onPress={() => setDistanceMode(opt.value)}
+                    activeOpacity={0.85}
+                  >
+                    <opt.Icon size={18} color={fg} strokeWidth={2} />
+                    <Text style={[styles.distanceOptionText, { color: fg }]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
             <Text style={[styles.settingDesc, { color: colors.textMuted }]}>
               {distanceMode === 'exact' ? t.settingsDistanceDescExact : distanceMode === 'fuzzy' ? (distanceUnit === 'mi' ? t.settingsDistanceDescFuzzyMi : t.settingsDistanceDescFuzzy) : t.settingsDistanceDescHidden}
@@ -705,14 +716,8 @@ const styles = StyleSheet.create({
   },
   toggleSection: {
     width: '100%',
-    borderRadius: 12,
-    padding: 16,
+    paddingVertical: 8,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
   },
   toggleValueLabel: {
     fontSize: 16,
@@ -721,13 +726,17 @@ const styles = StyleSheet.create({
   distanceOption: {
     flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 8,
     borderRadius: 10,
-    borderWidth: 1.5,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    overflow: 'hidden',
   },
   distanceOptionText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
+    letterSpacing: -0.2,
   },
   settingDesc: {
     fontSize: 13,

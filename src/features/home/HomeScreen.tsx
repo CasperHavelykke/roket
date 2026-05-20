@@ -116,7 +116,17 @@ const UserCard = React.memo(function UserCard({
         <View style={[styles.cardOverlay, !item.status && { backgroundColor: 'transparent' }, isUnread && { backgroundColor: 'rgba(67,97,238,0.5)' }]} pointerEvents="none">
           {item.status ? (
             <>
-              <Text style={[styles.cardName, isCompact && { fontSize: 12, lineHeight: 15 }, numColumns === 4 && { fontSize: 10, lineHeight: 13 }, isSingle && { fontSize: 22, lineHeight: 28 }]} numberOfLines={numColumns >= 2 && numColumns <= 4 ? 5 : 4}>{item.status}</Text>
+              <Text
+                style={[
+                  styles.cardName,
+                  isCompact && { fontSize: 18 },
+                  numColumns === 4 && { fontSize: 14 },
+                  isSingle && { fontSize: 34 },
+                ]}
+                numberOfLines={numColumns >= 2 && numColumns <= 4 ? 5 : 4}
+                adjustsFontSizeToFit
+                minimumFontScale={0.55}
+              >{item.status}</Text>
               {isSingle && item.bio ? (
                 <Text style={styles.cardBio}>{item.bio}</Text>
               ) : null}
@@ -1191,10 +1201,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.18)',
   },
   cardName: {
-    fontSize: 17,
+    fontSize: 23,
     fontWeight: '700',
     color: '#fff',
-    lineHeight: 22,
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },

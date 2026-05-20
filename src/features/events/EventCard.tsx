@@ -109,11 +109,13 @@ export default function EventCard({ event, width, compact, tiny, isSingle, cardL
         <Text
           style={[
             styles.title,
-            compact && { fontSize: 12, lineHeight: 15 },
-            tiny && { fontSize: 10, lineHeight: 13 },
-            isSingle && { fontSize: 22, lineHeight: 28 },
+            compact && { fontSize: 18 },
+            tiny && { fontSize: 14 },
+            isSingle && { fontSize: 34 },
           ]}
           numberOfLines={isSingle ? 4 : 5}
+          adjustsFontSizeToFit
+          minimumFontScale={0.55}
         >
           {event.title}
         </Text>
@@ -169,9 +171,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 23,
     fontWeight: '800',
-    lineHeight: 20,
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 0, height: 1 },
