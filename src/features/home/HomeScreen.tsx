@@ -12,7 +12,6 @@ import {
   useWindowDimensions,
   Platform,
   Pressable,
-  ImageSourcePropType,
 } from 'react-native';
 import GradientView from '../../components/GradientView';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,7 +20,7 @@ import firestore from '@react-native-firebase/firestore';
 import LocationService from '../../services/LocationService';
 import { useTheme } from '../../theme';
 import DisclosureModal from '../../components/DisclosureModal';
-import { MapPin as PinMapIcon, Settings as SettingsIcon, User as ProfileIcon, MessagesSquare as MessagesIcon, Plus as PlusIcon, Calendar as CalendarIcon, Mail as MailIcon } from 'lucide-react-native';
+import { MapPin as PinMapIcon, Settings as SettingsIcon, User as ProfileIcon, MessagesSquare as MessagesIcon, Plus as PlusIcon, Calendar as CalendarIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaskedView from '@react-native-masked-view/masked-view';
 import CardCarousel from './CardCarousel';
@@ -34,6 +33,7 @@ import EventCard from '../events/EventCard';
 import EventDetailModal from '../events/EventDetailModal';
 import { EventDoc } from '../../events';
 import TagIcon from '../../components/TagIcon';
+import UserCard from '../profile/UserCard';
 
 const BANNER_AD_ID = __DEV__
   ? TestIds.ADAPTIVE_BANNER
@@ -52,7 +52,7 @@ type GridRow =
   | { type: 'events'; events: EventDoc[]; key: string }
   | { type: 'mixed'; cells: GridCell[]; key: string };
 
-interface User {
+export interface User {
   id: string;
   displayName: string;
   bio: string;
@@ -74,93 +74,6 @@ interface User {
 }
 
 const INACTIVE_HOURS = 24; // Skjul profiler der ikke har været online i X timer
-
-interface UserCardProps {
-  item: User;
-  cardWidth: number;
-  cardMargin: number;
-  isCompact: boolean;
-  isSingle: boolean;
-  numColumns: number;
-  backgroundColor: string;
-  primaryBlue: string;
-  fallbackSource: ImageSourcePropType;
-  isUnread: boolean;
-  showTestBadge: boolean;
-  testBadgeLabel: string;
-  onPress: (item: User) => void;
-  onLongPress: (item: User) => void;
-  onMessagePress: (item: User) => void;
-}
-
-const UserCard = React.memo(function UserCard({
-  item, cardWidth, cardMargin, isCompact, isSingle, numColumns,
-  backgroundColor, primaryBlue, fallbackSource, isUnread, showTestBadge,
-  testBadgeLabel, onPress, onLongPress, onMessagePress,
-}: UserCardProps) {
-  const allPhotos = item.photoURL ? [item.photoURL, ...(item.photos || [])] : [];
-  return (
-    <View
-      style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin, backgroundColor }, isSingle && { aspectRatio: 1.2 }]}
-    >
-      <CardCarousel
-        photos={allPhotos}
-        width={cardWidth}
-        fallbackSource={fallbackSource}
-        compact={isCompact}
-        isSingle={isSingle}
-        onPress={() => onPress(item)}
-        onLongPress={() => onLongPress(item)}
-      />
-      {(item.status || isUnread) && (
-        <View style={[styles.cardOverlay, !item.status && { backgroundColor: 'transparent' }, isUnread && { backgroundColor: 'rgba(67,97,238,0.5)' }]} pointerEvents="none">
-          {item.status ? (
-            <>
-              <Text
-                style={[
-                  styles.cardName,
-                  isCompact && { fontSize: 18 },
-                  numColumns === 4 && { fontSize: 14 },
-                  isSingle && { fontSize: 34 },
-                ]}
-                numberOfLines={numColumns >= 2 && numColumns <= 4 ? 5 : 4}
-                adjustsFontSizeToFit
-                minimumFontScale={0.55}
-              >{item.status}</Text>
-              {isSingle && item.bio ? (
-                <Text style={styles.cardBio}>{item.bio}</Text>
-              ) : null}
-            </>
-          ) : null}
-        </View>
-      )}
-      {item.statusTag && (
-        <View style={[styles.tagBadge, isCompact && styles.tagBadgeCompact]} pointerEvents="none">
-          <TagIcon tag={item.statusTag} size={isCompact ? 14 : 18} color="#fff" />
-        </View>
-      )}
-      {showTestBadge && (
-        <View style={styles.testBadge}>
-          <Text style={styles.testBadgeText}>{testBadgeLabel}</Text>
-        </View>
-      )}
-      {isUnread && (
-        <>
-          <View style={[styles.unreadBorder, { borderColor: primaryBlue }]} pointerEvents="none" />
-          {!isCompact && (
-            <View
-              style={[styles.messageBadge, { backgroundColor: '#fff' }, isSingle && styles.messageBadgeSingle]}
-              onStartShouldSetResponder={() => true}
-              onResponderRelease={() => onMessagePress(item)}
-            >
-              <MailIcon size={isSingle ? 28 : 22} color={primaryBlue} />
-            </View>
-          )}
-        </>
-      )}
-    </View>
-  );
-});
 
 const isOnline = (lastSeen?: Date): boolean => {
   if (!lastSeen) return false;
@@ -639,24 +552,26 @@ export default function HomeScreen({ navigation }: any) {
   }, [navigation]);
 
   const renderUserCard = useCallback((item: User) => (
-    <UserCard
+    <View
       key={item.id}
-      item={item}
-      cardWidth={cardWidth}
-      cardMargin={cardMargin}
-      isCompact={isCompact}
-      isSingle={isSingle}
-      numColumns={numColumns}
-      backgroundColor={colors.background}
-      primaryBlue={colors.primaryBlue}
-      fallbackSource={fallbackSource}
-      isUnread={unreadFromUsers.has(item.id)}
-      showTestBadge={!!(showTestBadges && item.testAccount && !isCompact)}
-      testBadgeLabel={t.testAccount}
-      onPress={handleProfilePress}
-      onLongPress={handlePreviewPress}
-      onMessagePress={handleMessagePress}
-    />
+      style={[styles.card, { width: cardWidth, maxWidth: cardWidth, margin: cardMargin, backgroundColor: colors.background }, isSingle && { aspectRatio: 1.2 }]}
+    >
+      <UserCard
+        item={item}
+        cardWidth={cardWidth}
+        isCompact={isCompact}
+        isSingle={isSingle}
+        numColumns={numColumns}
+        primaryBlue={colors.primaryBlue}
+        fallbackSource={fallbackSource}
+        isUnread={unreadFromUsers.has(item.id)}
+        showTestBadge={!!(showTestBadges && item.testAccount && !isCompact)}
+        testBadgeLabel={t.testAccount}
+        onPress={handleProfilePress}
+        onLongPress={handlePreviewPress}
+        onMessagePress={handleMessagePress}
+      />
+    </View>
   ), [cardWidth, cardMargin, isCompact, isSingle, numColumns, colors.background, colors.primaryBlue, fallbackSource, unreadFromUsers, showTestBadges, t.testAccount, handleProfilePress, handlePreviewPress, handleMessagePress]);
 
   const renderGridRow = useCallback(({ item }: { item: GridRow }) => {
@@ -1177,94 +1092,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  cardOverlay: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-  },
-  cardName: {
-    fontSize: 23,
-    fontWeight: '700',
-    color: '#fff',
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
-  },
-  cardBio: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: 'rgba(255,255,255,0.95)',
-    lineHeight: 19,
-    textAlign: 'center',
-    marginTop: 6,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  cardDistance: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  onlineDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-  },
-  testBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-  },
-  tagBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tagBadgeCompact: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    top: 6,
-    right: 6,
-  },
-  tagBadgeText: {
-    fontSize: 16,
-  },
   filterBar: {
   },
   filterBarContent: {
@@ -1300,46 +1127,6 @@ const styles = StyleSheet.create({
   createEventFab: {
     position: 'absolute',
     right: 32,
-  },
-  testBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  unreadBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderWidth: 3,
-    borderRadius: 14,
-    zIndex: 5,
-  },
-  messageBadge: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  messageBadgeSingle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    bottom: 10,
-    right: 10,
-  },
-  messageBadgeCompact: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    bottom: 5,
-    right: 5,
   },
   columnPicker: {
     position: 'absolute',
