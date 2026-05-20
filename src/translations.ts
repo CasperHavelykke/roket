@@ -232,6 +232,26 @@ const da = {
   chatExpiresMinutes: (m: number) => `Udløber om ${m}m`,
   chatSayHi: (name: string) => `Sig hej til ${name}!`,
   chatSayHiGroup: 'Sig hej til gruppen!',
+  chatActivityPrompt: (name: string, tag: string | null): string => {
+    switch (tag) {
+      case 'coffee': return `Foreslå at mødes til kaffe med ${name}`;
+      case 'study': return `Foreslå at læse sammen med ${name}`;
+      case 'workout': return `Foreslå at træne sammen med ${name}`;
+      case 'party': return `Spørg ${name}, om I skal til en fest`;
+      case 'newInTown': return `Tilbyd at vise ${name} byen`;
+      case 'drinks': return `Foreslå at få en drink med ${name}`;
+      case 'gaming': return `Foreslå at game sammen med ${name}`;
+      case 'bored': return `Foreslå noget at lave med ${name}`;
+      case 'food': return `Foreslå at spise sammen med ${name}`;
+      case 'walk': return `Foreslå en gåtur med ${name}`;
+      case 'music': return `Foreslå at høre musik sammen med ${name}`;
+      case 'art': return `Foreslå et galleri-besøg med ${name}`;
+      case 'shopping': return `Foreslå at shoppe med ${name}`;
+      case 'hike': return `Foreslå en vandretur med ${name}`;
+      case 'pets': return `Foreslå at gå tur med dyrene sammen med ${name}`;
+      default: return `Inviter ${name} til en aktivitet`;
+    }
+  },
   chatBlocked: 'Du kan ikke sende beskeder i denne samtale.',
   chatInputPlaceholder: 'Skriv en besked...',
   chatPhotoLabel: '📷 Foto',
@@ -721,6 +741,26 @@ const en: typeof da = {
   chatExpiresMinutes: (m: number) => `Expires in ${m}m`,
   chatSayHi: (name: string) => `Say hi to ${name}!`,
   chatSayHiGroup: 'Say hi to the group!',
+  chatActivityPrompt: (name: string, tag: string | null): string => {
+    switch (tag) {
+      case 'coffee': return `Suggest meeting ${name} for coffee`;
+      case 'study': return `Suggest studying together with ${name}`;
+      case 'workout': return `Suggest working out with ${name}`;
+      case 'party': return `Ask ${name} to come to a party`;
+      case 'newInTown': return `Offer to show ${name} around town`;
+      case 'drinks': return `Suggest grabbing a drink with ${name}`;
+      case 'gaming': return `Suggest gaming with ${name}`;
+      case 'bored': return `Suggest something to do with ${name}`;
+      case 'food': return `Suggest grabbing a bite with ${name}`;
+      case 'walk': return `Suggest a walk with ${name}`;
+      case 'music': return `Suggest listening to music with ${name}`;
+      case 'art': return `Suggest a gallery visit with ${name}`;
+      case 'shopping': return `Suggest going shopping with ${name}`;
+      case 'hike': return `Suggest a hike with ${name}`;
+      case 'pets': return `Suggest walking the pets with ${name}`;
+      default: return `Invite ${name} to do something`;
+    }
+  },
   chatBlocked: 'You cannot send messages in this conversation.',
   chatInputPlaceholder: 'Write a message...',
   chatPhotoLabel: '📷 Photo',
@@ -1210,6 +1250,26 @@ const es: typeof da = {
   chatExpiresMinutes: (m: number) => `Expira en ${m}m`,
   chatSayHi: (name: string) => `¡Saluda a ${name}!`,
   chatSayHiGroup: '¡Saluda al grupo!',
+  chatActivityPrompt: (name: string, tag: string | null): string => {
+    switch (tag) {
+      case 'coffee': return `Propón tomar un café con ${name}`;
+      case 'study': return `Propón estudiar con ${name}`;
+      case 'workout': return `Propón entrenar con ${name}`;
+      case 'party': return `Pide a ${name} ir a una fiesta`;
+      case 'newInTown': return `Ofrécete a enseñar la ciudad a ${name}`;
+      case 'drinks': return `Propón tomar una copa con ${name}`;
+      case 'gaming': return `Propón jugar con ${name}`;
+      case 'bored': return `Sugiere algo que hacer con ${name}`;
+      case 'food': return `Propón comer con ${name}`;
+      case 'walk': return `Propón un paseo con ${name}`;
+      case 'music': return `Propón escuchar música con ${name}`;
+      case 'art': return `Propón visitar una galería con ${name}`;
+      case 'shopping': return `Propón ir de compras con ${name}`;
+      case 'hike': return `Propón una caminata con ${name}`;
+      case 'pets': return `Propón pasear a las mascotas con ${name}`;
+      default: return `Invita a ${name} a una actividad`;
+    }
+  },
   chatBlocked: 'No puedes enviar mensajes en esta conversación.',
   chatInputPlaceholder: 'Escribe un mensaje...',
   chatPhotoLabel: '📷 Foto',
@@ -1699,6 +1759,26 @@ const de: typeof da = {
   chatExpiresMinutes: (m: number) => `Läuft ab in ${m}m`,
   chatSayHi: (name: string) => `Sag Hallo zu ${name}!`,
   chatSayHiGroup: 'Sag Hallo zur Gruppe!',
+  chatActivityPrompt: (name: string, tag: string | null): string => {
+    switch (tag) {
+      case 'coffee': return `Schlag ${name} einen Kaffee vor`;
+      case 'study': return `Schlag ${name} vor, zusammen zu lernen`;
+      case 'workout': return `Schlag ${name} vor, zusammen zu trainieren`;
+      case 'party': return `Frag ${name}, ob ihr auf eine Party geht`;
+      case 'newInTown': return `Biete ${name} an, die Stadt zu zeigen`;
+      case 'drinks': return `Schlag ${name} vor, etwas trinken zu gehen`;
+      case 'gaming': return `Schlag ${name} vor, zusammen zu zocken`;
+      case 'bored': return `Schlag ${name} etwas vor, was ihr machen könnt`;
+      case 'food': return `Schlag ${name} vor, zusammen zu essen`;
+      case 'walk': return `Schlag ${name} einen Spaziergang vor`;
+      case 'music': return `Schlag ${name} vor, zusammen Musik zu hören`;
+      case 'art': return `Schlag ${name} einen Galeriebesuch vor`;
+      case 'shopping': return `Schlag ${name} vor, shoppen zu gehen`;
+      case 'hike': return `Schlag ${name} eine Wanderung vor`;
+      case 'pets': return `Schlag ${name} vor, mit den Tieren spazieren zu gehen`;
+      default: return `Lade ${name} zu einer Aktivität ein`;
+    }
+  },
   chatBlocked: 'Du kannst in dieser Unterhaltung keine Nachrichten senden.',
   chatInputPlaceholder: 'Nachricht schreiben...',
   chatPhotoLabel: '📷 Foto',
@@ -2188,6 +2268,26 @@ const fr: typeof da = {
   chatExpiresMinutes: (m: number) => `Expire dans ${m}m`,
   chatSayHi: (name: string) => `Dites bonjour à ${name} !`,
   chatSayHiGroup: 'Dites bonjour au groupe !',
+  chatActivityPrompt: (name: string, tag: string | null): string => {
+    switch (tag) {
+      case 'coffee': return `Proposez à ${name} un café`;
+      case 'study': return `Proposez à ${name} de réviser ensemble`;
+      case 'workout': return `Proposez à ${name} de s'entraîner ensemble`;
+      case 'party': return `Demandez à ${name} d'aller à une fête`;
+      case 'newInTown': return `Proposez de faire visiter la ville à ${name}`;
+      case 'drinks': return `Proposez un verre à ${name}`;
+      case 'gaming': return `Proposez à ${name} de jouer`;
+      case 'bored': return `Proposez quelque chose à faire à ${name}`;
+      case 'food': return `Proposez à ${name} de manger ensemble`;
+      case 'walk': return `Proposez une balade à ${name}`;
+      case 'music': return `Proposez à ${name} d'écouter de la musique`;
+      case 'art': return `Proposez à ${name} une visite de galerie`;
+      case 'shopping': return `Proposez à ${name} de faire du shopping`;
+      case 'hike': return `Proposez une randonnée à ${name}`;
+      case 'pets': return `Proposez à ${name} de promener les animaux`;
+      default: return `Invitez ${name} à une activité`;
+    }
+  },
   chatBlocked: 'Vous ne pouvez pas envoyer de messages dans cette conversation.',
   chatInputPlaceholder: 'Écrire un message...',
   chatPhotoLabel: '📷 Photo',
@@ -2677,6 +2777,26 @@ const pt: typeof da = {
   chatExpiresMinutes: (m: number) => `Expira em ${m}m`,
   chatSayHi: (name: string) => `Diz olá a ${name}!`,
   chatSayHiGroup: 'Diz olá ao grupo!',
+  chatActivityPrompt: (name: string, tag: string | null): string => {
+    switch (tag) {
+      case 'coffee': return `Sugere tomar um café com ${name}`;
+      case 'study': return `Sugere estudar com ${name}`;
+      case 'workout': return `Sugere treinar com ${name}`;
+      case 'party': return `Pede a ${name} para ir a uma festa`;
+      case 'newInTown': return `Oferece mostrar a cidade a ${name}`;
+      case 'drinks': return `Sugere ir tomar uma bebida com ${name}`;
+      case 'gaming': return `Sugere jogar com ${name}`;
+      case 'bored': return `Sugere algo para fazer com ${name}`;
+      case 'food': return `Sugere comer com ${name}`;
+      case 'walk': return `Sugere um passeio com ${name}`;
+      case 'music': return `Sugere ouvir música com ${name}`;
+      case 'art': return `Sugere visitar uma galeria com ${name}`;
+      case 'shopping': return `Sugere ir às compras com ${name}`;
+      case 'hike': return `Sugere uma caminhada com ${name}`;
+      case 'pets': return `Sugere passear os animais com ${name}`;
+      default: return `Convida ${name} para uma atividade`;
+    }
+  },
   chatBlocked: 'Não podes enviar mensagens nesta conversa.',
   chatInputPlaceholder: 'Escreve uma mensagem...',
   chatPhotoLabel: '📷 Foto',

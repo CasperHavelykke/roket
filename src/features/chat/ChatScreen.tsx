@@ -27,6 +27,8 @@ import { pickImages } from '../../utils/pickImage';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
 import { Camera as CameraIcon, SendHorizontal as SendIcon, MessageSquareMore, Heart as HeartIcon } from 'lucide-react-native';
+import TagIcon from '../../components/TagIcon';
+import { StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoSimpel from '../../assets/roket-logo-simpel.svg';
 import RoketStars from '../../assets/roket-logo-stars-only.svg';
@@ -234,6 +236,7 @@ export default function ChatScreen({ route, navigation }: any) {
   const [showEventDetail, setShowEventDetail] = useState(false);
   const [senderProfiles, setSenderProfiles] = useState<Record<string, { name: string; avatarURL: string | null }>>({});
   const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
+  const [otherUserTag, setOtherUserTag] = useState<string | null>(null);
   const [reportText, setReportText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const lastTapRef = useRef<{ id: string; time: number }>({ id: '', time: 0 });
@@ -250,6 +253,7 @@ export default function ChatScreen({ route, navigation }: any) {
       const theirBlocked: string[] = theirDoc.data()?.blockedUsers ?? [];
       setBlocked(myBlocked.includes(otherUser.id) || theirBlocked.includes(currentUser.uid));
       setOtherUserAvatar(theirDoc.data()?.avatarURL ?? null);
+      setOtherUserTag(theirDoc.data()?.statusTag ?? null);
     };
     checkBlock();
   }, []);
@@ -950,8 +954,12 @@ export default function ChatScreen({ route, navigation }: any) {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{isEventChat ? t.chatSayHiGroup : t.chatSayHi(otherUser.displayName)}</Text>
-                  <MessageSquareMore size={18} color={colors.textMuted} />
+                  <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{isEventChat ? t.chatSayHiGroup : t.chatActivityPrompt(otherUser.displayName, otherUserTag)}</Text>
+                  {!isEventChat && otherUserTag ? (
+                    <TagIcon tag={otherUserTag as StatusTagId} size={18} color={colors.textMuted} />
+                  ) : (
+                    <MessageSquareMore size={18} color={colors.textMuted} />
+                  )}
                 </View>
               </View>
             }
