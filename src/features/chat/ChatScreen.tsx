@@ -26,7 +26,7 @@ import storage from '@react-native-firebase/storage';
 import { pickImages } from '../../utils/pickImage';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
-import { Camera as CameraIcon, SendHorizontal as SendIcon, MessageSquareMore } from 'lucide-react-native';
+import { Camera as CameraIcon, SendHorizontal as SendIcon, MessageSquareMore, Heart as HeartIcon } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoSimpel from '../../assets/roket-logo-simpel.svg';
 import RoketStars from '../../assets/roket-logo-stars-only.svg';
@@ -787,7 +787,7 @@ export default function ChatScreen({ route, navigation }: any) {
           </View>
           {isLiked && (
             <View style={[styles.heartBadge, { backgroundColor: colors.white }, isMe ? styles.heartBadgeMe : styles.heartBadgeThem]}>
-              <Text style={styles.heartEmoji}>❤️</Text>
+              <HeartIcon size={13} color={colors.primaryRed} fill={colors.primaryRed} />
             </View>
           )}
         </Pressable>
@@ -994,11 +994,12 @@ export default function ChatScreen({ route, navigation }: any) {
             onSubmitEditing={sendMessage}
           />
           <TouchableOpacity
-            style={[styles.sendButton, { backgroundColor: colors.primaryRed }, !inputText.trim() && styles.sendButtonDisabled]}
+            style={[styles.sendButton, { backgroundColor: inputText.trim() ? colors.primaryRed : colors.inputBorder }]}
             onPress={sendMessage}
             disabled={!inputText.trim()}
+            activeOpacity={0.85}
           >
-            <SendIcon size={20} color={colors.textWhite} />
+            <SendIcon size={20} color={inputText.trim() ? colors.textWhite : colors.textMuted} />
           </TouchableOpacity>
         </View>
         </View>
@@ -1275,13 +1276,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendButtonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  sendButtonText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
   imageButton: {
     width: 44,
     height: 44,
@@ -1370,9 +1364,6 @@ const styles = StyleSheet.create({
   },
   heartBadgeThem: {
     right: 4,
-  },
-  heartEmoji: {
-    fontSize: 14,
   },
   fullscreenOverlay: {
     flex: 1,

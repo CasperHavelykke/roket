@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Røket — See what's happening around you</title>
+<title>Røket — Do things with people nearby</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<meta name="description" content="Røket lets you see what people nearby are up to. Share your status, discover what's happening around you.">
+<meta name="description" content="See what people nearby are up to, post or join open invitations, and turn a quiet moment into something real. Røket — less scrolling, more doing.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -144,6 +144,9 @@
 
   .nav-btn:hover { background: rgba(255,255,255,0.25); }
   .nav.scrolled .nav-btn:hover { background: var(--divider); }
+
+  #btn-theme { display: inline-flex; align-items: center; justify-content: center; padding: 7px 11px; }
+  .nav-btn svg { width: 16px; height: 16px; display: block; }
 
   /* ─── Hero ─── */
   .hero {
@@ -358,6 +361,8 @@
     opacity: 0.3;
   }
 
+  .dark .step-num { opacity: 1; }
+
   .step h3 {
     font-family: 'Outfit', sans-serif;
     font-size: 18px;
@@ -408,8 +413,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
     margin-bottom: 16px;
+  }
+
+  .feature-icon svg {
+    width: 22px;
+    height: 22px;
   }
 
   .feature h3 {
@@ -488,6 +497,28 @@
     box-shadow: var(--card-shadow);
   }
 
+  .cta-btn-disabled {
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  .cta-btn-disabled:hover { transform: none; }
+
+  .cta-soon {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--section-accent);
+    color: var(--primaryBlueText);
+    border: 1px solid var(--card-border);
+  }
+
   .cta-btn svg {
     width: 20px;
     height: 20px;
@@ -562,19 +593,19 @@
   </a>
   <div class="nav-controls">
     <button class="nav-btn" id="btn-lang" onclick="toggleLang()">Dansk</button>
-    <button class="nav-btn" id="btn-theme" onclick="toggleTheme()">&#x1F319;</button>
+    <button class="nav-btn" id="btn-theme" onclick="toggleTheme()" aria-label="Toggle theme"></button>
   </div>
 </nav>
 
 <!-- Hero -->
 <section class="hero">
   <div class="bubbles">
-    <div class="bubble" id="b1">&#x2615; Coffee anyone?</div>
-    <div class="bubble" id="b2">&#x1F389; Looking for a party</div>
-    <div class="bubble" id="b3">&#x1F30D; New in town</div>
-    <div class="bubble" id="b4">&#x1F3B8; Jam session tonight</div>
-    <div class="bubble" id="b5">&#x1F3C3; Morning run?</div>
-    <div class="bubble" id="b6">&#x1F4DA; Study group at the library</div>
+    <div class="bubble" id="b1">Coffee anyone?</div>
+    <div class="bubble" id="b2">New in town</div>
+    <div class="bubble" id="b3">Anyone up for a walk?</div>
+    <div class="bubble" id="b4">Board games tonight</div>
+    <div class="bubble" id="b5">Morning run?</div>
+    <div class="bubble" id="b6">Study group at the library</div>
   </div>
 
   <div class="hero-logo">
@@ -582,7 +613,7 @@
   </div>
 
   <h1 id="hero-title">See what's happening<br>around you</h1>
-  <p class="hero-sub" id="hero-text">People nearby share what they're up to. Find someone to grab coffee with, join a study group, or just say hi.</p>
+  <p class="hero-sub" id="hero-text">See what people nearby are up to, share your own, and turn a quiet moment into a coffee, a walk, or a group hangout. Less scrolling — more doing.</p>
 
   <div class="scroll-hint">
     <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -592,24 +623,24 @@
 <!-- How it works -->
 <div class="section">
   <p class="section-tag reveal" id="how-tag">How it works</p>
-  <h2 class="section-title reveal" id="how-title">Real people. Real proximity.<br>Real conversations.</h2>
-  <p class="section-desc reveal" id="how-desc">No algorithms deciding who you see. Just the people around you and what they're doing right now.</p>
+  <h2 class="section-title reveal" id="how-title">Real people. Real proximity.<br>Real plans.</h2>
+  <p class="section-desc reveal" id="how-desc">No feed to scroll, no algorithm picking for you. Just the people around you and what they're up to right now.</p>
 
   <div class="steps">
     <div class="step reveal reveal-delay-1">
       <div class="step-num">1</div>
       <h3 id="s1-title">Set your status</h3>
-      <p id="s1-text">Share what you're up to — "Coffee anyone?", "New in town", or anything you like.</p>
+      <p id="s1-text">Say what you're up to — "Coffee anyone?", "New in town", "Anyone up for a walk?" It's an open invitation.</p>
     </div>
     <div class="step reveal reveal-delay-2">
       <div class="step-num">2</div>
       <h3 id="s2-title">See who's nearby</h3>
-      <p id="s2-text">Browse a grid of people around you, sorted by distance. See their status and photos.</p>
+      <p id="s2-text">Browse the people around you, sorted by distance. See their status at a glance and just say hi.</p>
     </div>
     <div class="step reveal reveal-delay-3">
       <div class="step-num">3</div>
-      <h3 id="s3-title">Start talking</h3>
-      <p id="s3-text">Found someone interesting? Send a message. It's that simple — like meeting someone in real life.</p>
+      <h3 id="s3-title">Make it happen</h3>
+      <p id="s3-text">Message someone directly or join an open invitation — then actually meet up. That's the whole point.</p>
     </div>
   </div>
 </div>
@@ -618,29 +649,37 @@
 <div class="features-section">
   <div class="section">
     <p class="section-tag reveal" id="feat-tag">Features</p>
-    <h2 class="section-title reveal" id="feat-title">Built for real-world connections</h2>
-    <p class="section-desc reveal" id="feat-desc">Everything you need to discover what's happening around you — nothing you don't.</p>
+    <h2 class="section-title reveal" id="feat-title">Built for real-world plans</h2>
+    <p class="section-desc reveal" id="feat-desc">Everything you need to turn "someone's nearby" into "we're doing something" — nothing you don't.</p>
 
     <div class="features">
       <div class="feature reveal reveal-delay-1">
-        <div class="feature-icon">&#x1F4CD;</div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
         <h3 id="f1-title">Proximity-based</h3>
-        <p id="f1-text">See people sorted by actual distance. No algorithms, no hidden filters — just who's nearby.</p>
+        <p id="f1-text">People sorted by real distance — the ones you can actually meet today, not a feed from across the world.</p>
       </div>
       <div class="feature reveal reveal-delay-2">
-        <div class="feature-icon">&#x1F4AC;</div>
-        <h3 id="f2-title">Real-time chat</h3>
-        <p id="f2-text">Message anyone nearby with text and photos. Conversations happen when you're both in the area.</p>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7"/><path d="M16 19h6M19 16v6"/></svg>
+        </div>
+        <h3 id="f2-title">Open invitations &amp; events</h3>
+        <p id="f2-text">Post something you want to do and let people join, or hop into an event happening nearby. Plans, not just chat.</p>
       </div>
       <div class="feature reveal reveal-delay-3">
-        <div class="feature-icon">&#x1F512;</div>
-        <h3 id="f3-title">Privacy first</h3>
-        <p id="f3-text">No background tracking. Your location is only used while the app is open. No data selling, ever.</p>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+        </div>
+        <h3 id="f3-title">Group &amp; 1-on-1 chat</h3>
+        <p id="f3-text">Message anyone nearby, or talk in a group around an event. Conversations that turn into plans.</p>
       </div>
       <div class="feature reveal reveal-delay-4">
-        <div class="feature-icon">&#x1F6E1;&#xFE0F;</div>
-        <h3 id="f4-title">Safe community</h3>
-        <p id="f4-text">AI content moderation, reporting tools, and community guidelines keep things respectful.</p>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>
+        </div>
+        <h3 id="f4-title">Private &amp; safe</h3>
+        <p id="f4-text">Location only while the app is open, no background tracking, no data selling — ever. Moderation and reporting keep it respectful. 18+.</p>
       </div>
     </div>
   </div>
@@ -648,7 +687,7 @@
 
 <!-- CTA -->
 <div class="cta-section">
-  <h2 class="cta-title reveal" id="cta-title">Ready to see what's happening?</h2>
+  <h2 class="cta-title reveal" id="cta-title">Ready to do something today?</h2>
   <p class="cta-sub reveal" id="cta-sub">Available on Android and as a web app. Free to use.</p>
 
   <div class="cta-buttons reveal">
@@ -656,10 +695,11 @@
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.199l2.302 2.302a1 1 0 0 1 0 1.38l-2.302 2.302L15.196 12l2.502-2.492zM5.864 2.658L16.8 8.99l-2.302 2.302-8.634-8.634z"/></svg>
       <span id="cta-play-text">Google Play</span>
     </a>
-    <a class="cta-btn cta-btn-secondary" href="https://roket-web.web.app" id="cta-web">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      <span id="cta-web-text">Web App</span>
-    </a>
+    <span class="cta-btn cta-btn-disabled" id="cta-web" aria-disabled="true">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 12.04c-.03-3.02 2.47-4.47 2.58-4.54-1.41-2.06-3.6-2.34-4.38-2.37-1.86-.19-3.64 1.1-4.58 1.1-.95 0-2.41-1.07-3.97-1.04-2.04.03-3.93 1.19-4.98 3.02-2.12 3.68-.54 9.13 1.52 12.12 1.01 1.47 2.21 3.11 3.78 3.05 1.52-.06 2.09-.98 3.93-.98 1.83 0 2.35.98 3.95.95 1.63-.03 2.66-1.49 3.66-2.97 1.15-1.7 1.62-3.35 1.65-3.43-.04-.02-3.17-1.22-3.2-4.81zM14.13 4.13c.84-1.02 1.4-2.43 1.25-3.84-1.21.05-2.67.81-3.53 1.82-.77.9-1.45 2.34-1.27 3.72 1.35.1 2.72-.69 3.55-1.7z"/></svg>
+      <span id="cta-web-text">App Store</span>
+      <span class="cta-soon" id="cta-soon">Coming soon</span>
+    </span>
   </div>
 
   <p class="cta-note" id="cta-note">Free to download. 18+ only.</p>
@@ -685,63 +725,72 @@
   var texts = {
     en: {
       heroTitle: "See what's happening<br>around you",
-      hero: "People nearby share what they're up to. Find someone to grab coffee with, join a study group, or just say hi.",
+      hero: "See what people nearby are up to, share your own, and turn a quiet moment into a coffee, a walk, or a group hangout. Less scrolling, more doing.",
       langBtn: 'Dansk',
       howTag: 'How it works',
-      howTitle: 'Real people. Real proximity.<br>Real conversations.',
-      howDesc: 'No algorithms deciding who you see. Just the people around you and what they\'re doing right now.',
-      s1t: 'Set your status', s1p: 'Share what you\'re up to — "Coffee anyone?", "New in town", or anything you like.',
-      s2t: 'See who\'s nearby', s2p: 'Browse a grid of people around you, sorted by distance. See their status and photos.',
-      s3t: 'Start talking', s3p: 'Found someone interesting? Send a message. It\'s that simple — like meeting someone in real life.',
+      howTitle: 'Real people. Real proximity.<br>Real plans.',
+      howDesc: 'No feed to scroll, no algorithm picking for you. Just the people around you and what they\'re up to right now.',
+      s1t: 'Set your status', s1p: 'Say what you\'re up to — "Coffee anyone?", "New in town", "Anyone up for a walk?" It\'s an open invitation.',
+      s2t: 'See who\'s nearby', s2p: 'Browse the people around you, sorted by distance. See their status at a glance and just say hi.',
+      s3t: 'Make it happen', s3p: 'Message someone directly or join an open invitation, then actually meet up. That\'s the whole point.',
       featTag: 'Features',
-      featTitle: 'Built for real-world connections',
-      featDesc: 'Everything you need to discover what\'s happening around you — nothing you don\'t.',
-      f1t: 'Proximity-based', f1p: 'See people sorted by actual distance. No algorithms, no hidden filters — just who\'s nearby.',
-      f2t: 'Real-time chat', f2p: 'Message anyone nearby with text and photos. Conversations happen when you\'re both in the area.',
-      f3t: 'Privacy first', f3p: 'No background tracking. Your location is only used while the app is open. No data selling, ever.',
-      f4t: 'Safe community', f4p: 'AI content moderation, reporting tools, and community guidelines keep things respectful.',
-      ctaTitle: "Ready to see what's happening?",
-      ctaSub: 'Available on Android and as a web app. Free to use.',
+      featTitle: 'Built for real-world plans',
+      featDesc: 'Everything you need to turn "someone\'s nearby" into "we\'re doing something" — nothing you don\'t.',
+      f1t: 'Proximity-based', f1p: 'People sorted by real distance — the ones you can actually meet today, not a feed from across the world.',
+      f2t: 'Open invitations & events', f2p: 'Post something you want to do and let people join, or hop into an event happening nearby. Plans, not just chat.',
+      f3t: 'Group & 1-on-1 chat', f3p: 'Message anyone nearby, or talk in a group around an event. Conversations that turn into plans.',
+      f4t: 'Private & safe', f4p: 'Location only while the app is open, no background tracking, no data selling, ever. Moderation and reporting keep it respectful. 18+.',
+      ctaTitle: 'Ready to do something today?',
+      ctaSub: 'Available on Android. App Store coming soon. Free to use.',
       ctaPlay: 'Google Play',
-      ctaWeb: 'Web App',
+      ctaWeb: 'App Store',
+      ctaSoon: 'Coming soon',
       note: 'Free to download. 18+ only.',
       privacy: 'Privacy Policy', terms: 'Terms & Conditions', del: 'Delete Account', contact: 'Contact',
-      b1: '\u2615 Coffee anyone?', b2: '\uD83C\uDF89 Looking for a party', b3: '\uD83C\uDF0D New in town',
-      b4: '\uD83C\uDFB8 Jam session tonight', b5: '\uD83C\uDFC3 Morning run?', b6: '\uD83D\uDCDA Study group at the library',
+      b1: 'Coffee anyone?', b2: 'New in town', b3: 'Anyone up for a walk?',
+      b4: 'Board games tonight', b5: 'Morning run?', b6: 'Study group at the library',
     },
     da: {
       heroTitle: 'Se hvad der sker<br>omkring dig',
-      hero: 'Folk i n\u00e6rheden deler hvad de laver. Find nogen at tage en kaffe med, join en studiegruppe, eller sig bare hej.',
+      hero: 'Se hvad folk i n\u00e6rheden er i gang med, del din egen, og lav en stille stund om til en kaffe, en g\u00e5tur eller en gruppe-hygge. Mindre scrollen, mere at lave.',
       langBtn: 'English',
       howTag: 'S\u00e5dan virker det',
-      howTitle: 'Rigtige mennesker. Rigtig n\u00e6rhed.<br>Rigtige samtaler.',
-      howDesc: 'Ingen algoritmer bestemmer hvem du ser. Bare folkene omkring dig og hvad de laver lige nu.',
-      s1t: 'S\u00e6t din status', s1p: 'Del hvad du laver — "Kaffe nogen?", "Ny i byen", eller hvad du har lyst til.',
-      s2t: 'Se hvem der er i n\u00e6rheden', s2p: 'Se et gitter af folk omkring dig, sorteret efter afstand. Se deres status og billeder.',
-      s3t: 'Begynd at snakke', s3p: 'Fandt du nogen interessant? Send en besked. S\u00e5 simpelt er det — ligesom at m\u00f8de nogen i virkeligheden.',
+      howTitle: 'Rigtige mennesker. Rigtig n\u00e6rhed.<br>Rigtige planer.',
+      howDesc: 'Intet feed at scrolle i, ingen algoritme der vælger for dig. Bare folkene omkring dig og hvad de er i gang med lige nu.',
+      s1t: 'Sæt din status', s1p: 'Sig hvad du er i gang med — "Kaffe nogen?", "Ny i byen", "Nogen der vil gå en tur?" Det er en åben invitation.',
+      s2t: 'Se hvem der er i n\u00e6rheden', s2p: 'Se folkene omkring dig, sorteret efter afstand. Se deres status med det samme og sig bare hej.',
+      s3t: 'Få det til at ske', s3p: 'Skriv til nogen direkte eller hop med på en åben invitation, og mødes så i virkeligheden. Det er hele pointen.',
       featTag: 'Funktioner',
-      featTitle: 'Bygget til forbindelser i den virkelige verden',
-      featDesc: 'Alt hvad du beh\u00f8ver for at opdage hvad der sker omkring dig — intet du ikke g\u00f8r.',
-      f1t: 'N\u00e6rhedsbaseret', f1p: 'Se folk sorteret efter afstand. Ingen algoritmer, ingen skjulte filtre — bare hvem der er i n\u00e6rheden.',
-      f2t: 'Chat i realtid', f2p: 'Skriv til alle i n\u00e6rheden med tekst og billeder. Samtaler sker n\u00e5r I begge er i omr\u00e5det.',
-      f3t: 'Privatliv f\u00f8rst', f3p: 'Ingen baggrundssporing. Din placering bruges kun mens appen er \u00e5ben. Ingen salg af data, nogensinde.',
-      f4t: 'Trygt f\u00e6llesskab', f4p: 'AI-indholdsmoderering, rapporteringsv\u00e6rkt\u00f8jer og retningslinjer holder tingene respektfulde.',
-      ctaTitle: 'Klar til at se hvad der sker?',
-      ctaSub: 'Tilg\u00e6ngelig p\u00e5 Android og som web app. Gratis at bruge.',
+      featTitle: 'Bygget til planer i virkeligheden',
+      featDesc: 'Alt hvad du skal bruge for at gøre "nogen er i nærheden" til "vi laver noget" — intet du ikke skal bruge.',
+      f1t: 'Nærhedsbaseret', f1p: 'Folk sorteret efter rigtig afstand — dem du faktisk kan mødes med i dag, ikke et feed fra den anden side af kloden.',
+      f2t: '\u00c5bne invitationer & events', f2p: 'Sl\u00e5 noget op du har lyst til at lave og lad folk hoppe med, eller deltag i et event i n\u00e6rheden. Planer, ikke bare chat.',
+      f3t: 'Gruppe- & 1-til-1-chat', f3p: 'Skriv til alle i nærheden, eller snak i en gruppe omkring et event. Samtaler der bliver til planer.',
+      f4t: 'Privat & trygt', f4p: 'Placering kun mens appen er \u00e5ben, ingen baggrundssporing, intet salg af data, nogensinde. Moderering og rapportering holder tonen respektfuld. Kun 18+.',
+      ctaTitle: 'Klar til at lave noget i dag?',
+      ctaSub: 'Tilgængelig på Android. App Store på vej. Gratis at bruge.',
       ctaPlay: 'Google Play',
-      ctaWeb: 'Web App',
+      ctaWeb: 'App Store',
+      ctaSoon: 'På vej',
       note: 'Gratis at downloade. Kun 18+.',
       privacy: 'Privatlivspolitik', terms: 'Vilk\u00e5r og betingelser', del: 'Slet konto', contact: 'Kontakt',
-      b1: '\u2615 Kaffe nogen?', b2: '\uD83C\uDF89 Leder efter en fest', b3: '\uD83C\uDF0D Ny i byen',
-      b4: '\uD83C\uDFB8 Jam session i aften', b5: '\uD83C\uDFC3 Morgenl\u00f8b?', b6: '\uD83D\uDCDA Studiegruppe p\u00e5 biblioteket',
+      b1: 'Kaffe nogen?', b2: 'Ny i byen', b3: 'Nogen der vil g\u00e5 en tur?',
+      b4: 'Br\u00E6tspil i aften', b5: 'Morgenl\u00f8b?', b6: 'Studiegruppe p\u00e5 biblioteket',
     }
   };
+
+  // Theme icons (Lucide). Moon = tap to go dark, Sun = tap to go light.
+  var ICON_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+  var ICON_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+  function setThemeIcon() {
+    document.getElementById('btn-theme').innerHTML = isDark ? ICON_SUN : ICON_MOON;
+  }
 
   // Init theme
   if (isDark) {
     document.documentElement.classList.add('dark');
-    document.getElementById('btn-theme').textContent = '\u2600\uFE0F';
   }
+  setThemeIcon();
 
   function toggleLang() {
     lang = lang === 'en' ? 'da' : 'en';
@@ -752,7 +801,7 @@
   function toggleTheme() {
     isDark = !isDark;
     document.documentElement.classList.toggle('dark', isDark);
-    document.getElementById('btn-theme').textContent = isDark ? '\u2600\uFE0F' : '\uD83C\uDF19';
+    setThemeIcon();
     localStorage.setItem('roket-theme', isDark ? 'dark' : 'light');
   }
 
@@ -785,6 +834,7 @@
     document.getElementById('cta-sub').textContent = t.ctaSub;
     document.getElementById('cta-play-text').textContent = t.ctaPlay;
     document.getElementById('cta-web-text').textContent = t.ctaWeb;
+    document.getElementById('cta-soon').textContent = t.ctaSoon;
     document.getElementById('cta-note').textContent = t.note;
     document.getElementById('link-privacy').textContent = t.privacy;
     document.getElementById('link-terms').textContent = t.terms;

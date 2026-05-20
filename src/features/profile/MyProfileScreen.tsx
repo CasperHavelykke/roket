@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -18,7 +17,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
 import PhotoGalleryModal from './PhotoGalleryModal';
-import { MapPin } from 'lucide-react-native';
+import { MapPin, SquarePen as EditIcon } from 'lucide-react-native';
+import MaskedView from '@react-native-masked-view/masked-view';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
@@ -43,19 +43,6 @@ export default function MyProfileScreen({ navigation }: any) {
   const photoSize = Dimensions.get('window').width - 40;
   const [testAccount, setTestAccount] = useState(false);
   const currentUser = auth().currentUser;
-
-  const pulseAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (photoURL) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.delay(200),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [photoURL]);
 
   useEffect(() => {
     LocationService.checkCurrentPrecision().then(p => setLocationGranted(p !== 'denied'));
@@ -106,11 +93,32 @@ export default function MyProfileScreen({ navigation }: any) {
 
   const allPhotos = photoURL ? [photoURL, ...photos] : [];
 
+  // Skærmkant-til-skærmkant gradient på header-blyanten: ikonet viser sin
+  // skive af en skærm-spændende gradient ud fra sin x-position (jf. memory).
+  const EDIT_ICON_SIZE = 24;
+  const screenW = Dimensions.get('window').width;
+  const editIconLeft = screenW - 16 - EDIT_ICON_SIZE;
+
   return (
     <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={[styles.backButtonText, { color: isDark ? colors.textWhite : colors.primaryBlue }]}>{t.myProfileBack}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('EditProfile')}
+          activeOpacity={0.7}
+          style={styles.editIconBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <MaskedView maskElement={<EditIcon size={EDIT_ICON_SIZE} color="#000" strokeWidth={2} />}>
+            <GradientView
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: -editIconLeft / EDIT_ICON_SIZE, y: 0 }}
+              end={{ x: (screenW - editIconLeft) / EDIT_ICON_SIZE, y: 0 }}
+              style={{ width: EDIT_ICON_SIZE, height: EDIT_ICON_SIZE }}
+            />
+          </MaskedView>
         </TouchableOpacity>
       </View>
 
@@ -251,27 +259,6 @@ export default function MyProfileScreen({ navigation }: any) {
             </View>
           );
         })()}
-
-        <TouchableOpacity onPress={() => navigation.navigate('EditProfile')} style={{ position: 'relative' }}>
-          {!photoURL && (
-            <Animated.View style={[styles.editPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.7, 0] }), transform: [{ scaleX: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1.06] }) }, { scaleY: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.90, 1.22] }) }] }]}>
-              <GradientView
-                colors={[colors.primaryBlue, colors.primaryRed]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.editPulseGradient}
-              />
-            </Animated.View>
-          )}
-          <GradientView
-            colors={[colors.primaryBlue, colors.primaryRed]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.editButton}
-          >
-            <Text style={[styles.editButtonText, { color: colors.textWhite }]}>{t.myProfileEdit}</Text>
-          </GradientView>
-        </TouchableOpacity>
       </ScrollView>
 
       <PhotoGalleryModal
@@ -550,28 +537,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
-  editPulseRing: {
-    position: 'absolute',
-    top: 20,
-    left: 16,
-    right: 16,
-    bottom: -4,
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  editPulseGradient: {
-    flex: 1,
-    borderRadius: 18,
-  },
-  editButton: {
-    marginHorizontal: 20,
-    marginTop: 24,
-    padding: 18,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  editButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
+  editIconBtn: {
+    padding: 4,
   },
 });

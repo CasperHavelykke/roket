@@ -12,7 +12,6 @@ import {
   useWindowDimensions,
   Platform,
   Pressable,
-  Animated,
   ImageSourcePropType,
 } from 'react-native';
 import GradientView from '../../components/GradientView';
@@ -182,7 +181,6 @@ export default function HomeScreen({ navigation }: any) {
   const [hasUnread, setHasUnread] = useState(false);
   const [unreadFromUsers, setUnreadFromUsers] = useState<Set<string>>(new Set());
   const [totalUnreadCount, setTotalUnreadCount] = useState(0);
-  const [needsProfile, setNeedsProfile] = useState(false);
   const [visibleCount, setVisibleCount] = useState(12);
   const [activeFilter, setActiveFilter] = useState<StatusTagId | null>(null);
   const [eventsFilterActive, setEventsFilterActive] = useState(false);
@@ -198,35 +196,6 @@ export default function HomeScreen({ navigation }: any) {
   const { width: screenWidth } = useWindowDimensions();
   const numColumns = (gridColumns >= 1 && gridColumns <= 4) ? gridColumns : 2;
   const locationDisclosureResolve = useRef<((v: boolean) => void) | null>(null);
-
-  const pulseAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (!needsProfile) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.delay(200),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [needsProfile]);
-
-  // Tjek om bruger mangler profil (intet displayName)
-  useEffect(() => {
-    const currentUser = auth().currentUser;
-    if (!currentUser) return;
-
-    const unsubscribe = firestore()
-      .collection('users')
-      .doc(currentUser.uid)
-      .onSnapshot(doc => {
-        const data = doc.data();
-        setNeedsProfile(!data?.photoURL);
-      }, err => console.warn('Profile subscription error:', err));
-
-    return () => unsubscribe();
-  }, []);
 
   // Lyt efter ulæste beskeder
   useEffect(() => {
@@ -902,7 +871,7 @@ export default function HomeScreen({ navigation }: any) {
         };
 
         const fabButtons = [
-          { icon: <ProfileIcon size={30} color="#fff" />, onPress: () => navigation.navigate('MyProfile'), badge: needsProfile && <Animated.View style={[styles.fabPulseRing, { opacity: pulseAnim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.8, 0] }), transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.4] }) }] }]} /> },
+          { icon: <ProfileIcon size={30} color="#fff" />, onPress: () => navigation.navigate('MyProfile') },
           { icon: <MessagesIcon size={30} color="#fff" />, onPress: () => navigation.navigate('ChatsList'), badge: hasUnread ? (btnLeft: number) => (
             <GradientView
               colors={[colors.primaryBlue, colors.primaryRed]}
@@ -1149,16 +1118,6 @@ const styles = StyleSheet.create({
     ...Platform.select({ android: { overflow: 'hidden' as const } }),
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  fabPulseRing: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 35,
-    borderWidth: 2.5,
-    borderColor: '#fff',
   },
   headerTitle: {
     fontSize: 28,
