@@ -953,13 +953,13 @@ export default function ChatScreen({ route, navigation }: any) {
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={[styles.emptyGreeting, { color: colors.textMuted }]}>{isEventChat ? t.chatSayHiGroup : t.chatActivityPrompt(otherUser.displayName, otherUserTag)}</Text>
+                <View style={{ alignItems: 'center', gap: 10, paddingHorizontal: 24 }}>
                   {!isEventChat && otherUserTag ? (
-                    <TagIcon tag={otherUserTag as StatusTagId} size={18} color={colors.textMuted} />
+                    <TagIcon tag={otherUserTag as StatusTagId} size={28} color={colors.textMuted} />
                   ) : (
-                    <MessageSquareMore size={18} color={colors.textMuted} />
+                    <MessageSquareMore size={28} color={colors.textMuted} />
                   )}
+                  <Text style={[styles.emptyGreeting, { color: colors.textMuted, textAlign: 'center' }]}>{isEventChat ? t.chatSayHiGroup : t.chatActivityPrompt(otherUser.displayName, otherUserTag)}</Text>
                 </View>
               </View>
             }
@@ -1182,8 +1182,7 @@ const styles = StyleSheet.create({
   },
   emptyGreeting: {
     fontSize: 16,
-    lineHeight: 18,
-    marginBottom: 1,
+    lineHeight: 22,
   },
   tipsContainer: {
     gap: 10,

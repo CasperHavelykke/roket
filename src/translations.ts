@@ -234,19 +234,19 @@ const da = {
   chatSayHiGroup: 'Sig hej til gruppen!',
   chatActivityPrompt: (name: string, tag: string | null): string => {
     switch (tag) {
-      case 'coffee': return `Foreslå at mødes til kaffe med ${name}`;
-      case 'study': return `Foreslå at læse sammen med ${name}`;
-      case 'workout': return `Foreslå at træne sammen med ${name}`;
-      case 'party': return `Spørg ${name}, om I skal til en fest`;
+      case 'coffee': return `Foreslå et godt sted at drikke kaffe med ${name}`;
+      case 'study': return `Foreslå et godt sted at læse sammen med ${name}`;
+      case 'workout': return `Foreslå en træning du kan lave sammen med ${name}`;
+      case 'party': return `Spørg ${name}, om I skal feste`;
       case 'newInTown': return `Tilbyd at vise ${name} byen`;
-      case 'drinks': return `Foreslå at få en drink med ${name}`;
-      case 'gaming': return `Foreslå at game sammen med ${name}`;
+      case 'drinks': return `Foreslå en god bar med ${name}`;
+      case 'gaming': return `Spørg ${name}, om I skal tage et spil`;
       case 'bored': return `Foreslå noget at lave med ${name}`;
-      case 'food': return `Foreslå at spise sammen med ${name}`;
-      case 'walk': return `Foreslå en gåtur med ${name}`;
-      case 'music': return `Foreslå at høre musik sammen med ${name}`;
+      case 'food': return `Foreslå et spisested og del en middag med ${name}`;
+      case 'walk': return `Foreslå et godt sted til en gåtur med ${name}`;
+      case 'music': return `Foreslå et sted med god musik, at besøge med ${name}`;
       case 'art': return `Foreslå et galleri-besøg med ${name}`;
-      case 'shopping': return `Foreslå at shoppe med ${name}`;
+      case 'shopping': return `Inviter ${name} med til dit favorit sted at shoppe`;
       case 'hike': return `Foreslå en vandretur med ${name}`;
       case 'pets': return `Foreslå at gå tur med dyrene sammen med ${name}`;
       default: return `Inviter ${name} til en aktivitet`;
@@ -743,21 +743,21 @@ const en: typeof da = {
   chatSayHiGroup: 'Say hi to the group!',
   chatActivityPrompt: (name: string, tag: string | null): string => {
     switch (tag) {
-      case 'coffee': return `Suggest meeting ${name} for coffee`;
-      case 'study': return `Suggest studying together with ${name}`;
-      case 'workout': return `Suggest working out with ${name}`;
-      case 'party': return `Ask ${name} to come to a party`;
+      case 'coffee': return `Suggest a good spot for coffee with ${name}`;
+      case 'study': return `Suggest a good spot to study with ${name}`;
+      case 'workout': return `Suggest a workout you can do with ${name}`;
+      case 'party': return `Ask ${name} if you should go partying`;
       case 'newInTown': return `Offer to show ${name} around town`;
-      case 'drinks': return `Suggest grabbing a drink with ${name}`;
-      case 'gaming': return `Suggest gaming with ${name}`;
+      case 'drinks': return `Suggest a good bar with ${name}`;
+      case 'gaming': return `Ask ${name} to play a round`;
       case 'bored': return `Suggest something to do with ${name}`;
-      case 'food': return `Suggest grabbing a bite with ${name}`;
-      case 'walk': return `Suggest a walk with ${name}`;
-      case 'music': return `Suggest listening to music with ${name}`;
+      case 'food': return `Suggest a restaurant and share a meal with ${name}`;
+      case 'walk': return `Suggest a good spot for a walk with ${name}`;
+      case 'music': return `Suggest a place with good music to visit with ${name}`;
       case 'art': return `Suggest a gallery visit with ${name}`;
-      case 'shopping': return `Suggest going shopping with ${name}`;
+      case 'shopping': return `Invite ${name} to your favorite spot to shop`;
       case 'hike': return `Suggest a hike with ${name}`;
-      case 'pets': return `Suggest walking the pets with ${name}`;
+      case 'pets': return `Suggest walking the pets together with ${name}`;
       default: return `Invite ${name} to do something`;
     }
   },
@@ -1252,19 +1252,19 @@ const es: typeof da = {
   chatSayHiGroup: '¡Saluda al grupo!',
   chatActivityPrompt: (name: string, tag: string | null): string => {
     switch (tag) {
-      case 'coffee': return `Propón tomar un café con ${name}`;
-      case 'study': return `Propón estudiar con ${name}`;
-      case 'workout': return `Propón entrenar con ${name}`;
-      case 'party': return `Pide a ${name} ir a una fiesta`;
+      case 'coffee': return `Propón un buen sitio para tomar café con ${name}`;
+      case 'study': return `Propón un buen sitio para estudiar con ${name}`;
+      case 'workout': return `Propón un entrenamiento que podáis hacer juntos con ${name}`;
+      case 'party': return `Pregúntale a ${name} si os vais de fiesta`;
       case 'newInTown': return `Ofrécete a enseñar la ciudad a ${name}`;
-      case 'drinks': return `Propón tomar una copa con ${name}`;
-      case 'gaming': return `Propón jugar con ${name}`;
+      case 'drinks': return `Propón un buen bar con ${name}`;
+      case 'gaming': return `Pregúntale a ${name} si os echáis una partida`;
       case 'bored': return `Sugiere algo que hacer con ${name}`;
-      case 'food': return `Propón comer con ${name}`;
-      case 'walk': return `Propón un paseo con ${name}`;
-      case 'music': return `Propón escuchar música con ${name}`;
+      case 'food': return `Propón un restaurante y comparte una comida con ${name}`;
+      case 'walk': return `Propón un buen sitio para pasear con ${name}`;
+      case 'music': return `Propón un sitio con buena música para visitar con ${name}`;
       case 'art': return `Propón visitar una galería con ${name}`;
-      case 'shopping': return `Propón ir de compras con ${name}`;
+      case 'shopping': return `Invita a ${name} a tu sitio favorito para ir de compras`;
       case 'hike': return `Propón una caminata con ${name}`;
       case 'pets': return `Propón pasear a las mascotas con ${name}`;
       default: return `Invita a ${name} a una actividad`;
@@ -1761,19 +1761,19 @@ const de: typeof da = {
   chatSayHiGroup: 'Sag Hallo zur Gruppe!',
   chatActivityPrompt: (name: string, tag: string | null): string => {
     switch (tag) {
-      case 'coffee': return `Schlag ${name} einen Kaffee vor`;
-      case 'study': return `Schlag ${name} vor, zusammen zu lernen`;
-      case 'workout': return `Schlag ${name} vor, zusammen zu trainieren`;
-      case 'party': return `Frag ${name}, ob ihr auf eine Party geht`;
+      case 'coffee': return `Schlag ${name} einen guten Ort für Kaffee vor`;
+      case 'study': return `Schlag ${name} einen guten Ort zum gemeinsamen Lernen vor`;
+      case 'workout': return `Schlag ${name} ein Training vor, das ihr zusammen machen könnt`;
+      case 'party': return `Frag ${name}, ob ihr feiern geht`;
       case 'newInTown': return `Biete ${name} an, die Stadt zu zeigen`;
-      case 'drinks': return `Schlag ${name} vor, etwas trinken zu gehen`;
-      case 'gaming': return `Schlag ${name} vor, zusammen zu zocken`;
+      case 'drinks': return `Schlag ${name} eine gute Bar vor`;
+      case 'gaming': return `Frag ${name}, ob ihr eine Runde zockt`;
       case 'bored': return `Schlag ${name} etwas vor, was ihr machen könnt`;
-      case 'food': return `Schlag ${name} vor, zusammen zu essen`;
-      case 'walk': return `Schlag ${name} einen Spaziergang vor`;
-      case 'music': return `Schlag ${name} vor, zusammen Musik zu hören`;
+      case 'food': return `Schlag ${name} ein Restaurant vor und teilt eine Mahlzeit`;
+      case 'walk': return `Schlag ${name} einen guten Ort für einen Spaziergang vor`;
+      case 'music': return `Schlag ${name} einen Ort mit guter Musik vor`;
       case 'art': return `Schlag ${name} einen Galeriebesuch vor`;
-      case 'shopping': return `Schlag ${name} vor, shoppen zu gehen`;
+      case 'shopping': return `Lade ${name} zu deinem Lieblings-Shopping-Ort ein`;
       case 'hike': return `Schlag ${name} eine Wanderung vor`;
       case 'pets': return `Schlag ${name} vor, mit den Tieren spazieren zu gehen`;
       default: return `Lade ${name} zu einer Aktivität ein`;
@@ -2270,21 +2270,21 @@ const fr: typeof da = {
   chatSayHiGroup: 'Dites bonjour au groupe !',
   chatActivityPrompt: (name: string, tag: string | null): string => {
     switch (tag) {
-      case 'coffee': return `Proposez à ${name} un café`;
-      case 'study': return `Proposez à ${name} de réviser ensemble`;
-      case 'workout': return `Proposez à ${name} de s'entraîner ensemble`;
-      case 'party': return `Demandez à ${name} d'aller à une fête`;
+      case 'coffee': return `Proposez un bon endroit pour un café avec ${name}`;
+      case 'study': return `Proposez un bon endroit pour réviser avec ${name}`;
+      case 'workout': return `Proposez un entraînement à faire avec ${name}`;
+      case 'party': return `Demandez à ${name} si vous sortez faire la fête`;
       case 'newInTown': return `Proposez de faire visiter la ville à ${name}`;
-      case 'drinks': return `Proposez un verre à ${name}`;
-      case 'gaming': return `Proposez à ${name} de jouer`;
+      case 'drinks': return `Proposez un bon bar avec ${name}`;
+      case 'gaming': return `Demandez à ${name} si vous faites une partie`;
       case 'bored': return `Proposez quelque chose à faire à ${name}`;
-      case 'food': return `Proposez à ${name} de manger ensemble`;
-      case 'walk': return `Proposez une balade à ${name}`;
-      case 'music': return `Proposez à ${name} d'écouter de la musique`;
-      case 'art': return `Proposez à ${name} une visite de galerie`;
-      case 'shopping': return `Proposez à ${name} de faire du shopping`;
-      case 'hike': return `Proposez une randonnée à ${name}`;
-      case 'pets': return `Proposez à ${name} de promener les animaux`;
+      case 'food': return `Proposez un restaurant et partagez un repas avec ${name}`;
+      case 'walk': return `Proposez un bon endroit pour une balade avec ${name}`;
+      case 'music': return `Proposez un lieu avec de la bonne musique à visiter avec ${name}`;
+      case 'art': return `Proposez une visite de galerie avec ${name}`;
+      case 'shopping': return `Invitez ${name} à votre endroit préféré pour faire du shopping`;
+      case 'hike': return `Proposez une randonnée avec ${name}`;
+      case 'pets': return `Proposez de promener les animaux avec ${name}`;
       default: return `Invitez ${name} à une activité`;
     }
   },
@@ -2779,19 +2779,19 @@ const pt: typeof da = {
   chatSayHiGroup: 'Diz olá ao grupo!',
   chatActivityPrompt: (name: string, tag: string | null): string => {
     switch (tag) {
-      case 'coffee': return `Sugere tomar um café com ${name}`;
-      case 'study': return `Sugere estudar com ${name}`;
-      case 'workout': return `Sugere treinar com ${name}`;
-      case 'party': return `Pede a ${name} para ir a uma festa`;
+      case 'coffee': return `Sugere um bom sítio para tomar café com ${name}`;
+      case 'study': return `Sugere um bom sítio para estudar com ${name}`;
+      case 'workout': return `Sugere um treino que podem fazer juntos com ${name}`;
+      case 'party': return `Pergunta a ${name} se saem para festejar`;
       case 'newInTown': return `Oferece mostrar a cidade a ${name}`;
-      case 'drinks': return `Sugere ir tomar uma bebida com ${name}`;
-      case 'gaming': return `Sugere jogar com ${name}`;
+      case 'drinks': return `Sugere um bom bar com ${name}`;
+      case 'gaming': return `Pergunta a ${name} se jogam uma partida`;
       case 'bored': return `Sugere algo para fazer com ${name}`;
-      case 'food': return `Sugere comer com ${name}`;
-      case 'walk': return `Sugere um passeio com ${name}`;
-      case 'music': return `Sugere ouvir música com ${name}`;
+      case 'food': return `Sugere um restaurante e partilha uma refeição com ${name}`;
+      case 'walk': return `Sugere um bom sítio para um passeio com ${name}`;
+      case 'music': return `Sugere um sítio com boa música para visitar com ${name}`;
       case 'art': return `Sugere visitar uma galeria com ${name}`;
-      case 'shopping': return `Sugere ir às compras com ${name}`;
+      case 'shopping': return `Convida ${name} para o teu sítio favorito de compras`;
       case 'hike': return `Sugere uma caminhada com ${name}`;
       case 'pets': return `Sugere passear os animais com ${name}`;
       default: return `Convida ${name} para uma atividade`;
