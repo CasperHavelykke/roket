@@ -988,14 +988,19 @@ export default function HomeScreen({ navigation }: any) {
             activeOpacity={0.8}
             onPress={() => setShowCreateEvent(true)}
           >
-            <GradientView
-              colors={[colors.primaryBlue, colors.primaryRed]}
-              start={{ x: -createBtnLeft / createFabSize, y: 0 }}
-              end={{ x: (screenWidth - createBtnLeft) / createFabSize, y: 0 }}
-              style={styles.fabButton}
-            >
-              <PlusIcon size={30} color="#fff" />
-            </GradientView>
+            <View style={[styles.fabButton, { backgroundColor: '#fff' }]}>
+              <MaskedView
+                style={{ width: 30, height: 30 }}
+                maskElement={<PlusIcon size={30} color="#000" />}
+              >
+                <GradientView
+                  colors={[colors.primaryBlue, colors.primaryRed]}
+                  start={{ x: -createBtnLeft / createFabSize, y: 0 }}
+                  end={{ x: (screenWidth - createBtnLeft) / createFabSize, y: 0 }}
+                  style={{ flex: 1 }}
+                />
+              </MaskedView>
+            </View>
           </TouchableOpacity>
         );
       })()}
