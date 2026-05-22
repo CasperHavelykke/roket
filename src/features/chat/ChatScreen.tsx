@@ -14,6 +14,7 @@ import {
   Dimensions,
   Pressable,
   Animated,
+  Easing,
   Clipboard,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -220,6 +221,36 @@ function getOrCreateChatId(uid1: string, uid2: string): string {
   return [uid1, uid2].sort().join('_');
 }
 
+// Wrapper der lader en ny besked "løfte" sig op på plads i stedet for at
+// poppe ind — boblen starter forskudt nedad + transparent og glider op.
+function MessageEntry({ animate, children }: { animate: boolean; children: React.ReactNode }) {
+  const translateY = useRef(new Animated.Value(animate ? 36 : 0)).current;
+  const opacity = useRef(new Animated.Value(animate ? 0 : 1)).current;
+
+  useEffect(() => {
+    if (!animate) return;
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }], opacity }}>
+      {children}
+    </Animated.View>
+  );
+}
+
 export default function ChatScreen({ route, navigation }: any) {
   const { colors, isDark, timeFormat, t, showTestBadges } = useTheme();
   const insets = useSafeAreaInsets();
@@ -252,6 +283,11 @@ export default function ChatScreen({ route, navigation }: any) {
   const [reportText, setReportText] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const lastTapRef = useRef<{ id: string; time: number }>({ id: '', time: 0 });
+  // Besked-entry-animation: spor hvilke beskeder vi har set, så kun nye
+  // (efter første indlæsning) rendrer med rise-in-animationen.
+  const seenMsgIdsRef = useRef<Set<string>>(new Set());
+  const animateMsgIdsRef = useRef<Set<string>>(new Set());
+  const chatLoadedRef = useRef(false);
 
   // Tjek om en af parterne har blokeret den anden + hent avatarURL til header
   useEffect(() => {
@@ -284,21 +320,24 @@ export default function ChatScreen({ route, navigation }: any) {
           setLoading(false);
           return;
         }
-        const msgs: Message[] = snapshot.docs.map(doc => ({
-          id: doc.id,
-          senderId: doc.data().senderId,
-          text: doc.data().text,
-          imageURL: doc.data().imageURL,
-          timestamp: doc.data().timestamp,
-          imageExpired: doc.data().imageExpired ?? false,
-          moderated: doc.data().moderated ?? true,
-          likedBy: doc.data().likedBy ?? [],
-          deleted: doc.data().deleted ?? false,
-          flagged: doc.data().flagged ?? false,
-          flaggedReason: doc.data().flaggedReason,
-          revealedBy: doc.data().revealedBy,
-          system: doc.data().system ?? false,
-        }));
+        const msgs: Message[] = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            senderId: data.senderId,
+            text: data.text,
+            imageURL: data.imageURL,
+            timestamp: data.timestamp,
+            imageExpired: data.imageExpired ?? false,
+            moderated: data.moderated ?? true,
+            likedBy: data.likedBy ?? [],
+            deleted: data.deleted ?? false,
+            flagged: data.flagged ?? false,
+            flaggedReason: data.flaggedReason,
+            revealedBy: data.revealedBy,
+            system: data.system ?? false,
+          };
+        });
         msgs.sort((a, b) => {
           if (!a.timestamp) return -1;
           if (!b.timestamp) return 1;
@@ -306,6 +345,15 @@ export default function ChatScreen({ route, navigation }: any) {
           const bTime = b.timestamp.toDate ? b.timestamp.toDate().getTime() : 0;
           return bTime - aTime;
         });
+        // Flag beskeder der er kommet til efter første indlæsning, så de
+        // rendrer med rise-in-animationen (ikke hele historikken ved åbning).
+        msgs.forEach(m => {
+          if (!seenMsgIdsRef.current.has(m.id)) {
+            seenMsgIdsRef.current.add(m.id);
+            if (chatLoadedRef.current) animateMsgIdsRef.current.add(m.id);
+          }
+        });
+        chatLoadedRef.current = true;
         setMessages(msgs);
         setLoading(false);
 
@@ -517,15 +565,15 @@ export default function ChatScreen({ route, navigation }: any) {
     return t.chatExpiresMinutes(minsLeft);
   };
 
+  // Ventende beskeder (egen, endnu ikke serverbekræftet) har null timestamp —
+  // behandl dem som "nu" så datoadskilleren ikke springer ind ved bekræftelse.
   const getDateKey = (timestamp: any): string => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date = timestamp ? (timestamp.toDate ? timestamp.toDate() : new Date(timestamp)) : new Date();
     return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
   };
 
   const formatDateLabel = (timestamp: any): string => {
-    if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date = timestamp ? (timestamp.toDate ? timestamp.toDate() : new Date(timestamp)) : new Date();
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -667,6 +715,10 @@ export default function ChatScreen({ route, navigation }: any) {
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const nextMsg = messages[index + 1];
     const showDateSeparator = !nextMsg || getDateKey(item.timestamp) !== getDateKey(nextMsg.timestamp);
+    // Animér kun nye beskeder én gang — fjern fra sættet så genbrugte rækker
+    // (scroll væk → tilbage) ikke trigger entry-animationen igen.
+    const shouldAnimate = animateMsgIdsRef.current.has(item.id);
+    if (shouldAnimate) animateMsgIdsRef.current.delete(item.id);
     const isMe = item.senderId === currentUser.uid;
     const isUploading = !item.text && !item.imageURL && !item.deleted && !item.imageExpired;
     const expired = item.imageExpired || (item.imageURL && isImageExpired(item.timestamp));
@@ -681,8 +733,9 @@ export default function ChatScreen({ route, navigation }: any) {
       );
     }
     return (
+      <MessageEntry animate={shouldAnimate}>
       <View>
-        {showDateSeparator && item.timestamp && (
+        {showDateSeparator && (
           <View style={styles.dateSeparator}>
             <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
             <Text style={[styles.dateLabel, { color: colors.textMuted }]}>{formatDateLabel(item.timestamp)}</Text>
@@ -809,6 +862,7 @@ export default function ChatScreen({ route, navigation }: any) {
         </Pressable>
       </View>
       </View>
+      </MessageEntry>
     );
   };
 
