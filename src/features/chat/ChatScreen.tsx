@@ -221,32 +221,61 @@ function getOrCreateChatId(uid1: string, uid2: string): string {
   return [uid1, uid2].sort().join('_');
 }
 
-// Wrapper der lader en ny besked "løfte" sig op på plads i stedet for at
-// poppe ind — boblen starter forskudt nedad + transparent og glider op.
+// Wrapper der lader en ny besked "vokse" op på plads: højden animeres
+// 0 -> målt fuldhøjde, så alle ældre beskeder ovenover løftes blødt med
+// (ægte reflow — ikke kun et translate på selve boblen).
 function MessageEntry({ animate, children }: { animate: boolean; children: React.ReactNode }) {
-  const translateY = useRef(new Animated.Value(animate ? 36 : 0)).current;
-  const opacity = useRef(new Animated.Value(animate ? 0 : 1)).current;
+  // Lås beslutningen ved mount — hvis `animate` skifter til false ved en
+  // re-render må wrapperen ikke unmounte og afbryde animationen.
+  const shouldAnimate = useRef(animate).current;
+  if (!shouldAnimate) return <>{children}</>;
+  return <AnimatedMessageEntry>{children}</AnimatedMessageEntry>;
+}
+
+function AnimatedMessageEntry({ children }: { children: React.ReactNode }) {
+  const [measured, setMeasured] = useState(0);
+  const [done, setDone] = useState(false);
+  const height = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!animate) return;
+    if (measured <= 0) return;
     Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: 280,
+      Animated.timing(height, {
+        toValue: measured,
+        duration: 300,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
+        duration: 220,
+        useNativeDriver: false,
       }),
-    ]).start();
-  }, []);
+    ]).start(({ finished }) => {
+      // Når animationen er færdig: slip højde-låsen, så beskeden kan
+      // ændre højde senere (fx hjerte-badge, billede der loader).
+      if (finished) setDone(true);
+    });
+  }, [measured]);
 
   return (
-    <Animated.View style={{ transform: [{ translateY }], opacity }}>
-      {children}
+    <Animated.View
+      style={{
+        height: done ? undefined : (measured ? height : 0),
+        opacity: done ? 1 : opacity,
+        overflow: done ? 'visible' : 'hidden',
+      }}
+    >
+      {/* Indtil højden er målt rendres barnet absolut, så det måles ved
+          sin naturlige højde — en height:0-forælder ville ellers tvinge
+          målingen til 0. Når målt går det tilbage i normalt flow. */}
+      <View
+        style={measured ? undefined : { position: 'absolute', left: 0, right: 0 }}
+        onLayout={e => { if (!measured) setMeasured(e.nativeEvent.layout.height); }}
+      >
+        {children}
+      </View>
     </Animated.View>
   );
 }
