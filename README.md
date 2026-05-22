@@ -55,7 +55,16 @@ The web app shares translations and types with the mobile app via a `@shared` pa
 
 ## Screenshots
 
-*Coming soon*
+<p align="center">
+  <img src="docs/demo.gif" width="300" alt="Røket — browsing the proximity feed" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/homeScreen.png" width="200" alt="Proximity feed" />&nbsp;
+  <img src="docs/screenshots/eventSheet.png" width="200" alt="Event details" />&nbsp;
+  <img src="docs/screenshots/profileScreen.png" width="200" alt="User profile" />&nbsp;
+  <img src="docs/screenshots/chatScreen.png" width="200" alt="Group chat" />
+</p>
 
 ## Setup
 
