@@ -186,20 +186,32 @@ function FullscreenZoomImage({ uri, onClose }: { uri: string; onClose: () => voi
 
 function BubbleGradient({ primaryBlue, primaryRed }: { primaryBlue: string; primaryRed: string }) {
   const [width, setWidth] = useState(0);
+  const opacity = useRef(new Animated.Value(0)).current;
   const listPadding = 16;
   const w = width || SCREEN_W * 0.5;
   const left = SCREEN_W - listPadding - w;
 
+  // Fade gradienten ind når den faktiske bredde er målt — indtil da viser
+  // boblen sin solide røde fallback-baggrund. Undgår at en forkert
+  // gradient (beregnet ud fra et bredde-gæt) blinker i én frame.
+  useEffect(() => {
+    if (width > 0) {
+      Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+    }
+  }, [width]);
+
   return (
-    <LinearGradient
-      colors={[primaryBlue, primaryRed]}
-      start={{ x: -left / w, y: 0 }}
-      end={{ x: (SCREEN_W - left) / w, y: 0 }}
-      style={StyleSheet.absoluteFillObject}
-      onLayout={(e) => {
-        if (!width) setWidth(e.nativeEvent.layout.width);
-      }}
-    />
+    <Animated.View style={[StyleSheet.absoluteFillObject, { opacity }]}>
+      <LinearGradient
+        colors={[primaryBlue, primaryRed]}
+        start={{ x: -left / w, y: 0 }}
+        end={{ x: (SCREEN_W - left) / w, y: 0 }}
+        style={StyleSheet.absoluteFillObject}
+        onLayout={(e) => {
+          if (!width) setWidth(e.nativeEvent.layout.width);
+        }}
+      />
+    </Animated.View>
   );
 }
 
@@ -714,7 +726,7 @@ export default function ChatScreen({ route, navigation }: any) {
           <View style={[
             styles.bubble,
             isMe
-              ? [styles.bubbleMe, styles.bubbleGradient]
+              ? [styles.bubbleMe, styles.bubbleGradient, { backgroundColor: colors.primaryRed }]
               : [styles.bubbleThem, { backgroundColor: colors.bubbleReceived }],
             item.imageURL && !expired && !item.deleted && styles.bubbleImage,
           ]}>
