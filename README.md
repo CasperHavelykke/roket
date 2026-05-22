@@ -57,10 +57,10 @@ The web app shares translations and types with the mobile app via a `@shared` pa
 
 <p align="center">
   <img src="docs/demo.gif" width="150" alt="Røket — browsing the proximity feed" />&nbsp;
-  <img src="docs/screenshots/homeScreen.png" width="150" alt="Proximity feed" />&nbsp;
-  <img src="docs/screenshots/eventSheet.png" width="150" alt="Event details" />&nbsp;
-  <img src="docs/screenshots/profileScreen.png" width="150" alt="User profile" />&nbsp;
-  <img src="docs/screenshots/chatScreen.png" width="150" alt="Group chat" />
+  <img src="docs/screenshots/play-store/homeScreen.png" width="150" alt="Proximity feed" />&nbsp;
+  <img src="docs/screenshots/play-store/eventSheet.png" width="150" alt="Event details" />&nbsp;
+  <img src="docs/screenshots/play-store/profileScreen.png" width="150" alt="User profile" />&nbsp;
+  <img src="docs/screenshots/play-store/chatScreen.png" width="150" alt="Group chat" />
 </p>
 
 ## Setup
