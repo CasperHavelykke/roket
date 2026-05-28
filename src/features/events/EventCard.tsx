@@ -18,7 +18,7 @@ interface EventCardProps {
   onPress: () => void;
 }
 
-function formatTime(time: Date, t: any, locale: string, hour12: boolean): string {
+export function formatTime(time: Date, t: any, locale: string, hour12: boolean): string {
   const now = Date.now();
   const diffMs = time.getTime() - now;
   const diffMins = Math.floor(diffMs / 60000);

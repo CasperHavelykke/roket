@@ -36,7 +36,5 @@ describe('getFirebaseError', () => {
         'Noget gik galt. Prøv igen.',
     );
   });
-
-
 });
 
