@@ -26,7 +26,6 @@ describe('formatTime', () => {
     expect(formatTime(futureTime, translations.da, 'da-DK', false))
       .toBe(translations.da.eventsTimeIn(30));
   });
-
   
   test('returnerer eventsTimeToday når tidspunktet er i dag', () => {
     const todayTime = new Date('2026-05-22T18:00:00Z');

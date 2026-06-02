@@ -1,5 +1,3 @@
-// Én testfil pr. kildefil: alt der tester translations.ts bor her,
-// opdelt i en describe-blok pr. funktion.
 import translations from '../src/translations';
 
 const da = translations.da;

@@ -1,7 +1,5 @@
 import { getStatusTag } from '../src/statusTags';
 
-// `describe` grupperer beslægtede tests under én overskrift — rent kosmetisk
-// i outputtet, men gør det nemt at se hvad der hører sammen.
 describe('getStatusTag', () => {
   test('finder et kendt tag og returnerer hele objektet', () => {
     expect(getStatusTag('coffee')).toEqual({ id: 'coffee', emoji: '☕' });

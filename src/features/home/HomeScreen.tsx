@@ -34,6 +34,7 @@ import EventDetailModal from '../events/EventDetailModal';
 import { EventDoc } from '../../events';
 import TagIcon from '../../components/TagIcon';
 import UserCard from '../profile/UserCard';
+import { getAge } from '../../utils/userInfo';
 
 const BANNER_AD_ID = __DEV__
   ? TestIds.ADAPTIVE_BANNER
@@ -74,20 +75,6 @@ export interface User {
 }
 
 const INACTIVE_HOURS = 24; // Skjul profiler der ikke har været online i X timer
-
-const isOnline = (lastSeen?: Date): boolean => {
-  if (!lastSeen) return false;
-  return Date.now() - lastSeen.getTime() < 5 * 60 * 1000; // 5 minutter
-};
-
-const getAge = (birthday: { day: number; month: number; year: number }): number => {
-  const today = new Date();
-  const birth = new Date(birthday.year, birthday.month - 1, birthday.day);
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-  return age;
-};
 
 export default function HomeScreen({ navigation }: any) {
   const { colors, isDark, t, distanceMode, distanceUnit, gridColumns, setGridColumns, showTestBadges } = useTheme();
