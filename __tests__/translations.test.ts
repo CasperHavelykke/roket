@@ -53,3 +53,17 @@ describe('chatActivityPrompt (en) — samme funktion, andet sprog', () => {
     );
   });
 });
+
+describe('eventsTimeIn (da)', () => {
+  test('under 60 minutter viser minutter', () => {
+    expect(da.eventsTimeIn(30)).toBe('Om 30 min');
+    expect(da.eventsTimeIn(1)).toBe('Om 1 min');
+    expect(da.eventsTimeIn(59)).toBe('Om 59 min');
+  });
+
+  test('60+ minutter viser timer (afrundet)', () => {
+    expect(da.eventsTimeIn(60)).toBe('Om 1 t');
+    expect(da.eventsTimeIn(90)).toBe('Om 2 t');
+    expect(da.eventsTimeIn(120)).toBe('Om 2 t');
+  });
+});
