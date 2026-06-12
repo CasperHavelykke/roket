@@ -32,6 +32,7 @@ import PrivacyPolicyScreen from './src/features/legal/PrivacyPolicyScreen';
 import TermsConditionsScreen from './src/features/legal/TermsConditionsScreen';
 import CommunityGuidelinesScreen from './src/features/legal/CommunityGuidelinesScreen';
 import ChildSafetyScreen from './src/features/legal/ChildSafetyScreen';
+import MapHomeScreen from './src/features/map/MapHomeScreen';
 import mobileAds from 'react-native-google-mobile-ads';
 
 mobileAds().initialize();
@@ -53,6 +54,7 @@ type RootStackParamList = {
   TermsConditions: undefined;
   CommunityGuidelines: undefined;
   ChildSafety: undefined;
+  MapHome: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -355,6 +357,7 @@ function App() {
             ) : (
               <>
                 <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="MapHome" component={MapHomeScreen} />
                 <Stack.Screen name="ProfileView" component={ProfileViewScreen} />
                 <Stack.Screen name="Chat" component={ChatScreen} />
                 <Stack.Screen name="ChatsList" component={ChatsListScreen} />

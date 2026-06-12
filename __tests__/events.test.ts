@@ -1,14 +1,51 @@
 import {
-  eventExpiryFromTime,
+  eventEndsAt,
+  eventExpiryFromEnd,
+  overlapsTime,
   isEventActive,
   isEventFull,
 } from '../src/events';
 
-describe('eventExpiryFromTime', () => {
-  test('returnerer et tidspunkt præcis 4 timer efter input', () => {
-    const start = new Date('2026-05-22T14:00:00Z');
-    const expected = new Date('2026-05-22T18:00:00Z');
-    expect(eventExpiryFromTime(start)).toEqual(expected);
+describe('eventEndsAt', () => {
+  test('bruger durationMinutes når den er sat', () => {
+    const event = { time: new Date('2026-05-22T14:00:00Z'), durationMinutes: 60 };
+    expect(eventEndsAt(event)).toEqual(new Date('2026-05-22T15:00:00Z'));
+  });
+
+  test('falder tilbage til default (120 min) uden durationMinutes', () => {
+    const event = { time: new Date('2026-05-22T14:00:00Z') };
+    expect(eventEndsAt(event)).toEqual(new Date('2026-05-22T16:00:00Z'));
+  });
+});
+
+describe('eventExpiryFromEnd', () => {
+  test('returnerer et tidspunkt præcis 4 timer efter slut (grace-perioden)', () => {
+    const endsAt = new Date('2026-05-22T16:00:00Z');
+    expect(eventExpiryFromEnd(endsAt)).toEqual(new Date('2026-05-22T20:00:00Z'));
+  });
+});
+
+describe('overlapsTime', () => {
+  const event = { time: new Date('2026-05-22T14:00:00Z'), durationMinutes: 120 };
+
+  test('returnerer false før eventet starter', () => {
+    expect(overlapsTime(event, new Date('2026-05-22T13:59:59Z'))).toBe(false);
+  });
+
+  test('returnerer true præcis ved start (grænseværdi)', () => {
+    expect(overlapsTime(event, new Date('2026-05-22T14:00:00Z'))).toBe(true);
+  });
+
+  test('returnerer true midt i eventet', () => {
+    expect(overlapsTime(event, new Date('2026-05-22T15:00:00Z'))).toBe(true);
+  });
+
+  test('returnerer true præcis ved slut (grænseværdi)', () => {
+    expect(overlapsTime(event, new Date('2026-05-22T16:00:00Z'))).toBe(true);
+  });
+
+  test('returnerer false efter eventet er slut', () => {
+    expect(overlapsTime(event, new Date('2026-05-22T16:00:01Z'))).toBe(false);
   });
 });
 

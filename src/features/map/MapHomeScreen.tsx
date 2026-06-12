@@ -1,0 +1,183 @@
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
+import MapView, { Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
+import firestore from '@react-native-firebase/firestore';
+import Geolocation from 'react-native-geolocation-service';
+import { ArrowLeft } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../theme';
+import { EventDoc } from '../../events';
+import ActivityMarker from './ActivityMarker';
+import EventDetailModal from '../events/EventDetailModal';
+
+const DEFAULT_REGION: Region = {
+  // København som fallback indtil brugerens position kendes
+  latitude: 55.6761,
+  longitude: 12.5683,
+  latitudeDelta: 0.05,
+  longitudeDelta: 0.05,
+};
+
+export default function MapHomeScreen({ navigation }: any) {
+  const { colors, t } = useTheme();
+  const insets = useSafeAreaInsets();
+  const mapRef = useRef<MapView>(null);
+  const [events, setEvents] = useState<EventDoc[]>([]);
+  const [selected, setSelected] = useState<EventDoc | null>(null);
+  const [initialRegion, setInitialRegion] = useState<Region | null>(null);
+
+  // Centrér på brugerens position (permission er allerede givet via grid-flowet;
+  // fejler den, falder vi bare tilbage til default-regionen)
+  useEffect(() => {
+    Geolocation.getCurrentPosition(
+      pos => {
+        setInitialRegion({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        });
+      },
+      () => setInitialRegion(DEFAULT_REGION),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+    );
+  }, []);
+
+  // Trin 2: alle aktive events, uden geo-filter. Viewport-baseret
+  // geohash-query (useNearbyActivities) erstatter denne i trin 3.
+  useEffect(() => {
+    const unsubscribe = firestore()
+      .collection('events')
+      .where('expiresAt', '>', firestore.Timestamp.now())
+      .onSnapshot(snap => {
+        const list: EventDoc[] = [];
+        snap.docs.forEach(doc => {
+          const data = doc.data();
+          list.push({
+            id: doc.id,
+            creatorId: data.creatorId,
+            title: data.title,
+            description: data.description ?? '',
+            meetingPlace: data.meetingPlace ?? '',
+            location: {
+              latitude: data.location?.latitude ?? 0,
+              longitude: data.location?.longitude ?? 0,
+            },
+            geohash: data.geohash,
+            time: data.time?.toDate?.() ?? new Date(),
+            durationMinutes: data.durationMinutes,
+            maxParticipants: data.maxParticipants ?? null,
+            participantIds: data.participantIds ?? [],
+            tag: data.tag ?? null,
+            chatId: data.chatId,
+            createdAt: data.createdAt?.toDate?.() ?? new Date(),
+            expiresAt: data.expiresAt?.toDate?.() ?? new Date(),
+          });
+        });
+        setEvents(list);
+      }, err => console.warn('Map events subscription error:', err));
+
+    return () => unsubscribe();
+  }, []);
+
+  if (!initialRegion) {
+    return <View style={[styles.container, { backgroundColor: colors.background }]} />;
+  }
+
+  return (
+    <View style={styles.container}>
+      <MapView
+        ref={mapRef}
+        style={StyleSheet.absoluteFill}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+        initialRegion={initialRegion}
+        showsUserLocation
+        showsMyLocationButton={false}
+        toolbarEnabled={false}
+      >
+        {events.map(event => (
+          <Marker
+            key={event.id}
+            coordinate={event.location}
+            onPress={() => setSelected(event)}
+            tracksViewChanges={false}
+            anchor={{ x: 0.5, y: 1 }}
+          >
+            <ActivityMarker tag={event.tag} />
+          </Marker>
+        ))}
+      </MapView>
+
+      {/* Midlertidig dev-tilbageknap — fjernes når MapHome bliver primær skærm */}
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={[styles.backBtn, { top: insets.top + 12, backgroundColor: colors.cardBackground }]}
+        activeOpacity={0.8}
+      >
+        <ArrowLeft size={22} color={colors.textPrimary} />
+      </TouchableOpacity>
+
+      <View style={[styles.countPill, { bottom: insets.bottom + 24, backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.countText, { color: colors.textPrimary }]}>
+          {t.mapActivitiesCount(events.length)}
+        </Text>
+      </View>
+
+      <EventDetailModal
+        visible={!!selected}
+        event={selected}
+        onClose={() => setSelected(null)}
+        onOpenChat={(chatId, eventTitle) => {
+          setSelected(null);
+          navigation.navigate('Chat', {
+            otherUser: { id: chatId, displayName: eventTitle, testAccount: false },
+            eventChatId: chatId,
+            eventTitle,
+          });
+        }}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  backBtn: {
+    position: 'absolute',
+    left: 16,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  countPill: {
+    position: 'absolute',
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  countText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+});

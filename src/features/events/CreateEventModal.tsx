@@ -18,7 +18,8 @@ import firestore from '@react-native-firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { STATUS_TAGS, StatusTagId } from '../../statusTags';
-import { eventExpiryFromTime } from '../../events';
+import { DEFAULT_EVENT_DURATION_MINUTES, eventEndsAt, eventExpiryFromEnd } from '../../events';
+import { geohashForLocation } from 'geofire-common';
 import ScheduleEventModal from './ScheduleEventModal';
 import TagIcon from '../../components/TagIcon';
 import MapPickerModal from './MapPickerModal';
@@ -125,7 +126,10 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
     if (!user) return;
 
     const time = computeEventTime(minutesFromNow);
-    const expiresAt = eventExpiryFromTime(time);
+    // Varighed-UI kommer i Fase 2 — indtil da default 2 timer
+    const durationMinutes = DEFAULT_EVENT_DURATION_MINUTES;
+    const endsAt = eventEndsAt({ time, durationMinutes });
+    const expiresAt = eventExpiryFromEnd(endsAt);
     const max = parseInt(maxParticipants, 10);
 
     setSubmitting(true);
@@ -143,8 +147,10 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
           latitude: eventLoc.latitude,
           longitude: eventLoc.longitude,
         },
+        geohash: geohashForLocation([eventLoc.latitude, eventLoc.longitude]),
         meetingLocationManual: !!meetingLocation,
         time: firestore.Timestamp.fromDate(time),
+        durationMinutes: durationMinutes,
         maxParticipants: isNaN(max) || max < 2 ? null : max,
         participantIds: [user.uid],
         tag: tag,
@@ -244,7 +250,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
               </View>
               {(() => {
                 const eventTime = computeEventTime(minutesFromNow);
-                const expiry = eventExpiryFromTime(eventTime);
+                const expiry = eventExpiryFromEnd(eventEndsAt({ time: eventTime }));
                 const today = new Date();
                 const tomorrow = new Date(today);
                 tomorrow.setDate(tomorrow.getDate() + 1);

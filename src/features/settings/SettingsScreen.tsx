@@ -269,6 +269,16 @@ export default function SettingsScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
+        {__DEV__ && (
+          <TouchableOpacity
+            style={[styles.row, { borderBottomWidth: 0 }]}
+            onPress={() => navigation.navigate('MapHome')}
+          >
+            <Text style={[styles.rowText, { color: colors.textMuted }]}>[DEV] MapHome (Pivot 2.0)</Text>
+            <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
+          </TouchableOpacity>
+        )}
+
         <Text style={styles.copyright}>© 2026 Røket · v1.1.9 Beta</Text>
       </ScrollView>
     </SafeAreaView>
