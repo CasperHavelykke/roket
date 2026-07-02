@@ -11,7 +11,11 @@ import {
   ActivityIndicator,
   Animated,
   PanResponder,
+  Platform,
+  Keyboard,
 } from 'react-native';
+import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import { DARK_MAP_STYLE } from '../map/mapDarkStyle';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -23,7 +27,7 @@ import { geohashForLocation } from 'geofire-common';
 import ScheduleEventModal from './ScheduleEventModal';
 import TagIcon from '../../components/TagIcon';
 import MapPickerModal from './MapPickerModal';
-import { Calendar, MapPin, X } from 'lucide-react-native';
+import { Calendar, MapPin, SquarePen, X } from 'lucide-react-native';
 
 interface CreateEventModalProps {
   visible: boolean;
@@ -37,7 +41,7 @@ const TIME_PRESETS = [30, 60, 120, 180]; // minutter
 const DURATION_PRESETS = [30, 60, 120, 180, 240]; // minutter
 
 export default function CreateEventModal({ visible, onClose, userLocation, initialLocation }: CreateEventModalProps) {
-  const { colors, t } = useTheme();
+  const { colors, t, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -54,6 +58,21 @@ export default function CreateEventModal({ visible, onClose, userLocation, initi
   const [showScheduler, setShowScheduler] = useState(false);
   const translateY = useRef(new Animated.Value(600)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // Sheet'ets bund-padding giver luft over home-indikatoren — men når
+  // tastaturet er oppe, ER tastaturet bunden, og padding'en bliver en
+  // død mørk bar. Krymp den mens tastaturet er synligt.
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   // Forudfyld pin fra pin-først-flowet hver gang modalen åbner
   useEffect(() => {
@@ -212,7 +231,7 @@ export default function CreateEventModal({ visible, onClose, userLocation, initi
             <TouchableOpacity activeOpacity={1} style={StyleSheet.absoluteFill} onPress={handleClose} />
           </Animated.View>
           <Animated.View
-            style={[styles.sheet, { backgroundColor: colors.background, paddingBottom: insets.bottom + 20, transform: [{ translateY }] }]}
+            style={[styles.sheet, { backgroundColor: colors.background, paddingBottom: keyboardVisible ? 8 : insets.bottom + 20, transform: [{ translateY }] }]}
           >
             <View style={styles.handleArea} {...panResponder.panHandlers}>
               <View style={styles.handle} />
@@ -220,6 +239,56 @@ export default function CreateEventModal({ visible, onClose, userLocation, initi
             <Text style={[styles.title, { color: colors.textPrimary }]}>{t.eventsCreateTitle}</Text>
 
             <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
+              {/* Pin-først-flowet: preview af den valgte placering øverst, så man
+                  kan se HVOR mens man navngiver mødestedet. Pen-knappen genåbner
+                  kortvælgeren hvis man fortryder placeringen. */}
+              {initialLocation && meetingLocation && (
+                <>
+                  <View style={styles.mapPreview}>
+                    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                      <MapView
+                        key={`${meetingLocation.latitude}_${meetingLocation.longitude}_${isDark}`}
+                        style={StyleSheet.absoluteFill}
+                        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                        customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
+                        userInterfaceStyle={isDark ? 'dark' : 'light'}
+                        initialRegion={{
+                          latitude: meetingLocation.latitude,
+                          longitude: meetingLocation.longitude,
+                          latitudeDelta: 0.006,
+                          longitudeDelta: 0.006,
+                        }}
+                        scrollEnabled={false}
+                        zoomEnabled={false}
+                        rotateEnabled={false}
+                        pitchEnabled={false}
+                        toolbarEnabled={false}
+                      />
+                      <View style={styles.mapPreviewPin}>
+                        <MapPin size={32} color={colors.primaryRed} fill={colors.primaryRed} strokeWidth={1.5} />
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.mapPreviewEdit, { backgroundColor: colors.cardBackground }]}
+                      onPress={() => setShowMapPicker(true)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <SquarePen size={17} color={colors.textPrimary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsPlaceLabel}</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.card, color: colors.textPrimary, borderColor: colors.inputBorder }]}
+                    value={meetingPlace}
+                    onChangeText={setMeetingPlace}
+                    placeholder={t.eventsPlacePlaceholder}
+                    placeholderTextColor={colors.textMuted}
+                    maxLength={100}
+                  />
+                </>
+              )}
+
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsTitleLabel}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.textPrimary, borderColor: colors.inputBorder }]}
@@ -312,43 +381,49 @@ export default function CreateEventModal({ visible, onClose, userLocation, initi
                 );
               })()}
 
-              <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsPlaceLabel}</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.textPrimary, borderColor: colors.inputBorder }]}
-                value={meetingPlace}
-                onChangeText={setMeetingPlace}
-                placeholder={t.eventsPlacePlaceholder}
-                placeholderTextColor={colors.textMuted}
-                maxLength={100}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.locationButton,
-                  { borderColor: meetingLocation ? colors.primaryBlue : (scheduledTime ? colors.primaryRed : colors.inputBorder) },
-                ]}
-                onPress={() => setShowMapPicker(true)}
-              >
-                <MapPin size={16} color={meetingLocation ? colors.primaryBlue : (scheduledTime ? colors.primaryRed : colors.textSecondary)} />
-                <Text style={[styles.locationButtonText, { color: meetingLocation ? colors.primaryBlueText : (scheduledTime ? colors.primaryRed : colors.textSecondary) }]}>
-                  {meetingLocation
-                    ? `${meetingLocation.latitude.toFixed(4)}, ${meetingLocation.longitude.toFixed(4)}`
-                    : (scheduledTime
-                      ? (t.eventsPickLocationCta ?? 'Vælg mødested')
-                      : ((t as any).eventsPickLocationOptional ?? 'Tilføj pin på kort (valgfri)'))}
-                </Text>
-                {meetingLocation && (
+              {/* Pin-først-flowet valgte stedet i trin 1 — hele sektionen er overflødig dér.
+                  Beholdes for det gamle grid-flow (uden trin 1) indtil Fase 7. */}
+              {!initialLocation && (
+                <>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsPlaceLabel}</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.card, color: colors.textPrimary, borderColor: colors.inputBorder }]}
+                    value={meetingPlace}
+                    onChangeText={setMeetingPlace}
+                    placeholder={t.eventsPlacePlaceholder}
+                    placeholderTextColor={colors.textMuted}
+                    maxLength={100}
+                  />
                   <TouchableOpacity
-                    onPress={(e) => { e.stopPropagation(); setMeetingLocation(null); }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={[
+                      styles.locationButton,
+                      { borderColor: meetingLocation ? colors.primaryBlue : (scheduledTime ? colors.primaryRed : colors.inputBorder) },
+                    ]}
+                    onPress={() => setShowMapPicker(true)}
                   >
-                    <X size={18} color={colors.textSecondary} />
+                    <MapPin size={16} color={meetingLocation ? colors.primaryBlue : (scheduledTime ? colors.primaryRed : colors.textSecondary)} />
+                    <Text style={[styles.locationButtonText, { color: meetingLocation ? colors.primaryBlueText : (scheduledTime ? colors.primaryRed : colors.textSecondary) }]}>
+                      {meetingLocation
+                        ? `${meetingLocation.latitude.toFixed(4)}, ${meetingLocation.longitude.toFixed(4)}`
+                        : (scheduledTime
+                          ? (t.eventsPickLocationCta ?? 'Vælg mødested')
+                          : ((t as any).eventsPickLocationOptional ?? 'Tilføj pin på kort (valgfri)'))}
+                    </Text>
+                    {meetingLocation && (
+                      <TouchableOpacity
+                        onPress={(e) => { e.stopPropagation(); setMeetingLocation(null); }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <X size={18} color={colors.textSecondary} />
+                      </TouchableOpacity>
+                    )}
                   </TouchableOpacity>
-                )}
-              </TouchableOpacity>
-              {!meetingLocation && !scheduledTime && (
-                <Text style={[styles.hint, { color: colors.textMuted, marginTop: 6 }]}>
-                  {(t as any).eventsPlaceFallbackHint}
-                </Text>
+                  {!meetingLocation && !scheduledTime && (
+                    <Text style={[styles.hint, { color: colors.textMuted, marginTop: 6 }]}>
+                      {(t as any).eventsPlaceFallbackHint}
+                    </Text>
+                  )}
+                </>
               )}
 
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsTagLabel}</Text>
@@ -395,21 +470,23 @@ export default function CreateEventModal({ visible, onClose, userLocation, initi
                 multiline
                 maxLength={500}
               />
-            </ScrollView>
 
-            <View style={styles.footer}>
-              <TouchableOpacity
-                style={[styles.cta, { backgroundColor: colors.primaryBlue }, (submitting || !title.trim()) && { opacity: 0.6 }]}
-                onPress={handleCreate}
-                disabled={submitting || !title.trim()}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.ctaText}>{t.eventsCreateButton}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+              {/* CTA'en scroller med formularen — en fastlåst knap over tastaturet
+                  dækker felterne, og den skal alligevel først bruges til sidst */}
+              <View style={styles.footer}>
+                <TouchableOpacity
+                  style={[styles.cta, { backgroundColor: colors.primaryBlue }, (submitting || !title.trim()) && { opacity: 0.6 }]}
+                  onPress={handleCreate}
+                  disabled={submitting || !title.trim()}
+                >
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.ctaText}>{t.eventsCreateButton}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
@@ -530,6 +607,33 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 12,
     marginTop: 8,
+  },
+  mapPreview: {
+    height: 130,
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  mapPreviewPin: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 26, // pin-spidsen skal pege på centrum, ikke ikonets midte
+  },
+  mapPreviewEdit: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
   },
   footer: {
     paddingTop: 16,

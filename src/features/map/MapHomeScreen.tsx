@@ -18,6 +18,7 @@ import useNearbyActivities from './useNearbyActivities';
 import TimeScrubber from './TimeScrubber';
 import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
 import { TimeWindow } from './scrubberTime';
+import { DARK_MAP_STYLE } from './mapDarkStyle';
 import EventDetailModal from '../events/EventDetailModal';
 import CreateEventModal from '../events/CreateEventModal';
 import MapPickerModal from '../events/MapPickerModal';
@@ -34,7 +35,7 @@ const FAB_SIZE = 61;
 const FAB_RIGHT = 16;
 
 export default function MapHomeScreen({ navigation }: any) {
-  const { colors, t } = useTheme();
+  const { colors, t, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const mapRef = useRef<MapView>(null);
@@ -100,6 +101,8 @@ export default function MapHomeScreen({ navigation }: any) {
         showsUserLocation
         showsMyLocationButton={false}
         toolbarEnabled={false}
+        customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
+        userInterfaceStyle={isDark ? 'dark' : 'light'}
       >
         {visibleActivities.map(event => (
           <Marker

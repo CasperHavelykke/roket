@@ -12,6 +12,7 @@ import MapView, { Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MapPin } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
+import { DARK_MAP_STYLE } from '../map/mapDarkStyle';
 
 interface MapPickerModalProps {
   visible: boolean;
@@ -23,7 +24,7 @@ interface MapPickerModalProps {
 const DEFAULT_DELTA = 0.01;
 
 export default function MapPickerModal({ visible, initial, onClose, onConfirm }: MapPickerModalProps) {
-  const { colors, t } = useTheme();
+  const { colors, t, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
   const [center, setCenter] = useState<{ latitude: number; longitude: number } | null>(initial ?? null);
@@ -69,6 +70,8 @@ export default function MapPickerModal({ visible, initial, onClose, onConfirm }:
             onRegionChangeComplete={handleRegionChange}
             showsUserLocation
             showsMyLocationButton
+            customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
+            userInterfaceStyle={isDark ? 'dark' : 'light'}
             onMapReady={() => setReady(true)}
           />
           {/* Fixed centered pin */}
