@@ -272,9 +272,9 @@ export default function SettingsScreen({ navigation }: any) {
         {__DEV__ && (
           <TouchableOpacity
             style={[styles.row, { borderBottomWidth: 0 }]}
-            onPress={() => navigation.navigate('MapHome')}
+            onPress={() => navigation.navigate('Home')}
           >
-            <Text style={[styles.rowText, { color: colors.textMuted }]}>[DEV] MapHome (Pivot 2.0)</Text>
+            <Text style={[styles.rowText, { color: colors.textMuted }]}>[DEV] Grid (legacy)</Text>
             <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
           </TouchableOpacity>
         )}

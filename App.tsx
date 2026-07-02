@@ -356,8 +356,10 @@ function App() {
               </>
             ) : (
               <>
-                <Stack.Screen name="Home" component={HomeScreen} />
+                {/* MapHome er hjemmeskærmen (Pivot 2.0) — grid'et beholdes som
+                    legacy-route indtil Fase 7-oprydningen */}
                 <Stack.Screen name="MapHome" component={MapHomeScreen} />
+                <Stack.Screen name="Home" component={HomeScreen} />
                 <Stack.Screen name="ProfileView" component={ProfileViewScreen} />
                 <Stack.Screen name="Chat" component={ChatScreen} />
                 <Stack.Screen name="ChatsList" component={ChatsListScreen} />

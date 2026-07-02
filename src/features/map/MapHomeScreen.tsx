@@ -8,7 +8,12 @@ import {
 } from 'react-native';
 import MapView, { Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import Geolocation from 'react-native-geolocation-service';
-import { ArrowLeft, Plus } from 'lucide-react-native';
+import {
+  Plus,
+  User as ProfileIcon,
+  MessagesSquare as MessagesIcon,
+  Settings as SettingsIcon,
+} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GradientView from '../../components/GradientView';
 import { useTheme } from '../../theme';
@@ -33,6 +38,8 @@ const DEFAULT_REGION: Region = {
 
 const FAB_SIZE = 61;
 const FAB_RIGHT = 16;
+const NAV_BTN_SIZE = 48;
+const NAV_BTN_GAP = 10;
 
 export default function MapHomeScreen({ navigation }: any) {
   const { colors, t, isDark } = useTheme();
@@ -117,14 +124,35 @@ export default function MapHomeScreen({ navigation }: any) {
         ))}
       </MapView>
 
-      {/* Midlertidig dev-tilbageknap — fjernes når MapHome bliver primær skærm */}
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={[styles.backBtn, { top: insets.top + 12, backgroundColor: colors.cardBackground }]}
-        activeOpacity={0.8}
-      >
-        <ArrowLeft size={22} color={colors.textPrimary} />
-      </TouchableOpacity>
+      {/* Top-navigation — MapHome er hjemmeskærmen nu. Samme FAB-sprog som
+          grid'et: hver knap viser sin slice af skærmkant-gradienten */}
+      {(() => {
+        const navButtons = [
+          { icon: <ProfileIcon size={24} color="#fff" />, onPress: () => navigation.navigate('MyProfile') },
+          { icon: <MessagesIcon size={24} color="#fff" />, onPress: () => navigation.navigate('ChatsList') },
+          { icon: <SettingsIcon size={24} color="#fff" />, onPress: () => navigation.navigate('Settings') },
+        ];
+        const groupLeft = screenWidth - FAB_RIGHT - (navButtons.length * NAV_BTN_SIZE + (navButtons.length - 1) * NAV_BTN_GAP);
+        return (
+          <View style={[styles.topNav, { top: insets.top + 12 }]}>
+            {navButtons.map((btn, i) => {
+              const btnLeft = groupLeft + i * (NAV_BTN_SIZE + NAV_BTN_GAP);
+              return (
+                <TouchableOpacity key={i} onPress={btn.onPress} activeOpacity={0.8} style={styles.navShadow}>
+                  <GradientView
+                    colors={[colors.primaryBlue, colors.primaryRed]}
+                    start={{ x: -btnLeft / NAV_BTN_SIZE, y: 0 }}
+                    end={{ x: (screenWidth - btnLeft) / NAV_BTN_SIZE, y: 0 }}
+                    style={styles.navButton}
+                  >
+                    {btn.icon}
+                  </GradientView>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        );
+      })()}
 
       {/* Opret aktivitet — pin-først-flowet starter her.
           Skærmkant til skærmkant-gradient + hvid border: samme stil som grid'ets FABs */}
@@ -202,19 +230,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  backBtn: {
+  topNav: {
     position: 'absolute',
-    left: 16,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    right: FAB_RIGHT,
+    flexDirection: 'row',
+    gap: NAV_BTN_GAP,
+  },
+  navShadow: {
+    borderRadius: NAV_BTN_SIZE / 2 + 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  navButton: {
+    width: NAV_BTN_SIZE,
+    height: NAV_BTN_SIZE,
+    borderRadius: NAV_BTN_SIZE / 2,
+    ...Platform.select({ android: { overflow: 'hidden' as const } }),
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
   },
   scrubberWrap: {
     position: 'absolute',
