@@ -29,11 +29,14 @@ interface CreateEventModalProps {
   visible: boolean;
   onClose: () => void;
   userLocation: { latitude: number; longitude: number } | null;
+  // Pin-først-flowet (MapHome): lokation valgt på kortet FØR formularen åbner
+  initialLocation?: { latitude: number; longitude: number } | null;
 }
 
 const TIME_PRESETS = [30, 60, 120, 180]; // minutter
+const DURATION_PRESETS = [30, 60, 120, 180, 240]; // minutter
 
-export default function CreateEventModal({ visible, onClose, userLocation }: CreateEventModalProps) {
+export default function CreateEventModal({ visible, onClose, userLocation, initialLocation }: CreateEventModalProps) {
   const { colors, t } = useTheme();
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
@@ -44,12 +47,21 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
   const [tag, setTag] = useState<StatusTagId | null>(null);
   const [maxParticipants, setMaxParticipants] = useState('');
   const [minutesFromNow, setMinutesFromNow] = useState(60);
+  const [durationMinutes, setDurationMinutes] = useState(DEFAULT_EVENT_DURATION_MINUTES);
   const [submitting, setSubmitting] = useState(false);
   const [mounted, setMounted] = useState(visible);
   const [scheduledTime, setScheduledTime] = useState<Date | null>(null);
   const [showScheduler, setShowScheduler] = useState(false);
   const translateY = useRef(new Animated.Value(600)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+  // Forudfyld pin fra pin-først-flowet hver gang modalen åbner
+  useEffect(() => {
+    if (visible && initialLocation) {
+      setMeetingLocation(initialLocation);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialLocation]);
 
   useEffect(() => {
     if (visible) {
@@ -102,6 +114,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
     setTag(null);
     setMaxParticipants('');
     setMinutesFromNow(60);
+    setDurationMinutes(DEFAULT_EVENT_DURATION_MINUTES);
     setScheduledTime(null);
   };
 
@@ -120,14 +133,17 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
       Alert.alert(t.error, t.eventsErrorLocation);
       return;
     }
-    if (!userLocation) return;
+    // Pin-først-flowet leverer meetingLocation, så userLocation kan være
+    // null (fx geolocation-fejl) uden at blokere oprettelsen
+    if (!meetingLocation && !userLocation) {
+      Alert.alert(t.error, t.eventsErrorLocation);
+      return;
+    }
 
     const user = auth().currentUser;
     if (!user) return;
 
     const time = computeEventTime(minutesFromNow);
-    // Varighed-UI kommer i Fase 2 — indtil da default 2 timer
-    const durationMinutes = DEFAULT_EVENT_DURATION_MINUTES;
     const endsAt = eventEndsAt({ time, durationMinutes });
     const expiresAt = eventExpiryFromEnd(endsAt);
     const max = parseInt(maxParticipants, 10);
@@ -137,7 +153,7 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
       const eventRef = firestore().collection('events').doc();
       const chatId = `event_${eventRef.id}`;
 
-      const eventLoc = meetingLocation ?? userLocation;
+      const eventLoc = (meetingLocation ?? userLocation)!;
       await eventRef.set({
         creatorId: user.uid,
         title: title.trim(),
@@ -248,9 +264,31 @@ export default function CreateEventModal({ visible, onClose, userLocation }: Cre
                   </Text>
                 </TouchableOpacity>
               </View>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t.eventsDurationLabel}</Text>
+              <View style={styles.chipRow}>
+                {DURATION_PRESETS.map(mins => {
+                  const isActive = durationMinutes === mins;
+                  return (
+                    <TouchableOpacity
+                      key={mins}
+                      style={[
+                        styles.chip,
+                        { backgroundColor: colors.card, borderColor: colors.inputBorder },
+                        isActive && { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue },
+                      ]}
+                      onPress={() => setDurationMinutes(mins)}
+                    >
+                      <Text style={[styles.chipText, { color: colors.textPrimary }, isActive && { color: '#fff' }]}>
+                        {presetLabel(mins)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               {(() => {
                 const eventTime = computeEventTime(minutesFromNow);
-                const expiry = eventExpiryFromEnd(eventEndsAt({ time: eventTime }));
+                const expiry = eventExpiryFromEnd(eventEndsAt({ time: eventTime, durationMinutes }));
                 const today = new Date();
                 const tomorrow = new Date(today);
                 tomorrow.setDate(tomorrow.getDate() + 1);
