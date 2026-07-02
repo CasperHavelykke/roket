@@ -7,13 +7,13 @@ import {
   Platform,
 } from 'react-native';
 import MapView, { Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
-import firestore from '@react-native-firebase/firestore';
 import Geolocation from 'react-native-geolocation-service';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { EventDoc } from '../../events';
 import ActivityMarker from './ActivityMarker';
+import useNearbyActivities from './useNearbyActivities';
 import EventDetailModal from '../events/EventDetailModal';
 
 const DEFAULT_REGION: Region = {
@@ -28,62 +28,34 @@ export default function MapHomeScreen({ navigation }: any) {
   const { colors, t } = useTheme();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
-  const [events, setEvents] = useState<EventDoc[]>([]);
   const [selected, setSelected] = useState<EventDoc | null>(null);
   const [initialRegion, setInitialRegion] = useState<Region | null>(null);
+  // Den aktuelle viewport — driver geo-queryen. Opdateres når brugeren
+  // slipper en pan/zoom (onRegionChangeComplete), ikke under selve gesturen.
+  const [region, setRegion] = useState<Region | null>(null);
+
+  const { activities, zoomedOut } = useNearbyActivities(region);
 
   // Centrér på brugerens position (permission er allerede givet via grid-flowet;
   // fejler den, falder vi bare tilbage til default-regionen)
   useEffect(() => {
     Geolocation.getCurrentPosition(
       pos => {
-        setInitialRegion({
+        const r = {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
-        });
+        };
+        setInitialRegion(r);
+        setRegion(r);
       },
-      () => setInitialRegion(DEFAULT_REGION),
+      () => {
+        setInitialRegion(DEFAULT_REGION);
+        setRegion(DEFAULT_REGION);
+      },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
     );
-  }, []);
-
-  // Trin 2: alle aktive events, uden geo-filter. Viewport-baseret
-  // geohash-query (useNearbyActivities) erstatter denne i trin 3.
-  useEffect(() => {
-    const unsubscribe = firestore()
-      .collection('events')
-      .where('expiresAt', '>', firestore.Timestamp.now())
-      .onSnapshot(snap => {
-        const list: EventDoc[] = [];
-        snap.docs.forEach(doc => {
-          const data = doc.data();
-          list.push({
-            id: doc.id,
-            creatorId: data.creatorId,
-            title: data.title,
-            description: data.description ?? '',
-            meetingPlace: data.meetingPlace ?? '',
-            location: {
-              latitude: data.location?.latitude ?? 0,
-              longitude: data.location?.longitude ?? 0,
-            },
-            geohash: data.geohash,
-            time: data.time?.toDate?.() ?? new Date(),
-            durationMinutes: data.durationMinutes,
-            maxParticipants: data.maxParticipants ?? null,
-            participantIds: data.participantIds ?? [],
-            tag: data.tag ?? null,
-            chatId: data.chatId,
-            createdAt: data.createdAt?.toDate?.() ?? new Date(),
-            expiresAt: data.expiresAt?.toDate?.() ?? new Date(),
-          });
-        });
-        setEvents(list);
-      }, err => console.warn('Map events subscription error:', err));
-
-    return () => unsubscribe();
   }, []);
 
   if (!initialRegion) {
@@ -97,11 +69,12 @@ export default function MapHomeScreen({ navigation }: any) {
         style={StyleSheet.absoluteFill}
         provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
         initialRegion={initialRegion}
+        onRegionChangeComplete={setRegion}
         showsUserLocation
         showsMyLocationButton={false}
         toolbarEnabled={false}
       >
-        {events.map(event => (
+        {activities.map(event => (
           <Marker
             key={event.id}
             coordinate={event.location}
@@ -125,7 +98,7 @@ export default function MapHomeScreen({ navigation }: any) {
 
       <View style={[styles.countPill, { bottom: insets.bottom + 24, backgroundColor: colors.cardBackground }]}>
         <Text style={[styles.countText, { color: colors.textPrimary }]}>
-          {t.mapActivitiesCount(events.length)}
+          {zoomedOut ? t.mapZoomIn : t.mapActivitiesCount(activities.length)}
         </Text>
       </View>
 

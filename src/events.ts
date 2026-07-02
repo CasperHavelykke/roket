@@ -42,6 +42,32 @@ export function isEventActive(event: { time: Date; expiresAt: Date }): boolean {
   return event.expiresAt.getTime() > now;
 }
 
+// Oversæt et Firestore-dokuments rå data til EventDoc med sikre defaults.
+// Bevidst uden firestore-import: `data` er resultatet af doc.data(), og
+// Timestamps duck-types via toDate() — så filen forbliver ren og testbar.
+export function eventFromData(id: string, data: any): EventDoc {
+  return {
+    id,
+    creatorId: data.creatorId,
+    title: data.title,
+    description: data.description ?? '',
+    meetingPlace: data.meetingPlace ?? '',
+    location: {
+      latitude: data.location?.latitude ?? 0,
+      longitude: data.location?.longitude ?? 0,
+    },
+    geohash: data.geohash,
+    time: data.time?.toDate?.() ?? new Date(),
+    durationMinutes: data.durationMinutes,
+    maxParticipants: data.maxParticipants ?? null,
+    participantIds: data.participantIds ?? [],
+    tag: data.tag ?? null,
+    chatId: data.chatId,
+    createdAt: data.createdAt?.toDate?.() ?? new Date(),
+    expiresAt: data.expiresAt?.toDate?.() ?? new Date(),
+  };
+}
+
 // Er eventet i gang / kommende på tidspunktet `at`? (scrubber-filteret)
 export function overlapsTime(
   event: { time: Date; durationMinutes?: number },
