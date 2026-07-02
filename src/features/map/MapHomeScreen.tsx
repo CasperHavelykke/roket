@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,11 @@ import Geolocation from 'react-native-geolocation-service';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
-import { EventDoc } from '../../events';
+import { EventDoc, overlapsTime } from '../../events';
 import ActivityMarker from './ActivityMarker';
 import useNearbyActivities from './useNearbyActivities';
+import TimeScrubber from './TimeScrubber';
+import { TimeWindow } from './scrubberTime';
 import EventDetailModal from '../events/EventDetailModal';
 
 const DEFAULT_REGION: Region = {
@@ -33,8 +35,17 @@ export default function MapHomeScreen({ navigation }: any) {
   // Den aktuelle viewport — driver geo-queryen. Opdateres når brugeren
   // slipper en pan/zoom (onRegionChangeComplete), ikke under selve gesturen.
   const [region, setRegion] = useState<Region | null>(null);
+  // Scrubberens tidsvindue — default NU (hvad sker der lige nu omkring mig)
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>({ mode: 'now' });
 
   const { activities, zoomedOut } = useNearbyActivities(region);
+
+  // Tidsfiltrering sker i hukommelsen — at trække i scrubberen koster
+  // nul netværkskald (geo-filtreringen skete allerede i Firestore)
+  const visibleActivities = useMemo(() => {
+    const at = timeWindow.mode === 'at' ? timeWindow.at : new Date();
+    return activities.filter(ev => overlapsTime(ev, at));
+  }, [activities, timeWindow]);
 
   // Centrér på brugerens position (permission er allerede givet via grid-flowet;
   // fejler den, falder vi bare tilbage til default-regionen)
@@ -74,7 +85,7 @@ export default function MapHomeScreen({ navigation }: any) {
         showsMyLocationButton={false}
         toolbarEnabled={false}
       >
-        {activities.map(event => (
+        {visibleActivities.map(event => (
           <Marker
             key={event.id}
             coordinate={event.location}
@@ -96,9 +107,19 @@ export default function MapHomeScreen({ navigation }: any) {
         <ArrowLeft size={22} color={colors.textPrimary} />
       </TouchableOpacity>
 
-      <View style={[styles.countPill, { bottom: insets.bottom + 24, backgroundColor: colors.cardBackground }]}>
+      {!zoomedOut && (
+        <View style={[styles.scrubberWrap, { bottom: insets.bottom + 62 }]}>
+          <TimeScrubber
+            activities={activities}
+            value={timeWindow}
+            onChange={setTimeWindow}
+          />
+        </View>
+      )}
+
+      <View style={[styles.countPill, { bottom: insets.bottom + 16, backgroundColor: colors.cardBackground }]}>
         <Text style={[styles.countText, { color: colors.textPrimary }]}>
-          {zoomedOut ? t.mapZoomIn : t.mapActivitiesCount(activities.length)}
+          {zoomedOut ? t.mapZoomIn : t.mapActivitiesCount(visibleActivities.length)}
         </Text>
       </View>
 
@@ -136,6 +157,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+  },
+  scrubberWrap: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
   },
   countPill: {
     position: 'absolute',
