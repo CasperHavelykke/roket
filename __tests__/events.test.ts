@@ -3,9 +3,47 @@ import {
   eventExpiryFromEnd,
   eventFromData,
   overlapsTime,
+  overlapsWindow,
+  VISIBLE_WINDOW_MINUTES,
   isEventActive,
   isEventFull,
 } from '../src/events';
+
+describe('overlapsWindow', () => {
+  const from = new Date('2026-06-15T12:00:00Z');
+
+  test('igangværende event er synligt', () => {
+    const ev = { time: new Date('2026-06-15T11:00:00Z'), durationMinutes: 120 };
+    expect(overlapsWindow(ev, from)).toBe(true);
+  });
+
+  test('event der starter inden for vinduet er synligt', () => {
+    const ev = { time: new Date('2026-06-15T13:30:00Z'), durationMinutes: 60 };
+    expect(overlapsWindow(ev, from)).toBe(true);
+  });
+
+  test('event der starter præcis på vinduets kant er synligt (grænseværdi)', () => {
+    const edge = new Date(from.getTime() + VISIBLE_WINDOW_MINUTES * 60 * 1000);
+    const ev = { time: edge, durationMinutes: 60 };
+    expect(overlapsWindow(ev, from)).toBe(true);
+  });
+
+  test('event der starter efter vinduet er ikke synligt', () => {
+    const ev = { time: new Date('2026-06-15T14:00:01Z'), durationMinutes: 60 };
+    expect(overlapsWindow(ev, from)).toBe(false);
+  });
+
+  test('event der sluttede før `from` er ikke synligt', () => {
+    const ev = { time: new Date('2026-06-15T09:00:00Z'), durationMinutes: 60 };
+    expect(overlapsWindow(ev, from)).toBe(false);
+  });
+
+  test('vindue på 0 svarer til overlapsTime (kun igangværende)', () => {
+    const upcoming = { time: new Date('2026-06-15T12:30:00Z'), durationMinutes: 60 };
+    expect(overlapsWindow(upcoming, from, 0)).toBe(false);
+    expect(overlapsTime(upcoming, from)).toBe(false);
+  });
+});
 
 describe('eventFromData', () => {
   test('mapper Firestore-data og konverterer Timestamps via toDate()', () => {

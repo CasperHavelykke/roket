@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Platform,
@@ -11,10 +10,11 @@ import Geolocation from 'react-native-geolocation-service';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
-import { EventDoc, overlapsTime } from '../../events';
+import { EventDoc, overlapsWindow } from '../../events';
 import ActivityMarker from './ActivityMarker';
 import useNearbyActivities from './useNearbyActivities';
 import TimeScrubber from './TimeScrubber';
+import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
 import { TimeWindow } from './scrubberTime';
 import EventDetailModal from '../events/EventDetailModal';
 
@@ -32,6 +32,8 @@ export default function MapHomeScreen({ navigation }: any) {
   const mapRef = useRef<MapView>(null);
   const [selected, setSelected] = useState<EventDoc | null>(null);
   const [initialRegion, setInitialRegion] = useState<Region | null>(null);
+  // Kun sat ved reelt geolocation-svar — afstande vises ikke fra fallback-regionen
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   // Den aktuelle viewport — driver geo-queryen. Opdateres når brugeren
   // slipper en pan/zoom (onRegionChangeComplete), ikke under selve gesturen.
   const [region, setRegion] = useState<Region | null>(null);
@@ -41,10 +43,11 @@ export default function MapHomeScreen({ navigation }: any) {
   const { activities, zoomedOut } = useNearbyActivities(region);
 
   // Tidsfiltrering sker i hukommelsen — at trække i scrubberen koster
-  // nul netværkskald (geo-filtreringen skete allerede i Firestore)
+  // nul netværkskald (geo-filtreringen skete allerede i Firestore).
+  // Vinduet kigger 2 timer frem fra scrub-positionen (VISIBLE_WINDOW_MINUTES).
   const visibleActivities = useMemo(() => {
     const at = timeWindow.mode === 'at' ? timeWindow.at : new Date();
-    return activities.filter(ev => overlapsTime(ev, at));
+    return activities.filter(ev => overlapsWindow(ev, at));
   }, [activities, timeWindow]);
 
   // Centrér på brugerens position (permission er allerede givet via grid-flowet;
@@ -60,6 +63,7 @@ export default function MapHomeScreen({ navigation }: any) {
         };
         setInitialRegion(r);
         setRegion(r);
+        setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
       },
       () => {
         setInitialRegion(DEFAULT_REGION);
@@ -108,7 +112,7 @@ export default function MapHomeScreen({ navigation }: any) {
       </TouchableOpacity>
 
       {!zoomedOut && (
-        <View style={[styles.scrubberWrap, { bottom: insets.bottom + 62 }]}>
+        <View style={[styles.scrubberWrap, { bottom: insets.bottom + DRAWER_COLLAPSED_HEIGHT + 10 }]}>
           <TimeScrubber
             activities={activities}
             value={timeWindow}
@@ -117,11 +121,12 @@ export default function MapHomeScreen({ navigation }: any) {
         </View>
       )}
 
-      <View style={[styles.countPill, { bottom: insets.bottom + 16, backgroundColor: colors.cardBackground }]}>
-        <Text style={[styles.countText, { color: colors.textPrimary }]}>
-          {zoomedOut ? t.mapZoomIn : t.mapActivitiesCount(visibleActivities.length)}
-        </Text>
-      </View>
+      <ActivityDrawer
+        activities={visibleActivities}
+        headerText={zoomedOut ? t.mapZoomIn : t.mapActivitiesCount(visibleActivities.length)}
+        userLocation={userLocation}
+        onSelect={setSelected}
+      />
 
       <EventDetailModal
         visible={!!selected}
@@ -162,21 +167,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-  },
-  countPill: {
-    position: 'absolute',
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  countText: {
-    fontSize: 13,
-    fontWeight: '600',
   },
 });

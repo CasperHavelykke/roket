@@ -15,6 +15,7 @@ import { EventDoc } from '../../events';
 import {
   TimeWindow,
   NOW_SNAP_FRACTION,
+  endOfDay,
   fractionForTime,
   windowForFraction,
 } from './scrubberTime';
@@ -114,11 +115,14 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
   }));
 
   // Prik pr. aktivitets-starttid; allerede igangværende lander på NU (0).
-  // Deduperet i 2,5%-buckets så tætte tider ikke stabler identiske prikker.
+  // Kun dagens events — morgendagens ville ellers clampe til højre kant
+  // og ligne en falsk prik ved midnat. Deduperet i 2,5%-buckets.
   const dotFractions = useMemo(() => {
     const seen = new Set<number>();
     const dotNow = new Date();
+    const dayEndMs = endOfDay(dotNow).getTime();
     activities.forEach(ev => {
+      if (ev.time.getTime() > dayEndMs) return;
       seen.add(Math.round(fractionForTime(ev.time, dotNow) * 40) / 40);
     });
     return [...seen];

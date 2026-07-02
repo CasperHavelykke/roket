@@ -68,12 +68,28 @@ export function eventFromData(id: string, data: any): EventDoc {
   };
 }
 
-// Er eventet i gang / kommende på tidspunktet `at`? (scrubber-filteret)
+// Kortets synligheds-vindue: fra det valgte tidspunkt og så langt frem.
+// Uden kig-frem ville "NU" kun vise events der bogstaveligt er i gang —
+// et event der starter om 20 min ville være usynligt. 2 timer matcher
+// "hvad sker der nu og den nærmeste tid"-semantikken.
+export const VISIBLE_WINDOW_MINUTES = 120;
+
+// Er eventet i gang, eller starter det inden for vinduet, set fra `from`?
+export function overlapsWindow(
+  event: { time: Date; durationMinutes?: number },
+  from: Date,
+  windowMinutes: number = VISIBLE_WINDOW_MINUTES,
+): boolean {
+  const windowEndMs = from.getTime() + windowMinutes * 60 * 1000;
+  return event.time.getTime() <= windowEndMs && eventEndsAt(event).getTime() >= from.getTime();
+}
+
+// Er eventet i gang præcis på tidspunktet `at`? (= vindue på 0 minutter)
 export function overlapsTime(
   event: { time: Date; durationMinutes?: number },
   at: Date,
 ): boolean {
-  return event.time.getTime() <= at.getTime() && eventEndsAt(event).getTime() >= at.getTime();
+  return overlapsWindow(event, at, 0);
 }
 
 export function isEventFull(event: { participantIds: string[]; maxParticipants: number | null }): boolean {
