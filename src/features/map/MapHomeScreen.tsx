@@ -24,6 +24,7 @@ import TimeScrubber from './TimeScrubber';
 import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
 import { TimeWindow } from './scrubberTime';
 import { DARK_MAP_STYLE } from './mapDarkStyle';
+import { requireAccount } from '../../utils/guestGate';
 import EventDetailModal from '../events/EventDetailModal';
 import CreateEventModal from '../events/CreateEventModal';
 import MapPickerModal from '../events/MapPickerModal';
@@ -128,8 +129,9 @@ export default function MapHomeScreen({ navigation }: any) {
           grid'et: hver knap viser sin slice af skærmkant-gradienten */}
       {(() => {
         const navButtons = [
-          { icon: <ProfileIcon size={24} color="#fff" />, onPress: () => navigation.navigate('MyProfile') },
-          { icon: <MessagesIcon size={24} color="#fff" />, onPress: () => navigation.navigate('ChatsList') },
+          // Profil og beskeder kræver konto — settings er åben for gæster (sprog m.m.)
+          { icon: <ProfileIcon size={24} color="#fff" />, onPress: () => { if (requireAccount(navigation, t)) navigation.navigate('MyProfile'); } },
+          { icon: <MessagesIcon size={24} color="#fff" />, onPress: () => { if (requireAccount(navigation, t)) navigation.navigate('ChatsList'); } },
           { icon: <SettingsIcon size={24} color="#fff" />, onPress: () => navigation.navigate('Settings') },
         ];
         const groupLeft = screenWidth - FAB_RIGHT - (navButtons.length * NAV_BTN_SIZE + (navButtons.length - 1) * NAV_BTN_GAP);
@@ -157,7 +159,7 @@ export default function MapHomeScreen({ navigation }: any) {
       {/* Opret aktivitet — pin-først-flowet starter her.
           Skærmkant til skærmkant-gradient + hvid border: samme stil som grid'ets FABs */}
       <TouchableOpacity
-        onPress={() => setShowPinPicker(true)}
+        onPress={() => { if (requireAccount(navigation, t)) setShowPinPicker(true); }}
         style={[styles.fab, { bottom: insets.bottom + DRAWER_COLLAPSED_HEIGHT + 108 }]}
         activeOpacity={0.85}
       >
@@ -212,6 +214,10 @@ export default function MapHomeScreen({ navigation }: any) {
       <EventDetailModal
         visible={!!selected}
         event={selected}
+        onRequireAccount={() => {
+          setSelected(null);
+          requireAccount(navigation, t);
+        }}
         onClose={() => setSelected(null)}
         onOpenChat={(chatId, eventTitle) => {
           setSelected(null);

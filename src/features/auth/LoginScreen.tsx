@@ -32,6 +32,12 @@ export default function LoginScreen({ navigation }: any) {
     setLoading(true);
     try {
       await auth().signInWithEmailAndPassword(email, password);
+      // Gæste-flow (Pivot 2.0): Login er pushet oven på app-stacken, så
+      // succes skal selv navigere tilbage til kortet. Som rod-skærm
+      // (authState=false-fallback) klarer stack-skiftet det som før.
+      if (navigation.canGoBack()) {
+        navigation.popToTop();
+      }
     } catch (error: any) {
       Alert.alert(t.loginError, getFirebaseError(error, t));
     } finally {

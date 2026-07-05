@@ -178,8 +178,15 @@ function App() {
             setInitializing(false);
           });
       } else {
-        setAuthState(false);
-        setInitializing(false);
+        // Pivot 2.0: ingen bruger → log ind som anonym gæst, så kortet kan
+        // browses uden konto. Gæstens profil-doc findes ikke → authState
+        // forbliver null → app-stacken vises (MapHome). Fejler anonym
+        // login (fx offline ved allerførste start), vis login som fallback.
+        auth().signInAnonymously().catch(err => {
+          console.warn('Anonymous sign-in failed:', err);
+          setAuthState(false);
+          setInitializing(false);
+        });
       }
     });
 
@@ -373,6 +380,10 @@ function App() {
                 <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
                 <Stack.Screen name="CommunityGuidelines" component={CommunityGuidelinesScreen} />
                 <Stack.Screen name="ChildSafety" component={ChildSafetyScreen} />
+                {/* Gæster (anonym auth) kan nå login/signup via gates på
+                    kontokrævende handlinger */}
+                <Stack.Screen name="Login" component={LoginScreen} />
+                <Stack.Screen name="Signup" component={SignupScreen} />
               </>
             )}
           </Stack.Navigator>

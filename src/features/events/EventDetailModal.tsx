@@ -27,9 +27,12 @@ interface EventDetailModalProps {
   event: EventDoc | null;
   onClose: () => void;
   onOpenChat: (chatId: string, eventTitle: string) => void;
+  // Gæste-gate (Pivot 2.0): kaldes hvis en gæst forsøger at deltage.
+  // Udeladt (legacy grid-flow) → join afvises stille af Firestore-reglerne.
+  onRequireAccount?: () => void;
 }
 
-export default function EventDetailModal({ visible, event, onClose, onOpenChat }: EventDetailModalProps) {
+export default function EventDetailModal({ visible, event, onClose, onOpenChat, onRequireAccount }: EventDetailModalProps) {
   const { colors, t, timeFormat, language } = useTheme();
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
@@ -89,6 +92,10 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat }
 
   const handleJoin = async () => {
     if (!user) return;
+    if (user.isAnonymous) {
+      onRequireAccount?.();
+      return;
+    }
     setBusy(true);
     try {
       const batch = firestore().batch();

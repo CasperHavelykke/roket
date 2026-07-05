@@ -150,6 +150,11 @@ export default function SignupScreen({ navigation }: any) {
         datingOnly: false,
         setupComplete: true,
       });
+      // Gæste-flow (Pivot 2.0): Signup er pushet oven på app-stacken —
+      // navigér selv tilbage til kortet efter succes (jf. LoginScreen)
+      if (navigation.canGoBack()) {
+        navigation.popToTop();
+      }
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         Alert.alert(t.error, t.signupErrorInUse);

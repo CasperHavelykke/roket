@@ -99,6 +99,9 @@ export default function SettingsScreen({ navigation }: any) {
             }
           } catch (_) {}
           auth().signOut();
+          // Pivot 2.0: logout fører til gæste-session, ikke login-skærm —
+          // navigér hjem til kortet så man ikke bliver stående i Settings
+          navigation.popToTop();
         },
       },
     ]);
@@ -250,23 +253,36 @@ export default function SettingsScreen({ navigation }: any) {
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsAccount}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
-          <TouchableOpacity
-            style={[styles.row, { borderBottomColor: colors.borderLight }]}
-            onPress={handleChangePassword}
-          >
-            <Text style={[styles.rowText, { color: colors.textPrimary }]}>{t.settingsChangePassword}</Text>
-            <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
-          </TouchableOpacity>
+          {/* Skift adgangskode giver ingen mening for gæster (ingen email-konto) */}
+          {!auth().currentUser?.isAnonymous && (
+            <TouchableOpacity
+              style={[styles.row, { borderBottomColor: colors.borderLight }]}
+              onPress={handleChangePassword}
+            >
+              <Text style={[styles.rowText, { color: colors.textPrimary }]}>{t.settingsChangePassword}</Text>
+              <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity style={[styles.row, { borderBottomColor: colors.borderLight }]} onPress={handleLogout}>
-            <Text style={[styles.rowText, { color: colors.primaryRed }]}>{t.settingsLogout}</Text>
-            <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
-          </TouchableOpacity>
+          {auth().currentUser?.isAnonymous ? (
+            // Gæst: vis vej til konto i stedet for logout/slet
+            <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('Login')}>
+              <Text style={[styles.rowText, { color: colors.primaryBlueText }]}>{t.settingsLogin}</Text>
+              <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity style={[styles.row, { borderBottomColor: colors.borderLight }]} onPress={handleLogout}>
+                <Text style={[styles.rowText, { color: colors.primaryRed }]}>{t.settingsLogout}</Text>
+                <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('DeleteAccount')}>
-            <Text style={[styles.rowText, { color: colors.darkRed }]}>{t.settingsDeleteAccount}</Text>
-            <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('DeleteAccount')}>
+                <Text style={[styles.rowText, { color: colors.darkRed }]}>{t.settingsDeleteAccount}</Text>
+                <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {__DEV__ && (
