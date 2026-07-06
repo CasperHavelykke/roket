@@ -15,6 +15,9 @@ export interface NotificationData {
   senderId: string;
   message: string;
   senderPhoto?: string | null;
+  // Sat for event-gruppechats — tap skal åbne gruppechatten, ikke 1:1
+  eventChatId?: string;
+  eventTitle?: string;
 }
 
 export interface NotificationBannerRef {

@@ -65,49 +65,21 @@ exports.sendChatNotification = onDocumentCreated(
     const senderId = messageData.senderId;
     const messageText = messageData.text || '📷 Foto';
 
-    // Hent chat-dokumentet for at finde modtager
+    // System-beskeder ("X forlod chatten" m.m.) skal ikke pushes
+    if (messageData.system) return;
+
     const db = getFirestore();
     const chatDoc = await db.collection('chats').doc(chatId).get();
     const chatData = chatDoc.data();
 
     if (!chatData) return;
 
-    // Find modtageren (den der IKKE sendte beskeden)
-    const recipientId = chatData.participants.find(id => id !== senderId);
-    if (!recipientId) return;
-
-    // Hent modtagerens FCM token og afsenderens navn
-    const [recipientDoc, senderDoc] = await Promise.all([
-      db.collection('users').doc(recipientId).get(),
-      db.collection('users').doc(senderId).get(),
-    ]);
-
-    const recipientData = recipientDoc.data();
+    const senderDoc = await db.collection('users').doc(senderId).get();
     const senderData = senderDoc.data();
-    const fcmToken = recipientData?.fcmToken;
     const senderName = senderData?.displayName ?? 'Nogen';
     const senderPhoto = senderData?.photoURL ?? '';
 
-    if (!fcmToken) return; // Modtager har ikke notifikationer aktiveret
-
-    // Tjek om modtageren har blokeret afsenderen
-    const blockedUsers = recipientData?.blockedUsers ?? [];
-    if (blockedUsers.includes(senderId)) return;
-
-    // Send notifikationen
-    await getMessaging().send({
-      token: fcmToken,
-      notification: {
-        title: senderName,
-        body: messageText,
-      },
-      data: {
-        chatId,
-        senderId,
-        senderName,
-        senderPhoto,
-        message: messageText,
-      },
+    const androidApns = {
       android: {
         priority: 'high',
         notification: {
@@ -122,6 +94,150 @@ exports.sendChatNotification = onDocumentCreated(
           },
         },
       },
+    };
+
+    // Event-gruppechat: send til ALLE deltagere undtagen afsenderen.
+    // (Før gik pushen kun til én vilkårlig deltager, og payload'en manglede
+    // eventChatId — så et tap åbnede en forkert 1:1-chat.)
+    if (chatData.eventId) {
+      const recipients = (chatData.participants ?? []).filter(id => id !== senderId);
+      if (recipients.length === 0) return;
+
+      const recipientDocs = await Promise.all(
+        recipients.map(id => db.collection('users').doc(id).get()),
+      );
+
+      await Promise.all(recipientDocs.map(async docSnap => {
+        const rData = docSnap.data();
+        const token = rData?.fcmToken;
+        if (!token) return;
+        if ((rData?.blockedUsers ?? []).includes(senderId)) return;
+        try {
+          await getMessaging().send({
+            token,
+            notification: {
+              title: chatData.eventTitle || senderName,
+              body: `${senderName}: ${messageText}`,
+            },
+            data: {
+              chatId,
+              eventChatId: chatId,
+              eventTitle: chatData.eventTitle ?? '',
+              senderId,
+              senderName,
+              senderPhoto,
+              message: messageText,
+            },
+            ...androidApns,
+          });
+        } catch (err) {
+          console.error('Group push failed for', docSnap.id, err);
+        }
+      }));
+      return;
+    }
+
+    // 1:1 / connection-chat: én modtager
+    const recipientId = chatData.participants.find(id => id !== senderId);
+    if (!recipientId) return;
+
+    const recipientDoc = await db.collection('users').doc(recipientId).get();
+    const recipientData = recipientDoc.data();
+    const fcmToken = recipientData?.fcmToken;
+
+    if (!fcmToken) return; // Modtager har ikke notifikationer aktiveret
+
+    // Tjek om modtageren har blokeret afsenderen
+    const blockedUsers = recipientData?.blockedUsers ?? [];
+    if (blockedUsers.includes(senderId)) return;
+
+    await getMessaging().send({
+      token: fcmToken,
+      notification: {
+        title: senderName,
+        body: messageText,
+      },
+      data: {
+        chatId,
+        senderId,
+        senderName,
+        senderPhoto,
+        message: messageText,
+      },
+      ...androidApns,
+    });
+  }
+);
+
+// Hold kontakten (Pivot 2.0): anmodning oprettet → push til modtageren.
+// Bevidst ingen senderId/senderName i payload — et tap skal blot åbne
+// appen, ikke navigere til en chat der ikke findes endnu.
+exports.onContactRequestCreated = onDocumentCreated(
+  'contactRequests/{pairId}',
+  async event => {
+    const data = event.data.data();
+    if (!data || data.status !== 'pending') return;
+
+    const db = getFirestore();
+    const [toDoc, fromDoc] = await Promise.all([
+      db.collection('users').doc(data.to).get(),
+      db.collection('users').doc(data.from).get(),
+    ]);
+
+    const token = toDoc.data()?.fcmToken;
+    if (!token) return;
+    if ((toDoc.data()?.blockedUsers ?? []).includes(data.from)) return;
+
+    const fromName = fromDoc.data()?.displayName ?? 'Nogen';
+    await getMessaging().send({
+      token,
+      notification: {
+        title: fromName,
+        body: `${fromName} vil gerne holde kontakten`,
+      },
+      data: { type: 'contactRequest', eventId: data.eventId ?? '' },
+      android: {
+        priority: 'high',
+        notification: { channelId: 'chat_messages', sound: 'default' },
+      },
+      apns: { payload: { aps: { sound: 'default' } } },
+    });
+  }
+);
+
+// Hold kontakten: accept → push til den oprindelige afsender.
+// senderId/senderName i payload → det eksisterende tap-flow åbner
+// parrets nye connection-chat direkte.
+exports.onContactRequestAccepted = onDocumentUpdated(
+  'contactRequests/{pairId}',
+  async event => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after) return;
+    if (before.status !== 'pending' || after.status !== 'accepted') return;
+
+    const db = getFirestore();
+    const [fromDoc, toDoc] = await Promise.all([
+      db.collection('users').doc(after.from).get(),
+      db.collection('users').doc(after.to).get(),
+    ]);
+
+    const token = fromDoc.data()?.fcmToken;
+    if (!token) return;
+
+    const accepterName = toDoc.data()?.displayName ?? 'Nogen';
+    await getMessaging().send({
+      token,
+      notification: {
+        title: accepterName,
+        body: `${accepterName} har accepteret — I holder nu kontakten`,
+      },
+      data: { senderId: after.to, senderName: accepterName },
+      android: {
+        priority: 'high',
+        notification: { channelId: 'chat_messages', sound: 'default' },
+      },
+      apns: { payload: { aps: { sound: 'default' } } },
     });
   }
 );

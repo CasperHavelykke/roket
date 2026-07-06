@@ -93,9 +93,9 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat, 
   // Deltagerprofiler (navn + avatar) — batched + session-cachet.
   // SKAL kaldes før early-return (Rules of Hooks).
   const { profiles } = useUserProfiles(displayEvent?.participantIds ?? []);
-  // Hold kontakten: live status for mine anmodninger (flipper i realtid ved accept)
-  const myUid = auth().currentUser?.uid ?? null;
-  const contactRequests = useContactRequests(myUid);
+  // Hold kontakten: live status for mine anmodninger (flipper i realtid ved
+  // accept; hooken gen-binder selv ved auth-skift)
+  const contactRequests = useContactRequests();
   const [contactBusyUid, setContactBusyUid] = useState<string | null>(null);
 
   if (!displayEvent || !mounted) return null;

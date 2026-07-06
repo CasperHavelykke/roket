@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   TouchableOpacity,
   Platform,
@@ -25,6 +26,7 @@ import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
 import { TimeWindow } from './scrubberTime';
 import { DARK_MAP_STYLE } from './mapDarkStyle';
 import { requireAccount } from '../../utils/guestGate';
+import useUnreadTotal from '../../hooks/useUnreadTotal';
 import EventDetailModal from '../events/EventDetailModal';
 import CreateEventModal from '../events/CreateEventModal';
 import MapPickerModal from '../events/MapPickerModal';
@@ -62,6 +64,7 @@ export default function MapHomeScreen({ navigation }: any) {
   const [timeWindow, setTimeWindow] = useState<TimeWindow>({ mode: 'now' });
 
   const { activities, zoomedOut } = useNearbyActivities(region);
+  const { total: unreadTotal } = useUnreadTotal();
 
   // Tidsfiltrering sker i hukommelsen — at trække i scrubberen koster
   // nul netværkskald (geo-filtreringen skete allerede i Firestore).
@@ -131,7 +134,7 @@ export default function MapHomeScreen({ navigation }: any) {
         const navButtons = [
           // Profil og beskeder kræver konto — settings er åben for gæster (sprog m.m.)
           { icon: <ProfileIcon size={24} color="#fff" />, onPress: () => { if (requireAccount(navigation, t)) navigation.navigate('MyProfile'); } },
-          { icon: <MessagesIcon size={24} color="#fff" />, onPress: () => { if (requireAccount(navigation, t)) navigation.navigate('ChatsList'); } },
+          { icon: <MessagesIcon size={24} color="#fff" />, badge: unreadTotal, onPress: () => { if (requireAccount(navigation, t)) navigation.navigate('ChatsList'); } },
           { icon: <SettingsIcon size={24} color="#fff" />, onPress: () => navigation.navigate('Settings') },
         ];
         const groupLeft = screenWidth - FAB_RIGHT - (navButtons.length * NAV_BTN_SIZE + (navButtons.length - 1) * NAV_BTN_GAP);
@@ -149,6 +152,11 @@ export default function MapHomeScreen({ navigation }: any) {
                   >
                     {btn.icon}
                   </GradientView>
+                  {!!btn.badge && (
+                    <View style={[styles.navBadge, { backgroundColor: colors.primaryRed }]}>
+                      <Text style={styles.navBadgeText}>{btn.badge > 9 ? '9+' : btn.badge}</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -259,6 +267,24 @@ const styles = StyleSheet.create({
     ...Platform.select({ android: { overflow: 'hidden' as const } }),
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  navBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  navBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
   },
   scrubberWrap: {
     position: 'absolute',

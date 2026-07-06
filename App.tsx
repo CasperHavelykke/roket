@@ -42,7 +42,12 @@ type RootStackParamList = {
   Signup: undefined;
   Home: undefined;
   ProfileView: { userId: string };
-  Chat: { otherUser: { id: string; displayName: string } };
+  Chat: {
+    otherUser: { id: string; displayName: string; testAccount?: boolean };
+    eventChatId?: string;
+    eventTitle?: string;
+    fromProfile?: boolean;
+  };
   ChatsList: undefined;
   MyProfile: undefined;
   Settings: undefined;
@@ -212,6 +217,26 @@ function App() {
   useEffect(() => {
     if (authState !== true) return;
 
+    // Fælles routing for notifikations-taps: event-gruppechat hvis payload'en
+    // har eventChatId, ellers 1:1/connection — og ingenting for payloads uden
+    // navigations-mål (fx Hold kontakten-anmodninger, der bare åbner appen)
+    const navigateFromNotification = (data: any) => {
+      if (!navigationRef.isReady() || !data) return;
+      if (data.eventChatId && data.eventTitle) {
+        navigationRef.navigate('Chat', {
+          otherUser: { id: data.eventChatId, displayName: data.eventTitle, testAccount: false },
+          eventChatId: data.eventChatId,
+          eventTitle: data.eventTitle,
+        });
+        return;
+      }
+      if (data.senderId && data.senderName) {
+        navigationRef.navigate('Chat', {
+          otherUser: { id: data.senderId as string, displayName: data.senderName as string },
+        });
+      }
+    };
+
     // Foreground: show in-app banner
     const unsubForeground = NotificationService.onForegroundMessage(remoteMessage => {
       const data = remoteMessage.data;
@@ -220,47 +245,41 @@ function App() {
       // Ignorer notifikationer fra dig selv
       if (data.senderId === auth().currentUser?.uid) return;
 
-      // Don't show banner if on messages screen or in chat with this sender
+      // Don't show banner if on messages screen or in the relevant chat
       if (navigationRef.isReady()) {
         const state = navigationRef.getCurrentRoute();
         if (state?.name === 'ChatsList') return;
-        if (
-          state?.name === 'Chat' &&
-          (state.params as any)?.otherUser?.id === data.senderId
-        ) {
-          return;
+        if (state?.name === 'Chat') {
+          const params = state.params as any;
+          if (data.eventChatId
+            ? params?.eventChatId === data.eventChatId
+            : params?.otherUser?.id === data.senderId) {
+            return;
+          }
         }
       }
 
       bannerRef.current?.show({
-        senderName: data.senderName as string,
+        // Gruppe-push: event-titlen er "afsenderen" i banneret — beskeden
+        // hedder allerede "Jens: Hey", så senderName som titel gav navnet to gange
+        senderName: (data.eventChatId ? (data.eventTitle as string) : (data.senderName as string)) || (data.senderName as string),
         senderId: data.senderId as string,
         message: remoteMessage.notification?.body ?? (data.message as string) ?? '',
         senderPhoto: (data.senderPhoto as string) || null,
+        eventChatId: (data.eventChatId as string) || undefined,
+        eventTitle: (data.eventTitle as string) || undefined,
       });
     });
 
     // Background: user tapped notification while app was in background
     NotificationService.onNotificationOpenedApp(remoteMessage => {
-      const data = remoteMessage.data;
-      if (!data?.senderId || !data?.senderName) return;
-      if (navigationRef.isReady()) {
-        navigationRef.navigate('Chat', {
-          otherUser: { id: data.senderId as string, displayName: data.senderName as string },
-        });
-      }
+      navigateFromNotification(remoteMessage.data);
     });
 
     // Quit: app was opened via notification tap
     NotificationService.getInitialNotification().then(remoteMessage => {
       if (!remoteMessage) return;
-      const data = remoteMessage.data;
-      if (!data?.senderId || !data?.senderName) return;
-      if (navigationRef.isReady()) {
-        navigationRef.navigate('Chat', {
-          otherUser: { id: data.senderId as string, displayName: data.senderName as string },
-        });
-      }
+      navigateFromNotification(remoteMessage.data);
     });
 
     return () => unsubForeground();
@@ -316,11 +335,18 @@ function App() {
   }, [authState]);
 
   const handleBannerPress = useCallback((data: NotificationData) => {
-    if (navigationRef.isReady()) {
-      navigationRef.navigate('Chat' as never, {
-        otherUser: { id: data.senderId, displayName: data.senderName },
-      } as never);
+    if (!navigationRef.isReady()) return;
+    if (data.eventChatId && data.eventTitle) {
+      navigationRef.navigate('Chat', {
+        otherUser: { id: data.eventChatId, displayName: data.eventTitle, testAccount: false },
+        eventChatId: data.eventChatId,
+        eventTitle: data.eventTitle,
+      });
+      return;
     }
+    navigationRef.navigate('Chat', {
+      otherUser: { id: data.senderId, displayName: data.senderName },
+    });
   }, []);
 
   if (initializing || !theme.loaded) {

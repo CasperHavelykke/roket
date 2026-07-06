@@ -15,7 +15,6 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
-import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
@@ -23,10 +22,9 @@ import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
 import PhotoGalleryModal from './PhotoGalleryModal';
-import { MessageSquare as MessageIcon, MessagesSquare as MessagesIcon, MapPin } from 'lucide-react-native';
+import { MapPin } from 'lucide-react-native';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
-import MaskedView from '@react-native-masked-view/masked-view';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 
 interface RouteParams {
@@ -70,25 +68,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   const [showGallery, setShowGallery] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
-  const [hasConversation, setHasConversation] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const photoSize = Dimensions.get('window').width - 40;
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!currentUser) return;
-      const chatId = [currentUser.uid, user.id].sort().join('_');
-      const unsub = firestore().collection('chats').doc(chatId).onSnapshot(snap => {
-        if (!snap || !snap.exists()) return;
-        setHasConversation(true);
-        const data = snap.data();
-        if (!data) return;
-        const count = data.unreadCount?.[currentUser.uid] ?? 0;
-        setUnreadCount(count);
-      }, err => console.warn('Conversation subscription error:', err));
-      return () => unsub();
-    }, [currentUser, user.id])
-  );
 
   if (!currentUser) return null;
 
@@ -321,59 +301,8 @@ export default function ProfileViewScreen({ route, navigation }: any) {
         })()}
       </ScrollView>
 
-      {!fromChat && (
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.fab, { bottom: insets.bottom + 24 }]}
-          onPress={() =>
-            navigation.navigate('Chat', {
-              otherUser: { id: user.id, displayName: user.displayName, testAccount: user.testAccount },
-              fromProfile: true,
-            })
-          }
-        >
-          {unreadCount > 0 ? (
-            <View style={[styles.fabButton, { backgroundColor: '#fff' }]}>
-              <MaskedView
-                style={{ width: 30, height: 30 }}
-                maskElement={hasConversation
-                  ? <MessagesIcon size={30} color="#000" />
-                  : <MessageIcon size={30} color="#000" />
-                }
-              >
-                <GradientView
-                  colors={[colors.primaryBlue, colors.primaryRed]}
-                  start={{ x: -(Dimensions.get('window').width - 32 - 64) / 64, y: 0 }}
-                  end={{ x: (32 + 64) / 64, y: 0 }}
-                  style={{ width: 30, height: 30 }}
-                />
-              </MaskedView>
-            </View>
-          ) : (
-            <GradientView
-              colors={[colors.primaryBlue, colors.primaryRed]}
-              start={{ x: -(Dimensions.get('window').width - 32 - 64) / 64, y: 0 }}
-              end={{ x: (32 + 64) / 64, y: 0 }}
-              style={styles.fabButton}
-            >
-              {hasConversation
-                ? <MessagesIcon size={30} color="#fff" />
-                : <MessageIcon size={30} color="#fff" />
-              }
-            </GradientView>
-          )}
-          {unreadCount > 0 && (
-            <GradientView
-              colors={[colors.primaryBlue, colors.primaryRed]}
-              start={{ x: -(Dimensions.get('window').width - 32 - 64) / 20, y: 0 }}
-              end={{ x: (32 + 64) / 20, y: 0 }}
-              style={styles.fabUnreadBadge}
-            >
-              <Text style={styles.fabUnreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-            </GradientView>
-          )}
-        </TouchableOpacity>
-      )}
+      {/* Pivot 2.0: besked-FAB'en (kold DM fra profiler) er fjernet —
+          kontakt går gennem aktiviteter og Hold kontakten */}
 
       <Modal visible={showReportModal} transparent animationType="fade" onRequestClose={() => setShowReportModal(false)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
@@ -722,45 +651,6 @@ const styles = StyleSheet.create({
   bioEmpty: {
     fontSize: 15,
     fontStyle: 'italic',
-  },
-  fab: {
-    position: 'absolute',
-    right: 32,
-    borderRadius: 32,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  fabButton: {
-    width: 61,
-    height: 61,
-    borderRadius: 31,
-    ...Platform.select({ android: { overflow: 'hidden' as const } }),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fabUnreadBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center' as const,
-    alignItems: 'center' as const,
-    paddingHorizontal: 5,
-    borderWidth: 1.5,
-    borderColor: '#fff',
-  },
-  fabUnreadBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '800' as const,
-    elevation: 4,
   },
   modalOverlay: {
     flex: 1,
