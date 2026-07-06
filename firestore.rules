@@ -134,9 +134,15 @@ service cloud.firestore {
     // samme id som parrets connection-chat, så chat-reglerne kan slå
     // anmodningen op via deres eget chatId.
     match /contactRequests/{pairId} {
-      // Kun de to parter kan læse
+      // Kun de to parter kan læse. To betingelser fordi:
+      // - pairId.split('_'): dækker get() på IKKE-eksisterende docs
+      //   (resource er null før første anmodning — klienten skal kunne
+      //   spørge "findes der en anmodning?" og få nej)
+      // - resource.data-tjekket: gør list-queries (where from/to == mig)
+      //   bevislige for regel-motoren
       allow read: if isFullUser() &&
-                     (request.auth.uid == resource.data.from ||
+                     (request.auth.uid in pairId.split('_') ||
+                      request.auth.uid == resource.data.from ||
                       request.auth.uid == resource.data.to);
 
       // AKTIVITETS-GATEN: anmodning kræver at BEGGE er deltagere i det

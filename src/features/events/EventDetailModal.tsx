@@ -22,6 +22,8 @@ import { getStatusTag } from '../../statusTags';
 import TagIcon from '../../components/TagIcon';
 import GradientView from '../../components/GradientView';
 import useUserProfiles from '../../hooks/useUserProfiles';
+import useContactRequests from '../../hooks/useContactRequests';
+import { contactPairId, statusForRequest, requestOrAcceptContact, ContactStatus } from '../../contacts';
 import { Clock, MapPin, Users, MessagesSquare } from 'lucide-react-native';
 import { EventDoc, isEventFull } from '../../events';
 
@@ -91,6 +93,10 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat, 
   // Deltagerprofiler (navn + avatar) — batched + session-cachet.
   // SKAL kaldes før early-return (Rules of Hooks).
   const { profiles } = useUserProfiles(displayEvent?.participantIds ?? []);
+  // Hold kontakten: live status for mine anmodninger (flipper i realtid ved accept)
+  const myUid = auth().currentUser?.uid ?? null;
+  const contactRequests = useContactRequests(myUid);
+  const [contactBusyUid, setContactBusyUid] = useState<string | null>(null);
 
   if (!displayEvent || !mounted) return null;
   const ev = displayEvent;
@@ -100,6 +106,74 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat, 
   const isParticipant = !!user && ev.participantIds.includes(user.uid);
   const tag = getStatusTag(ev.tag);
   const full = isEventFull(ev);
+
+  const handleContactTap = async (otherUid: string) => {
+    if (!user || contactBusyUid) return;
+    setContactBusyUid(otherUid);
+    try {
+      await requestOrAcceptContact(user.uid, otherUid, ev.id);
+      // Hooket live-opdaterer knappens tilstand via listeneren
+    } catch (e) {
+      console.warn('Contact request failed:', e);
+      Alert.alert(t.error, t.contactsError);
+    } finally {
+      setContactBusyUid(null);
+    }
+  };
+
+  const renderContactButton = (uid: string) => {
+    // Kun deltagere med rigtig konto kan holde kontakten — og aldrig med sig selv
+    if (!user || user.isAnonymous || !isParticipant || uid === user.uid) return null;
+
+    const status: ContactStatus = statusForRequest(
+      contactRequests[contactPairId(user.uid, uid)] ?? null,
+      user.uid,
+    );
+    const busy = contactBusyUid === uid;
+
+    if (status === 'connected') {
+      return (
+        <View style={[styles.contactBtn, { borderColor: colors.borderLight }]}>
+          <Text style={[styles.contactBtnText, { color: colors.textMuted }]}>{t.contactsConnected}</Text>
+        </View>
+      );
+    }
+    if (status === 'pending_sent') {
+      return (
+        <View style={[styles.contactBtn, { borderColor: colors.borderLight }]}>
+          <Text style={[styles.contactBtnText, { color: colors.textMuted }]}>{t.contactsRequested}</Text>
+        </View>
+      );
+    }
+    if (status === 'pending_received') {
+      return (
+        <TouchableOpacity
+          style={[styles.contactBtn, styles.contactBtnFilled, { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue }]}
+          onPress={() => handleContactTap(uid)}
+          disabled={busy}
+        >
+          {busy ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={[styles.contactBtnText, { color: '#fff' }]}>{t.contactsAccept}</Text>
+          )}
+        </TouchableOpacity>
+      );
+    }
+    return (
+      <TouchableOpacity
+        style={[styles.contactBtn, { borderColor: colors.primaryBlue }]}
+        onPress={() => handleContactTap(uid)}
+        disabled={busy}
+      >
+        {busy ? (
+          <ActivityIndicator size="small" color={colors.primaryBlueText} />
+        ) : (
+          <Text style={[styles.contactBtnText, { color: colors.primaryBlueText }]}>{t.contactsRequest}</Text>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   const handleJoin = async () => {
     if (!user) return;
@@ -279,6 +353,12 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat, 
                           <Text style={styles.hostBadgeText}>{t.eventsHostBadge}</Text>
                         </View>
                       )}
+                      {uid === user?.uid && (
+                        <View style={[styles.hostBadge, { backgroundColor: colors.borderLight }]}>
+                          <Text style={[styles.hostBadgeText, { color: colors.textMuted }]}>{t.eventsYouBadge}</Text>
+                        </View>
+                      )}
+                      {renderContactButton(uid)}
                     </View>
                   );
                 })}
@@ -474,6 +554,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 4,
     marginLeft: 40,
+  },
+  contactBtn: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginLeft: 8,
+    minWidth: 72,
+    alignItems: 'center',
+  },
+  contactBtnFilled: {
+    borderWidth: 1,
+  },
+  contactBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   footer: {
     paddingTop: 16,

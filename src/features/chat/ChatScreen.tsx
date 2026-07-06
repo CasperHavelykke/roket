@@ -27,7 +27,7 @@ import storage from '@react-native-firebase/storage';
 import { pickImages } from '../../utils/pickImage';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
-import { Camera as CameraIcon, SendHorizontal as SendIcon, MessageSquareMore, Heart as HeartIcon } from 'lucide-react-native';
+import { Camera as CameraIcon, SendHorizontal as SendIcon, MessageSquareMore, Heart as HeartIcon, UserPlus } from 'lucide-react-native';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
@@ -35,7 +35,7 @@ import RoketLogoSimpel from '../../assets/roket-logo-simpel.svg';
 import RoketStars from '../../assets/roket-logo-stars-only.svg';
 import RoketStarsDark from '../../assets/roket-logo-stars-dark.svg';
 import EventDetailModal from '../events/EventDetailModal';
-import { EventDoc } from '../../events';
+import { EventDoc, eventFromData, eventEndsAt } from '../../events';
 
 interface Message {
   id: string;
@@ -472,22 +472,9 @@ export default function ChatScreen({ route, navigation }: any) {
           setEventDoc(null);
           return;
         }
-        const data = doc.data()!;
-        setEventDoc({
-          id: doc.id,
-          creatorId: data.creatorId,
-          title: data.title,
-          description: data.description ?? '',
-          meetingPlace: data.meetingPlace ?? '',
-          location: { latitude: data.location?.latitude ?? 0, longitude: data.location?.longitude ?? 0 },
-          time: data.time?.toDate?.() ?? new Date(),
-          maxParticipants: data.maxParticipants ?? null,
-          participantIds: data.participantIds ?? [],
-          tag: data.tag ?? null,
-          chatId: data.chatId ?? chatId,
-          createdAt: data.createdAt?.toDate?.() ?? new Date(),
-          expiresAt: data.expiresAt?.toDate?.() ?? new Date(),
-        });
+        // Delt mapper — den tidligere inline mapping manglede durationMinutes,
+        // hvilket ville give forkert sluttid for Hold kontakten-nudgen
+        setEventDoc(eventFromData(doc.id, doc.data()!));
       }, err => console.warn('Event subscription error:', err));
       return () => unsub();
     });
@@ -1025,6 +1012,21 @@ export default function ChatScreen({ route, navigation }: any) {
         </>
       )}
 
+      {/* Hold kontakten-nudge: aktiviteten er slut, chatten lever i grace-
+          perioden — mind deltagerne om at forbinde før den forsvinder */}
+      {isEventChat && eventDoc && Date.now() >= eventEndsAt(eventDoc).getTime() && (
+        <TouchableOpacity
+          style={[styles.contactNudge, { backgroundColor: colors.backgroundBlueLight }]}
+          onPress={() => setShowEventDetail(true)}
+          activeOpacity={0.8}
+        >
+          <UserPlus size={16} color={colors.primaryBlueText} />
+          <Text style={[styles.contactNudgeText, { color: colors.primaryBlueText }]} numberOfLines={2}>
+            {t.chatContactNudge}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior="padding"
@@ -1202,6 +1204,18 @@ export default function ChatScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contactNudge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  contactNudgeText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
   },
   watermark: {
     ...StyleSheet.absoluteFillObject,

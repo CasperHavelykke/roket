@@ -118,7 +118,9 @@ export default function ChatsListScreen({ navigation }: any) {
 
         for (const doc of snapshot.docs) {
           const data = doc.data();
-          if (!data.lastMessage) continue;
+          // Connection-chats (Hold kontakten) vises fra fødslen — ellers ville
+          // en frisk accepteret forbindelse være usynlig indtil første besked
+          if (!data.lastMessage && data.type !== 'connection') continue;
 
           // Slet-for-mig: skjul samtalen medmindre der er kommet en nyere besked siden
           const clearedAt = data.clearedBy?.[currentUser.uid];
