@@ -19,7 +19,6 @@ import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
-import pickImage from '../../utils/pickImage';
 import ImageCropPicker from 'react-native-image-crop-picker';
 import getFirebaseError from '../../utils/getFirebaseError';
 import { useTheme } from '../../theme';
@@ -34,30 +33,19 @@ export default function EditProfileScreen({ navigation }: any) {
   const [displayName, setDisplayName] = useState('');
   const [status, setStatus] = useState('');
   const [bio, setBio] = useState('');
-  const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [avatarURL, setAvatarURL] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadingExtra, setUploadingExtra] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showAge, setShowAge] = useState(true);
   const [hasBirthday, setHasBirthday] = useState(false);
-  const [photos, setPhotos] = useState<string[]>([]);
   const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
   const currentUser = auth().currentUser;
 
-  const hasAnyPhoto = !!photoURL || (photos && photos.length > 0);
+  // Pivot 2.0: galleriet er væk — profilens "fuldstændighed" måles på
+  // avataren (det eneste billede), status, tag og bio
   const PROFILE_STEPS = 4;
-  const profileCompletion = (hasAnyPhoto ? 1 : 0) + (status.trim() ? 1 : 0) + (statusTag ? 1 : 0) + (bio.trim() ? 1 : 0);
+  const profileCompletion = (avatarURL ? 1 : 0) + (status.trim() ? 1 : 0) + (statusTag ? 1 : 0) + (bio.trim() ? 1 : 0);
   const profilePercent = Math.round((profileCompletion / PROFILE_STEPS) * 100);
-
-  // 6 slots: slot 0 = photoURL, slots 1-5 = photos[0-4]
-  const slotPhotos: (string | null)[] = [
-    photoURL,
-    ...Array.from({ length: 5 }, (_, i) => photos[i] ?? null),
-  ];
-  const filledSlots = slotPhotos.filter(Boolean).length;
-  const firstEmptyIdx = slotPhotos.findIndex(p => !p);
 
   const fieldPulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -96,11 +84,9 @@ export default function EditProfileScreen({ navigation }: any) {
           setDisplayName(data.displayName ?? '');
           setStatus(data.status ?? '');
           setBio(data.bio ?? '');
-          setPhotoURL(data.photoURL ?? null);
           setAvatarURL(data.avatarURL ?? null);
           setShowAge(data.showAge !== false);
           setHasBirthday(!!data.birthday);
-          setPhotos(data.photos ?? []);
           setStatusTag(data.statusTag ?? null);
 
           dataLoaded.current = true;
@@ -187,90 +173,8 @@ export default function EditProfileScreen({ navigation }: any) {
     }
   };
 
-  // Upload til en specifik slot (0 = photoURL, 1-5 = photos[0-4])
-  const uploadToSlot = async (slotIdx: number) => {
-    const uri = await pickImage();
-    if (!uri) return;
-
-    const isPrimary = slotIdx === 0;
-    if (isPrimary) setUploading(true);
-    else setUploadingExtra(true);
-    try {
-      const oldUrl = slotPhotos[slotIdx];
-      // Unik sti pr. upload — afkoblet fra slot-position, så omarrangering/
-      // sletning aldrig overskriver en fil en anden slot stadig refererer.
-      const ref = storage().ref(`profilePhotos/${currentUser.uid}_${Date.now()}.jpg`);
-      await ref.putFile(uri);
-      const url = await ref.getDownloadURL();
-
-      if (isPrimary) {
-        await firestore().collection('users').doc(currentUser.uid).update({ photoURL: url });
-        setPhotoURL(url);
-      } else {
-        const updated = [...photos];
-        updated[slotIdx - 1] = url;
-        await firestore().collection('users').doc(currentUser.uid).update({ photos: updated });
-        setPhotos(updated);
-      }
-      // Slet det gamle billede i denne slot (erstatning) — efter Firestore-update
-      if (oldUrl) storage().refFromURL(oldUrl).delete().catch(() => {});
-    } catch (error: any) {
-      Alert.alert(t.error, getFirebaseError(error, t));
-    } finally {
-      if (isPrimary) setUploading(false);
-      else setUploadingExtra(false);
-    }
-  };
-
-  // Fjern fra slot — kompakter ved at flytte efterfølgende slots
-  const handleRemoveSlot = (slotIdx: number) => {
-    Alert.alert(t.delete, undefined, [
-      {
-        text: t.remove,
-        style: 'destructive',
-        onPress: async () => {
-          setUploadingExtra(true);
-          try {
-            const allUrls = slotPhotos.filter((p): p is string => !!p);
-            const removedUrl = slotPhotos[slotIdx];
-            const remaining = allUrls.filter((_, i) => (slotIdx === 0 ? i !== 0 : slotPhotos.indexOf(allUrls[i]) !== slotIdx));
-            // Simpler: rebuild from slotPhotos minus the slot
-            const newSlots = slotPhotos.filter((_, i) => i !== slotIdx);
-            const newPhotoURL = newSlots[0] ?? null;
-            const newPhotos = newSlots.slice(1).filter((p): p is string => !!p);
-
-            await firestore().collection('users').doc(currentUser.uid).update({
-              photoURL: newPhotoURL,
-              photos: newPhotos,
-            });
-            if (removedUrl) storage().refFromURL(removedUrl).delete().catch(() => {});
-            setPhotoURL(newPhotoURL);
-            setPhotos(newPhotos);
-            void remaining; // unused, kept for clarity
-          } catch (error: any) {
-            Alert.alert(t.error, getFirebaseError(error, t));
-          } finally {
-            setUploadingExtra(false);
-          }
-        },
-      },
-      { text: t.cancel, style: 'cancel' },
-    ]);
-  };
-
-  // Tap på en slot: tom → upload til den slot, fyldt → vis replace/remove
-  const handleSlotPress = (slotIdx: number) => {
-    const current = slotPhotos[slotIdx];
-    if (current) {
-      Alert.alert(t.editProfileTitle, undefined, [
-        { text: t.editProfileChangePhoto, onPress: () => uploadToSlot(slotIdx) },
-        { text: t.editProfileRemovePhoto, style: 'destructive', onPress: () => handleRemoveSlot(slotIdx) },
-        { text: t.cancel, style: 'cancel' },
-      ]);
-    } else {
-      uploadToSlot(slotIdx);
-    }
-  };
+  // Pivot 2.0: 6-slot-galleriet er fjernet — avataren er profilens
+  // eneste billede. photos[]/photoURL-felterne ryddes i F7-backfillen.
 
   const handleSave = async () => {
     const trimmedName = displayName.trim();
@@ -323,42 +227,6 @@ export default function EditProfileScreen({ navigation }: any) {
               </View>
             </View>
             <Text style={[styles.progressBarPercent, { color: colors.textMuted }]}>{profilePercent}%</Text>
-          </View>
-
-          <View style={styles.photoSection}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>
-              {t.editProfilePhotos} <Text style={{ fontWeight: '400' }}>({filledSlots}/6)</Text>
-            </Text>
-            <View style={styles.slotsGrid}>
-              {slotPhotos.map((url, i) => {
-                const isFilled = !!url;
-                const isFirstEmpty = !isFilled && i === firstEmptyIdx;
-                const isInactive = !isFilled && !isFirstEmpty;
-                return (
-                  <TouchableOpacity
-                    key={i}
-                    onPress={() => handleSlotPress(i)}
-                    style={[
-                      styles.photoSlot,
-                      { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground },
-                      isFirstEmpty && { borderColor: colors.primaryBlue, borderStyle: 'solid' },
-                      isInactive && { opacity: 0.4 },
-                    ]}
-                    disabled={uploading || uploadingExtra || isInactive}
-                  >
-                    {isFilled ? (
-                      <Image source={{ uri: url }} style={styles.slotImage} />
-                    ) : isFirstEmpty ? (
-                      <Text style={[styles.slotPlusIcon, { color: colors.primaryBlueText }]}>+</Text>
-                    ) : (
-                      <View style={styles.slotPlaceholder}>
-                        <RoketLogo width={28} height={28} fill={colors.cardBackgroundIcon} />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
           </View>
 
           <View style={styles.form}>
@@ -782,10 +650,6 @@ const styles = StyleSheet.create({
     minWidth: 36,
     textAlign: 'right',
   },
-  photoSection: {
-    alignSelf: 'stretch',
-    marginBottom: 20,
-  },
   avatarSection: {
     alignSelf: 'stretch',
     marginBottom: 24,
@@ -819,73 +683,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     flex: 1,
     lineHeight: 16,
-  },
-  slotsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 8,
-  },
-  photoSlot: {
-    width: '31%',
-    aspectRatio: 1,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  slotImage: {
-    width: '100%',
-    height: '100%',
-  },
-  slotPlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  slotPlusIcon: {
-    fontSize: 40,
-    fontWeight: '300',
-  },
-  extraPhotosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 8,
-  },
-  extraPhotoSlot: {
-    width: 80,
-    height: 80,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  extraPhotoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  removePhotoOverlay: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  removePhotoText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  addPhotoSlot: {
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   addPhotoIcon: {
     fontSize: 24,

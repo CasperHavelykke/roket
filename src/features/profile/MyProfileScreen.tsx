@@ -16,7 +16,8 @@ import firestore from '@react-native-firebase/firestore';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
-import PhotoGalleryModal from './PhotoGalleryModal';
+import { EventDoc, eventFromData } from '../../events';
+import { formatTime, LOCALE_MAP } from '../../utils/eventTime';
 import { MapPin, SquarePen as EditIcon } from 'lucide-react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import TagIcon from '../../components/TagIcon';
@@ -24,25 +25,38 @@ import { StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 
 export default function MyProfileScreen({ navigation }: any) {
-  const { colors, isDark, t, distanceUnit, showTestBadges } = useTheme();
+  const { colors, isDark, t, distanceUnit, showTestBadges, language, timeFormat } = useTheme();
   const insets = useSafeAreaInsets();
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [status, setStatus] = useState('');
   const [statusTag, setStatusTag] = useState<StatusTagId | null>(null);
-  const [photoURL, setPhotoURL] = useState<string | null>(null);
   const [avatarURL, setAvatarURL] = useState<string | null>(null);
   const [age, setAge] = useState<number | null>(null);
-  const [photos, setPhotos] = useState<string[]>([]);
   const [lastSeen, setLastSeen] = useState<number | null>(null);
   const [distanceModeValue, setDistanceModeValue] = useState<string | null>(null);
-  const [showGallery, setShowGallery] = useState(false);
-  const [galleryIndex, setGalleryIndex] = useState(0);
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [locationGranted, setLocationGranted] = useState(true);
-  const photoSize = Dimensions.get('window').width - 40;
   const [testAccount, setTestAccount] = useState(false);
+  // Pivot 2.0: egne aktuelle aktiviteter vises hvor galleriet før lå
+  const [activeEvents, setActiveEvents] = useState<EventDoc[]>([]);
   const currentUser = auth().currentUser;
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsub = firestore()
+      .collection('events')
+      .where('participantIds', 'array-contains', currentUser.uid)
+      .onSnapshot(snap => {
+        const now = Date.now();
+        const list = snap.docs
+          .map(d => eventFromData(d.id, d.data()))
+          .filter(ev => ev.expiresAt.getTime() > now)
+          .sort((a, b) => a.time.getTime() - b.time.getTime());
+        setActiveEvents(list);
+      }, err => console.warn('Active events subscription error:', err));
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     LocationService.checkCurrentPrecision().then(p => setLocationGranted(p !== 'denied'));
@@ -68,7 +82,6 @@ export default function MyProfileScreen({ navigation }: any) {
             setBio(data.bio ?? '');
             setStatus(data.status ?? '');
             setStatusTag(data.statusTag ?? null);
-            setPhotoURL(data.photoURL ?? null);
             setAvatarURL(data.avatarURL ?? null);
             if (data.birthday && data.showAge !== false) {
               const today = new Date();
@@ -80,7 +93,6 @@ export default function MyProfileScreen({ navigation }: any) {
             } else {
               setAge(null);
             }
-            setPhotos(data.photos ?? []);
             setLastSeen(data.lastSeen?.toMillis?.() ?? null);
             setDistanceModeValue(data.distanceMode ?? null);
             setTestAccount(data.testAccount ?? false);
@@ -90,8 +102,6 @@ export default function MyProfileScreen({ navigation }: any) {
   );
 
   if (!currentUser) return null;
-
-  const allPhotos = photoURL ? [photoURL, ...photos] : [];
 
   // Skærmkant-til-skærmkant gradient på header-blyanten: ikonet viser sin
   // skive af en skærm-spændende gradient ud fra sin x-position (jf. memory).
@@ -127,7 +137,7 @@ export default function MyProfileScreen({ navigation }: any) {
           const hasStatus = !!status?.trim();
           const hasTag = !!statusTag;
           const hasBio = !!bio?.trim();
-          const hasPhotos = allPhotos.length > 0;
+          const hasActivities = activeEvents.length > 0;
           const hasName = !!displayName;
           const hasAge = age != null;
           const lastSeenText = lastSeen !== null ? formatLastSeen(lastSeen) : '';
@@ -138,7 +148,7 @@ export default function MyProfileScreen({ navigation }: any) {
             : (distanceUnit === 'mi' ? t.distanceFeet(0) : t.distanceMeters(0));
           const hasDistance = !!distanceVisible;
           const hasIdentityFooter = hasName || hasAge || hasDistance || hasLastSeen;
-          const isEmpty = !hasStatus && !hasTag && !hasBio && !hasPhotos;
+          const isEmpty = !hasStatus && !hasTag && !hasBio && !hasActivities;
           const initials = (() => {
             if (!hasName) return '';
             const parts = displayName.trim().split(/\s+/).slice(0, 2);
@@ -190,17 +200,29 @@ export default function MyProfileScreen({ navigation }: any) {
                 </View>
               )}
 
-              {hasPhotos && (
-                <View style={styles.photoGrid}>
-                  {allPhotos.map((uri, i) => (
-                    <TouchableOpacity
-                      key={i}
-                      activeOpacity={0.9}
-                      style={styles.photoSlot}
-                      onPress={() => { setGalleryIndex(i); setShowGallery(true); }}
-                    >
-                      <Image source={{ uri }} style={styles.photoSlotImg} />
-                    </TouchableOpacity>
+              {/* Pivot 2.0: galleriet er erstattet af mine aktuelle aktiviteter */}
+              {hasActivities && (
+                <View style={styles.aboutSection}>
+                  <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{t.profileActiveIn}</Text>
+                  {activeEvents.map(ev => (
+                    <View key={ev.id} style={styles.activityRow}>
+                      <GradientView
+                        colors={[colors.primaryBlue, colors.primaryRed]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.activityIcon}
+                      >
+                        {ev.tag && <TagIcon tag={ev.tag} size={14} color="#fff" strokeWidth={2.2} />}
+                      </GradientView>
+                      <View style={styles.activityText}>
+                        <Text style={[styles.activityTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+                          {ev.title}
+                        </Text>
+                        <Text style={[styles.activityMeta, { color: colors.textMuted }]} numberOfLines={1}>
+                          {formatTime(ev.time, t, LOCALE_MAP[language] ?? 'en-GB', timeFormat === '12h')}
+                        </Text>
+                      </View>
+                    </View>
                   ))}
                 </View>
               )}
@@ -260,13 +282,6 @@ export default function MyProfileScreen({ navigation }: any) {
           );
         })()}
       </ScrollView>
-
-      <PhotoGalleryModal
-        visible={showGallery}
-        photos={allPhotos}
-        initialIndex={galleryIndex}
-        onClose={() => setShowGallery(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -327,19 +342,30 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     letterSpacing: -0.3,
   },
-  photoGrid: {
+  activityRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 24,
+    alignItems: 'center',
+    paddingVertical: 6,
   },
-  photoSlot: {
-    width: '31.5%',
-    aspectRatio: 1,
-    borderRadius: 14,
-    overflow: 'hidden',
+  activityIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  photoSlotImg: { width: '100%', height: '100%' },
+  activityText: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  activityTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  activityMeta: {
+    fontSize: 12.5,
+    marginTop: 1,
+  },
   aboutSection: {
     marginTop: 28,
   },

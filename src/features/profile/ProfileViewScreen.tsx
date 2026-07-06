@@ -21,10 +21,11 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
-import PhotoGalleryModal from './PhotoGalleryModal';
 import { MapPin } from 'lucide-react-native';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
+import { EventDoc, eventFromData } from '../../events';
+import { formatTime, LOCALE_MAP } from '../../utils/eventTime';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 
 interface RouteParams {
@@ -46,7 +47,7 @@ interface RouteParams {
 }
 
 export default function ProfileViewScreen({ route, navigation }: any) {
-  const { colors, isDark, t, distanceMode, distanceUnit, showTestBadges } = useTheme();
+  const { colors, isDark, t, distanceMode, distanceUnit, showTestBadges, language, timeFormat } = useTheme();
   const insets = useSafeAreaInsets();
   const [locationGranted, setLocationGranted] = useState(true);
 
@@ -65,16 +66,27 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   const currentUser = auth().currentUser;
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportText, setReportText] = useState('');
-  const [showGallery, setShowGallery] = useState(false);
-  const [galleryIndex, setGalleryIndex] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
-  const photoSize = Dimensions.get('window').width - 40;
+  // Pivot 2.0: profilen viser personens AKTUELLE aktiviteter i stedet for
+  // billedgalleri — en bro tilbage til aktiviteterne, ikke et katalog
+  const [activeEvents, setActiveEvents] = useState<EventDoc[]>([]);
+
+  useEffect(() => {
+    const unsub = firestore()
+      .collection('events')
+      .where('participantIds', 'array-contains', user.id)
+      .onSnapshot(snap => {
+        const now = Date.now();
+        const list = snap.docs
+          .map(d => eventFromData(d.id, d.data()))
+          .filter(ev => ev.expiresAt.getTime() > now)
+          .sort((a, b) => a.time.getTime() - b.time.getTime());
+        setActiveEvents(list);
+      }, err => console.warn('Active events subscription error:', err));
+    return () => unsub();
+  }, [user.id]);
 
   if (!currentUser) return null;
-
-  const allPhotos = user.photoURL
-    ? [user.photoURL, ...(user.photos ?? [])]
-    : [];
 
   const handleBlockReport = () => setShowMenu(true);
 
@@ -170,7 +182,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
           const hasStatus = !!user.status?.trim();
           const hasTag = !!user.statusTag;
           const hasBio = !!user.bio?.trim();
-          const hasPhotos = allPhotos.length > 0;
+          const hasActivities = activeEvents.length > 0;
           const hasName = !!user.displayName;
           const hasAge = user.age != null;
           const lastSeenText = user.lastSeen !== undefined ? formatLastSeen(user.lastSeen) : '';
@@ -178,7 +190,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
           const hasDistance = !!distanceText;
           const hasLastSeen = !!lastSeenText;
           const hasIdentityFooter = hasName || hasAge || hasDistance || hasLastSeen;
-          const isEmpty = !hasStatus && !hasTag && !hasBio && !hasPhotos;
+          const isEmpty = !hasStatus && !hasTag && !hasBio && !hasActivities;
           const initials = (() => {
             if (!hasName) return '';
             const parts = user.displayName.trim().split(/\s+/).slice(0, 2);
@@ -230,17 +242,31 @@ export default function ProfileViewScreen({ route, navigation }: any) {
                 </View>
               )}
 
-              {hasPhotos && (
-                <View style={styles.photoGrid}>
-                  {allPhotos.map((uri, i) => (
-                    <TouchableOpacity
-                      key={i}
-                      activeOpacity={0.9}
-                      style={styles.photoSlot}
-                      onPress={() => { setGalleryIndex(i); setShowGallery(true); }}
-                    >
-                      <Image source={{ uri }} style={styles.photoSlotImg} />
-                    </TouchableOpacity>
+              {/* Pivot 2.0: billedgalleriet er erstattet af personens
+                  aktuelle aktiviteter — profilen peger tilbage mod at
+                  LAVE noget sammen, ikke mod at kigge på billeder */}
+              {hasActivities && (
+                <View style={styles.aboutSection}>
+                  <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{t.profileActiveIn}</Text>
+                  {activeEvents.map(ev => (
+                    <View key={ev.id} style={styles.activityRow}>
+                      <GradientView
+                        colors={[colors.primaryBlue, colors.primaryRed]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.activityIcon}
+                      >
+                        {ev.tag && <TagIcon tag={ev.tag} size={14} color="#fff" strokeWidth={2.2} />}
+                      </GradientView>
+                      <View style={styles.activityText}>
+                        <Text style={[styles.activityTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+                          {ev.title}
+                        </Text>
+                        <Text style={[styles.activityMeta, { color: colors.textMuted }]} numberOfLines={1}>
+                          {formatTime(ev.time, t, LOCALE_MAP[language] ?? 'en-GB', timeFormat === '12h')}
+                        </Text>
+                      </View>
+                    </View>
                   ))}
                 </View>
               )}
@@ -363,12 +389,6 @@ export default function ProfileViewScreen({ route, navigation }: any) {
         </Pressable>
       </Modal>
 
-      <PhotoGalleryModal
-        visible={showGallery}
-        photos={allPhotos}
-        initialIndex={galleryIndex}
-        onClose={() => setShowGallery(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -458,19 +478,30 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     letterSpacing: -0.3,
   },
-  photoGrid: {
+  activityRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 24,
+    alignItems: 'center',
+    paddingVertical: 6,
   },
-  photoSlot: {
-    width: '31.5%',
-    aspectRatio: 1,
-    borderRadius: 14,
-    overflow: 'hidden',
+  activityIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  photoSlotImg: { width: '100%', height: '100%' },
+  activityText: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  activityTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  activityMeta: {
+    fontSize: 12.5,
+    marginTop: 1,
+  },
   aboutSection: {
     marginTop: 28,
   },
