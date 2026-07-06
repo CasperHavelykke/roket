@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  Image,
   PanResponder,
   Linking,
 } from 'react-native';
@@ -19,8 +20,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import { getStatusTag } from '../../statusTags';
 import TagIcon from '../../components/TagIcon';
+import GradientView from '../../components/GradientView';
+import useUserProfiles from '../../hooks/useUserProfiles';
 import { Clock, MapPin, Users, MessagesSquare } from 'lucide-react-native';
 import { EventDoc, isEventFull } from '../../events';
+
+// Cap på renderede deltager-rækker — store events må ikke koste en lang
+// liste af Image-mounts i en modal (jf. skalerbarheds-princippet)
+const MAX_PARTICIPANTS_SHOWN = 20;
 
 interface EventDetailModalProps {
   visible: boolean;
@@ -80,6 +87,10 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat, 
       },
     }),
   ).current;
+
+  // Deltagerprofiler (navn + avatar) — batched + session-cachet.
+  // SKAL kaldes før early-return (Rules of Hooks).
+  const { profiles } = useUserProfiles(displayEvent?.participantIds ?? []);
 
   if (!displayEvent || !mounted) return null;
   const ev = displayEvent;
@@ -238,6 +249,47 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat, 
               </View>
             </View>
 
+            {/* Deltagerliste — fundamentet for "Hold kontakten" (Fase 4 chunk C).
+                Cappet visning: lange lister render kun de første og viser "+N". */}
+            {ev.participantIds.length > 0 && (
+              <View style={styles.participantsSection}>
+                {ev.participantIds.slice(0, MAX_PARTICIPANTS_SHOWN).map(uid => {
+                  const profile = profiles[uid];
+                  const name = profile?.displayName || t.chatsUnknown;
+                  const isHost = uid === ev.creatorId;
+                  return (
+                    <View key={uid} style={styles.participantRow}>
+                      {profile?.avatarURL ? (
+                        <Image source={{ uri: profile.avatarURL }} style={styles.participantAvatar} />
+                      ) : (
+                        <GradientView
+                          colors={[colors.primaryBlue, colors.primaryRed]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={[styles.participantAvatar, styles.participantAvatarFallback]}
+                        >
+                          <Text style={styles.participantInitial}>{name.charAt(0).toUpperCase()}</Text>
+                        </GradientView>
+                      )}
+                      <Text style={[styles.participantName, { color: colors.textPrimary }]} numberOfLines={1}>
+                        {name}
+                      </Text>
+                      {isHost && (
+                        <View style={[styles.hostBadge, { backgroundColor: colors.primaryBlue }]}>
+                          <Text style={styles.hostBadgeText}>{t.eventsHostBadge}</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+                {ev.participantIds.length > MAX_PARTICIPANTS_SHOWN && (
+                  <Text style={[styles.participantsMore, { color: colors.textMuted }]}>
+                    {t.eventsParticipantsMore(ev.participantIds.length - MAX_PARTICIPANTS_SHOWN)}
+                  </Text>
+                )}
+              </View>
+            )}
+
             {ev.description ? (
               <>
                 <Text style={[styles.descriptionLabel, { color: colors.textSecondary }]}>
@@ -378,6 +430,50 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     marginBottom: 12,
+  },
+  participantsSection: {
+    marginBottom: 16,
+  },
+  participantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  participantAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+  },
+  participantAvatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  participantInitial: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  participantName: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  hostBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  hostBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  participantsMore: {
+    fontSize: 13,
+    marginTop: 4,
+    marginLeft: 40,
   },
   footer: {
     paddingTop: 16,
