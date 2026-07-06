@@ -13,12 +13,15 @@ import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
 import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
+import { ArrowLeft } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 
 export default function LoginScreen({ navigation }: any) {
   const { colors, t, loginTestInfo } = useTheme();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,6 +55,17 @@ export default function LoginScreen({ navigation }: any) {
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
+      {/* Gæste-flow: skærmen er pushet — giv en vej tilbage til kortet.
+          Som rod-skærm (fallback) er der intet at gå tilbage til. */}
+      {navigation.canGoBack() && (
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={[styles.backBtn, { top: insets.top + 12 }]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ArrowLeft size={26} color="#fff" />
+        </TouchableOpacity>
+      )}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
       <View style={styles.logoContainer}>
@@ -91,7 +105,10 @@ export default function LoginScreen({ navigation }: any) {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+        {/* replace, ikke navigate: Login↔Signup er et sideskift på samme
+            niveau — tilbage-pilen skal føre ud af auth-flowet (fx Settings),
+            ikke til den anden auth-skærm */}
+        <TouchableOpacity onPress={() => navigation.replace('Signup')}>
           <Text style={[styles.linkText, { color: colors.darkBlueText }]}>
             {t.loginNoAccount}
           </Text>
@@ -108,6 +125,12 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  backBtn: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 10,
+    padding: 4,
   },
   scrollContent: {
     flexGrow: 1,

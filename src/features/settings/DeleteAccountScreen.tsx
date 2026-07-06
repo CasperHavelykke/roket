@@ -38,6 +38,9 @@ export default function DeleteAccountScreen({ navigation }: any) {
 
       // Slet auth-konto — Cloud Function (onUserDeleted) rydder op i Firestore + Storage
       await currentUser.delete();
+      // Pivot 2.0: sletning fører til anonym gæstesession, ikke stack-skifte —
+      // navigér selv hjem til kortet (jf. logout/login-mønstret)
+      navigation.popToTop();
     } catch (error: any) {
       setDeleting(false);
       if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {

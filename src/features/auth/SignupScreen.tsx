@@ -17,6 +17,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
@@ -131,7 +132,23 @@ export default function SignupScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const cred = await auth().createUserWithEmailAndPassword(email, password);
+      // Pivot 2.0: en gæst (anonym session) OPGRADERES med linkWithCredential
+      // i stedet for at få en ny konto — samme uid beholdes, og der efterlades
+      // ingen forældreløs anonym konto i Auth. Uden gæstesession (fallback-
+      // flowet) oprettes en frisk konto som før.
+      const anonUser = auth().currentUser;
+      let cred;
+      if (anonUser?.isAnonymous) {
+        const emailCred = auth.EmailAuthProvider.credential(email, password);
+        cred = await anonUser.linkWithCredential(emailCred);
+        // VIGTIGT: linking opdaterer ikke sessionens token — sign_in_provider
+        // forbliver 'anonymous', og Firestore-reglernes isFullUser() ville
+        // afvise profil-oprettelsen. Re-sign-in giver frisk token med
+        // 'password'-provider på samme uid.
+        cred = await auth().signInWithEmailAndPassword(email, password);
+      } else {
+        cred = await auth().createUserWithEmailAndPassword(email, password);
+      }
       await firestore().collection('users').doc(cred.user.uid).set({
         displayName: '',
         bio: '',
@@ -156,7 +173,8 @@ export default function SignupScreen({ navigation }: any) {
         navigation.popToTop();
       }
     } catch (error: any) {
-      if (error.code === 'auth/email-already-in-use') {
+      // credential-already-in-use = link-variantens "email er optaget"
+      if (error.code === 'auth/email-already-in-use' || error.code === 'auth/credential-already-in-use') {
         Alert.alert(t.error, t.signupErrorInUse);
       } else if (error.code === 'auth/invalid-email') {
         Alert.alert(t.error, t.signupErrorInvalidEmail);
@@ -175,6 +193,16 @@ export default function SignupScreen({ navigation }: any) {
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
+      {/* Gæste-flow: skærmen er pushet — giv en vej tilbage til kortet */}
+      {navigation.canGoBack() && (
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={[styles.backBtn, { top: insets.top + 12 }]}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ArrowLeft size={26} color="#fff" />
+        </TouchableOpacity>
+      )}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + insets.bottom }]} keyboardShouldPersistTaps="handled">
         <View style={styles.logoContainer}>
@@ -311,7 +339,8 @@ export default function SignupScreen({ navigation }: any) {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          {/* replace: sideskift, jf. LoginScreen */}
+          <TouchableOpacity onPress={() => navigation.replace('Login')}>
             <Text style={[styles.linkText, { color: colors.primaryRed }]}>
               {t.signupHasAccount}
             </Text>
@@ -326,6 +355,12 @@ export default function SignupScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  backBtn: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 10,
+    padding: 4,
   },
   scrollContent: {
     flexGrow: 1,

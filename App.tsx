@@ -108,7 +108,14 @@ function App() {
                   Alert.alert(
                     t.accountBannedTitle,
                     t.accountBannedMessage,
-                    [{ text: t.ok, onPress: () => auth().signOut() }],
+                    [{ text: t.ok, onPress: () => {
+                      auth().signOut();
+                      // Pivot 2.0: signOut giver gæstesession, intet stack-skifte —
+                      // send brugeren hjem til kortet uanset hvor de stod
+                      if (navigationRef.isReady()) {
+                        navigationRef.resetRoot({ index: 0, routes: [{ name: 'MapHome' }] });
+                      }
+                    } }],
                     { cancelable: false },
                   );
                   return;
@@ -123,7 +130,12 @@ function App() {
                     Alert.alert(
                       t.accountSuspendedTitle,
                       t.accountSuspendedMessage(dateStr),
-                      [{ text: t.ok, onPress: () => auth().signOut() }],
+                      [{ text: t.ok, onPress: () => {
+                        auth().signOut();
+                        if (navigationRef.isReady()) {
+                          navigationRef.resetRoot({ index: 0, routes: [{ name: 'MapHome' }] });
+                        }
+                      } }],
                       { cancelable: false },
                     );
                     return;
