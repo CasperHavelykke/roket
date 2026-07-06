@@ -130,6 +130,42 @@ service cloud.firestore {
       allow read: if isStaff();
     }
 
+    // "Hold kontakten"-anmodninger (Pivot 2.0). Doc-id = sorteret uid-par —
+    // samme id som parrets connection-chat, så chat-reglerne kan slå
+    // anmodningen op via deres eget chatId.
+    match /contactRequests/{pairId} {
+      // Kun de to parter kan læse
+      allow read: if isFullUser() &&
+                     (request.auth.uid == resource.data.from ||
+                      request.auth.uid == resource.data.to);
+
+      // AKTIVITETS-GATEN: anmodning kræver at BEGGE er deltagere i det
+      // angivne event lige nu (verificeret server-side — klienten kan ikke
+      // opdigte fælles deltagelse). Muligt så længe event-doc'et lever,
+      // dvs. under eventet + grace-perioden.
+      allow create: if isFullUser() &&
+                       request.resource.data.from == request.auth.uid &&
+                       request.resource.data.to is string &&
+                       request.resource.data.to != request.auth.uid &&
+                       (pairId == request.resource.data.from + '_' + request.resource.data.to ||
+                        pairId == request.resource.data.to + '_' + request.resource.data.from) &&
+                       request.resource.data.status == 'pending' &&
+                       get(/databases/$(database)/documents/events/$(request.resource.data.eventId))
+                         .data.participantIds.hasAll([request.resource.data.from, request.resource.data.to]);
+
+      // Accept: KUN modtageren, KUN status-feltet, KUN pending → accepted
+      allow update: if isFullUser() &&
+                       request.auth.uid == resource.data.to &&
+                       resource.data.status == 'pending' &&
+                       request.resource.data.status == 'accepted' &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+
+      // Afsender kan fortryde sin egen afventende anmodning
+      allow delete: if isFullUser() &&
+                       request.auth.uid == resource.data.from &&
+                       resource.data.status == 'pending';
+    }
+
     // Chat-dokumenter
     match /chats/{chatId} {
       // Kun deltagere kan læse chat-dokumentet
@@ -139,10 +175,31 @@ service cloud.firestore {
       // Admins og moderatorer kan læse alle chats (til moderation)
       allow read: if isStaff();
 
-      // Enhver bruger med rigtig konto kan oprette en ny chat
-      // (chatId er deterministisk og indeholder begge UIDs)
+      // PIVOT 2.0 — DET STRUKTURELLE ANTI-DATING-GREB: kold 1:1-chat kan
+      // ikke længere oprettes. Kun to slags chats kan opstå:
+
+      // 1) Event-gruppechat (oprettes sammen med eventet)
       allow create: if isFullUser() &&
-                       request.auth.uid in request.resource.data.participants;
+                       request.auth.uid in request.resource.data.participants &&
+                       'eventId' in request.resource.data;
+
+      // 2) Connection-chat: kræver en ACCEPTERET kontakt-anmodning mellem
+      //    parret. Connection-chatId == contactRequests-pairId, så opslaget
+      //    er direkte på chatId.
+      allow create: if isFullUser() &&
+                       request.auth.uid in request.resource.data.participants &&
+                       request.resource.data.participants.size() == 2 &&
+                       request.resource.data.type == 'connection' &&
+                       exists(/databases/$(database)/documents/contactRequests/$(chatId)) &&
+                       get(/databases/$(database)/documents/contactRequests/$(chatId)).data.status == 'accepted';
+
+      // 3) LEGACY — SLETTES I FASE 7 når v2.0.0 har erstattet v1.1.9:
+      //    den live Play-app (grid) opretter kolde 1:1-chats fra profiler.
+      //    Reglen holder den i live, uden at røre de to nye veje ovenfor.
+      allow create: if isFullUser() &&
+                       request.auth.uid in request.resource.data.participants &&
+                       !('type' in request.resource.data) &&
+                       !('eventId' in request.resource.data);
 
       // Staff kan oprette chats (admin-panel events)
       allow create: if isStaff();
