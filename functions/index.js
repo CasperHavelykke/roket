@@ -1,4 +1,4 @@
-const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const v1 = require('firebase-functions/v1');
@@ -340,58 +340,10 @@ exports.onUserModerated = onDocumentUpdated(
   }
 );
 
-// Hjælpefunktion: beregn visibleTo-array baseret på køn, seksualitet og dating-mode
-const ALL_BASE_TAGS = [
-  'male_straight', 'male_gay', 'male_bisexual',
-  'female_straight', 'female_gay', 'female_bisexual',
-];
-
-const DATING_COMPATIBLE_MAP = {
-  male_straight: ['female_straight', 'female_bisexual'],
-  male_gay: ['male_gay', 'male_bisexual'],
-  male_bisexual: ['male_gay', 'male_bisexual', 'female_straight', 'female_bisexual'],
-  female_straight: ['male_straight', 'male_bisexual'],
-  female_gay: ['female_gay', 'female_bisexual'],
-  female_bisexual: ['male_straight', 'male_bisexual', 'female_gay', 'female_bisexual'],
-};
-
-function computeVisibleTo(baseTag, datingOnly) {
-  const compatible = DATING_COMPATIBLE_MAP[baseTag] || [];
-  if (datingOnly) {
-    // Kun synlig for dating-kompatible brugere (begge modes)
-    return compatible.flatMap(tag => [`${tag}_friends`, `${tag}_dating`]);
-  }
-  // Synlig for ALLE friends-brugere + kompatible dating-brugere
-  return [...ALL_BASE_TAGS.map(tag => `${tag}_friends`), ...compatible.map(tag => `${tag}_dating`)];
-}
-
-// Trigger: bruger oprettet/opdateret — beregn matchTag og visibleTo
-exports.onUserWriteMatchTags = onDocumentWritten(
-  'users/{userId}',
-  async (event) => {
-    const after = event.data?.after?.data();
-    const before = event.data?.before?.data();
-
-    if (!after) return; // Slettet bruger
-
-    const { gender, sexuality, datingOnly } = after;
-
-    // Skip hvis intet relevant ændrede sig (forhindrer uendelig loop)
-    if (before &&
-        before.gender === gender &&
-        before.sexuality === sexuality &&
-        before.datingOnly === datingOnly) return;
-
-    // Kræver begge felter for at beregne
-    if (!gender || !sexuality) return;
-
-    const baseTag = `${gender}_${sexuality}`;
-    const matchTag = `${baseTag}_${datingOnly ? 'dating' : 'friends'}`;
-    const visibleTo = computeVisibleTo(baseTag, datingOnly);
-
-    await event.data.after.ref.update({ matchTag, visibleTo });
-  }
-);
+// Pivot 2.0: onUserWriteMatchTags + computeVisibleTo er FJERNET —
+// gender/sexuality-baseret matchTag/visibleTo-beregning har ingen
+// forbrugere (grid'et henter alle brugere, og dating-matching findes
+// ikke i aktivitets-modellen). Felterne ryddes i F7-backfillen.
 
 // Trigger: bruger slettet fra Auth — ryd op i al data
 exports.onUserDeleted = auth.user().onDelete(async (user) => {
@@ -750,6 +702,153 @@ exports.cleanupExpiredChatImages = onSchedule('every 60 minutes', async () => {
 
   console.log(`Cleaned up ${cleaned} expired chat images`);
 });
+
+// Pivot 2.0: præcis auto-slet af udløbne events (event + gruppechat +
+// beskeder + chat-billeder). Firestore TTL sletter først "inden for ~24
+// timer" — for upræcist til chat-indhold der er lovet væk efter grace-
+// perioden. Kører hvert 15. minut; connection-chats har ingen expiresAt
+// og røres aldrig.
+exports.cleanupExpiredEvents = onSchedule('every 15 minutes', async () => {
+  const db = getFirestore();
+  const bucket = getStorage().bucket();
+  const now = new Date();
+  let cleaned = 0;
+
+  // Cap pr. kørsel — en kø af gamle events må ikke time funktionen ud;
+  // resten tages af næste kørsel om 15 min
+  const snapshot = await db.collection('events')
+    .where('expiresAt', '<', now)
+    .limit(50)
+    .get();
+
+  for (const eventDoc of snapshot.docs) {
+    const data = eventDoc.data();
+    const chatId = data.chatId;
+
+    try {
+      if (chatId) {
+        // Beskeder i batches (batch-grænsen er 500)
+        const chatRef = db.collection('chats').doc(chatId);
+        const messagesSnapshot = await chatRef.collection('messages').get();
+        const docs = messagesSnapshot.docs;
+        for (let i = 0; i < docs.length; i += 450) {
+          const batch = db.batch();
+          docs.slice(i, i + 450).forEach(msg => batch.delete(msg.ref));
+          await batch.commit();
+        }
+        await chatRef.delete().catch(() => {});
+
+        // Chat-billeder i Storage
+        const [chatImageFiles] = await bucket
+          .getFiles({ prefix: `chatImages/${chatId}/` })
+          .catch(() => [[]]);
+        for (const file of chatImageFiles) {
+          await file.delete().catch(() => {});
+        }
+      }
+
+      await eventDoc.ref.delete();
+      cleaned++;
+    } catch (err) {
+      console.error(`Failed to clean up event ${eventDoc.id}:`, err);
+    }
+  }
+
+  if (cleaned > 0) console.log(`Cleaned up ${cleaned} expired events`);
+});
+
+// Pivot 2.0: opt-in "notificér mig om aktiviteter i nærheden".
+// Pull-model med opt-in push (bevidst IKKE auto-invitering — uopfordret
+// kontakt i skala blev fravalgt i designet).
+const NEARBY_RADIUS_KM = 10;
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+exports.onEventCreatedNotifyNearby = onDocumentCreated(
+  'events/{eventId}',
+  async event => {
+    const data = event.data.data();
+    if (!data?.location) return;
+
+    const db = getFirestore();
+
+    // SKALERINGS-NOTE: henter userLocations med cap. Ved +1000 brugere skal
+    // userLocations have geohash og queryes med prefix-ranges i stedet.
+    const locSnapshot = await db.collection('userLocations').limit(500).get();
+
+    const participantSet = new Set(data.participantIds ?? []);
+    const nearbyUids = locSnapshot.docs
+      .filter(doc => {
+        if (participantSet.has(doc.id)) return false; // creator + deltagere
+        const loc = doc.data()?.location;
+        if (!loc) return false;
+        return haversineKm(
+          data.location.latitude, data.location.longitude,
+          loc.latitude, loc.longitude,
+        ) <= NEARBY_RADIUS_KM;
+      })
+      .map(doc => doc.id);
+
+    // Diagnostik: gør de stille filtre synlige i loggen
+    console.log(
+      `Nearby check for event ${event.params.eventId}: ` +
+      `${locSnapshot.size} locations, ${participantSet.size} participants excluded, ` +
+      `${nearbyUids.length} within ${NEARBY_RADIUS_KM} km`,
+    );
+
+    if (nearbyUids.length === 0) return;
+
+    const userDocs = await Promise.all(
+      nearbyUids.map(uid => db.collection('users').doc(uid).get()),
+    );
+
+    let sent = 0;
+    let skippedOptIn = 0;
+    let skippedToken = 0;
+
+    await Promise.all(userDocs.map(async userDoc => {
+      const u = userDoc.data();
+      // Opt-in: kun brugere der aktivt har slået det til
+      if (!u || u.notifyNearbyActivities !== true) { skippedOptIn++; return; }
+      const token = u.fcmToken;
+      if (!token) { skippedToken++; return; }
+      if ((u.blockedUsers ?? []).includes(data.creatorId)) return;
+
+      try {
+        await getMessaging().send({
+          token,
+          notification: {
+            title: 'Ny aktivitet i nærheden',
+            body: data.title,
+          },
+          // Ingen navigations-felter — tap åbner appen, og aktiviteten
+          // ligger lige der på kortet
+          data: { type: 'nearbyEvent', eventId: event.params.eventId },
+          android: {
+            priority: 'high',
+            notification: { channelId: 'chat_messages', sound: 'default' },
+          },
+          apns: { payload: { aps: { sound: 'default' } } },
+        });
+        sent++;
+      } catch (err) {
+        console.error('Nearby push failed for', userDoc.id, err);
+      }
+    }));
+
+    console.log(
+      `Nearby pushes: ${sent} sent, ${skippedOptIn} skipped (no opt-in), ${skippedToken} skipped (no token)`,
+    );
+  }
+);
 
 // Cleanup: Slet resolved feedback ældre end 90 dage (inkl. billeder fra Storage)
 exports.cleanupResolvedFeedback = onSchedule('every 24 hours', async () => {

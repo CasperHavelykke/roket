@@ -1,0 +1,7 @@
+{
+  // Gradle-udvidelsen må ikke auto-synce android/ ved projekt-åbning —
+  // det spawner Gradle-daemons + Kotlin-compiler (5+ GB RAM) uden grund.
+  // Builds køres fra terminalen (npx react-native run-android / gradlew).
+  "gradle.autoDetect": "off",
+  "java.import.gradle.enabled": false
+}

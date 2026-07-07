@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
   Linking,
+  Switch,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -24,6 +25,16 @@ export default function SettingsScreen({ navigation }: any) {
   const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, t } = useTheme();
   const insets = useSafeAreaInsets();
   const currentUser = auth().currentUser;
+  // Opt-in nærheds-push: læs nuværende værdi fra bruger-doc'et
+  const [notifyNearby, setNotifyNearby] = useState(false);
+
+  useEffect(() => {
+    const uid = auth().currentUser?.uid;
+    if (!uid || auth().currentUser?.isAnonymous) return;
+    firestore().collection('users').doc(uid).get().then(doc => {
+      setNotifyNearby(doc.data()?.notifyNearbyActivities === true);
+    }).catch(() => {});
+  }, []);
 
   if (!currentUser) return null;
 
@@ -183,6 +194,28 @@ export default function SettingsScreen({ navigation }: any) {
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsNotifications}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
+          {/* Opt-in nærheds-push (Pivot 2.0) — kun for rigtige konti */}
+          {!auth().currentUser?.isAnonymous && (
+            <View style={[styles.row, { borderBottomColor: colors.borderLight }]}>
+              <Text style={[styles.rowText, { color: colors.textPrimary, flex: 1 }]}>{t.settingsNotifyNearby}</Text>
+              <Switch
+                value={notifyNearby}
+                onValueChange={value => {
+                  setNotifyNearby(value);
+                  const uid = auth().currentUser?.uid;
+                  if (uid) {
+                    firestore().collection('users').doc(uid)
+                      .update({ notifyNearbyActivities: value })
+                      .catch(err => {
+                        console.warn('Failed to save notifyNearbyActivities:', err);
+                        setNotifyNearby(!value);
+                      });
+                  }
+                }}
+                trackColor={{ true: colors.primaryBlue, false: undefined }}
+              />
+            </View>
+          )}
           <TouchableOpacity
             style={styles.row}
             onPress={() => Linking.openSettings()}
