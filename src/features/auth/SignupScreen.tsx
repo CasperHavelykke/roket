@@ -156,15 +156,10 @@ export default function SignupScreen({ navigation }: any) {
         statusTag: null,
         email: cred.user.email,
         createdAt: firestore.FieldValue.serverTimestamp(),
-        photoURL: null,
         lastSeen: firestore.FieldValue.serverTimestamp(),
         distanceMode: 'exact',
         birthday: { day, month, year },
         showAge: true,
-        photos: [],
-        matchTag: 'all',
-        visibleTo: ['all'],
-        datingOnly: false,
         setupComplete: true,
       });
       // Gæste-flow (Pivot 2.0): Signup er pushet oven på app-stacken —

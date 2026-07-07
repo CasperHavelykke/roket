@@ -105,9 +105,13 @@ export default function MapHomeScreen({ navigation }: any) {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
+        // Google Maps på Android genanvender ikke customMapStyle ved prop-skift —
+        // remount på temaskift (samme greb som preview-kortet i CreateEventModal).
+        // region-state gør at vi genåbner på brugerens aktuelle viewport.
+        key={isDark ? 'map-dark' : 'map-light'}
         style={StyleSheet.absoluteFill}
         provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        initialRegion={initialRegion}
+        initialRegion={region ?? initialRegion}
         onRegionChangeComplete={setRegion}
         showsUserLocation
         showsMyLocationButton={false}

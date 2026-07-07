@@ -212,7 +212,8 @@ export default function SettingsScreen({ navigation }: any) {
                       });
                   }
                 }}
-                trackColor={{ true: colors.primaryBlue, false: undefined }}
+                trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
+                thumbColor="#fff"
               />
             </View>
           )}
@@ -317,16 +318,6 @@ export default function SettingsScreen({ navigation }: any) {
             </>
           )}
         </View>
-
-        {__DEV__ && (
-          <TouchableOpacity
-            style={[styles.row, { borderBottomWidth: 0 }]}
-            onPress={() => navigation.navigate('Home')}
-          >
-            <Text style={[styles.rowText, { color: colors.textMuted }]}>[DEV] Grid (legacy)</Text>
-            <Text style={[styles.rowArrow, { color: colors.textMuted }]}>→</Text>
-          </TouchableOpacity>
-        )}
 
         <Text style={styles.copyright}>© 2026 Røket · v1.1.9 Beta</Text>
       </ScrollView>

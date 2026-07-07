@@ -71,7 +71,6 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export type TimeFormat = '12h' | '24h';
 export type DistanceMode = 'exact' | 'fuzzy' | 'hidden';
 export type DistanceUnit = 'km' | 'mi';
-export type GridColumns = 1 | 2 | 3 | 4;
 export type { Language, Translations };
 
 const THEME_STORAGE_KEY = '@roket_theme_mode';
@@ -79,7 +78,6 @@ const TIME_FORMAT_STORAGE_KEY = '@roket_time_format';
 const LANGUAGE_STORAGE_KEY = '@roket_language';
 const DISTANCE_MODE_STORAGE_KEY = '@roket_distance_mode';
 const DISTANCE_UNIT_STORAGE_KEY = '@roket_distance_unit';
-const GRID_COLUMNS_STORAGE_KEY = '@roket_grid_columns';
 
 interface ThemeContextType {
   colors: ThemeColors;
@@ -94,8 +92,6 @@ interface ThemeContextType {
   setDistanceMode: (mode: DistanceMode) => void;
   distanceUnit: DistanceUnit;
   setDistanceUnit: (unit: DistanceUnit) => void;
-  gridColumns: GridColumns;
-  setGridColumns: (cols: GridColumns) => void;
   showTestBadges: boolean;
   loginTestInfo: string;
   t: Translations;
@@ -114,8 +110,6 @@ export const ThemeContext = createContext<ThemeContextType>({
   setDistanceMode: () => {},
   distanceUnit: 'km',
   setDistanceUnit: () => {},
-  gridColumns: 2,
-  setGridColumns: () => {},
   showTestBadges: true,
   loginTestInfo: 'For testing use mail: test@test.com password: Test1234',
   t: translations.da,
@@ -175,7 +169,6 @@ export function useThemeProvider() {
   const [language, setLanguageState] = useState<Language>(getDeviceLanguage);
   const [distanceMode, setDistanceModeState] = useState<DistanceMode>('exact');
   const [distanceUnit, setDistanceUnitState] = useState<DistanceUnit>('km');
-  const [gridColumns, setGridColumnsState] = useState<GridColumns>(2);
   const [showTestBadges, setShowTestBadges] = useState(true);
   const [loginTestInfo, setLoginTestInfo] = useState('For testing use mail: test@test.com password: Test1234');
   const [loaded, setLoaded] = useState(false);
@@ -198,8 +191,7 @@ export function useThemeProvider() {
       AsyncStorage.getItem(LANGUAGE_STORAGE_KEY),
       AsyncStorage.getItem(DISTANCE_MODE_STORAGE_KEY),
       AsyncStorage.getItem(DISTANCE_UNIT_STORAGE_KEY),
-      AsyncStorage.getItem(GRID_COLUMNS_STORAGE_KEY),
-    ]).then(([storedMode, storedTime, storedLang, storedDistance, storedUnit, storedColumns]) => {
+    ]).then(([storedMode, storedTime, storedLang, storedDistance, storedUnit]) => {
       if (storedMode === 'light' || storedMode === 'dark' || storedMode === 'system') {
         setModeState(storedMode);
       }
@@ -215,8 +207,6 @@ export function useThemeProvider() {
       if (storedUnit === 'km' || storedUnit === 'mi') {
         setDistanceUnitState(storedUnit);
       }
-      const cols = parseInt(storedColumns || '', 10);
-      if (cols >= 1 && cols <= 4) setGridColumnsState(cols as GridColumns);
       asyncDone.current = true;
       markLoaded();
     });
@@ -257,11 +247,6 @@ export function useThemeProvider() {
         }
         if (s.distanceUnit === 'km' || s.distanceUnit === 'mi') {
           setDistanceUnitState(s.distanceUnit);
-        }
-        const cols = parseInt(s.gridColumns, 10);
-        if (cols >= 1 && cols <= 4) {
-          setGridColumnsState(cols as GridColumns);
-          AsyncStorage.setItem(GRID_COLUMNS_STORAGE_KEY, String(cols));
         }
         // Opdater lokal cache med kontoens indstillinger
         cacheSettings(
@@ -335,12 +320,6 @@ export function useThemeProvider() {
     saveToFirestore('distanceUnit', du);
   };
 
-  const setGridColumns = (cols: GridColumns) => {
-    setGridColumnsState(cols);
-    AsyncStorage.setItem(GRID_COLUMNS_STORAGE_KEY, String(cols));
-    saveToFirestore('gridColumns', String(cols));
-  };
-
   const isDark =
     mode === 'dark' || (mode === 'system' && systemScheme === 'dark');
 
@@ -357,8 +336,6 @@ export function useThemeProvider() {
     setDistanceMode,
     distanceUnit,
     setDistanceUnit,
-    gridColumns,
-    setGridColumns,
     showTestBadges,
     loginTestInfo,
     t: translations[language],

@@ -18,7 +18,6 @@ import { Bell as BellIcon } from 'lucide-react-native';
 import { ThemeContext, useThemeProvider } from './src/theme';
 import LoginScreen from './src/features/auth/LoginScreen';
 import SignupScreen from './src/features/auth/SignupScreen';
-import HomeScreen from './src/features/home/HomeScreen';
 import ProfileViewScreen from './src/features/profile/ProfileViewScreen';
 import ChatScreen from './src/features/chat/ChatScreen';
 import ChatsListScreen from './src/features/chat/ChatsListScreen';
@@ -40,7 +39,6 @@ mobileAds().initialize();
 type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
-  Home: undefined;
   ProfileView: { userId: string };
   Chat: {
     otherUser: { id: string; displayName: string; testAccount?: boolean };
@@ -404,7 +402,7 @@ function App() {
     <SafeAreaProvider>
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
       <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-      <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceMode: theme.distanceMode, setDistanceMode: theme.setDistanceMode, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, gridColumns: theme.gridColumns, setGridColumns: theme.setGridColumns, showTestBadges: theme.showTestBadges, loginTestInfo: theme.loginTestInfo, releaseTag: theme.releaseTag, t: theme.t }}>
+      <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceMode: theme.distanceMode, setDistanceMode: theme.setDistanceMode, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, showTestBadges: theme.showTestBadges, loginTestInfo: theme.loginTestInfo, t: theme.t }}>
         <NavigationContainer ref={navigationRef} theme={navTheme}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {authState === false ? (
@@ -416,10 +414,7 @@ function App() {
               </>
             ) : (
               <>
-                {/* MapHome er hjemmeskærmen (Pivot 2.0) — grid'et beholdes som
-                    legacy-route indtil Fase 7-oprydningen */}
                 <Stack.Screen name="MapHome" component={MapHomeScreen} />
-                <Stack.Screen name="Home" component={HomeScreen} />
                 <Stack.Screen name="ProfileView" component={ProfileViewScreen} />
                 <Stack.Screen name="Chat" component={ChatScreen} />
                 <Stack.Screen name="ChatsList" component={ChatsListScreen} />

@@ -35,13 +35,11 @@ interface RouteParams {
     bio: string;
     status?: string;
     statusTag?: StatusTagId | null;
-    photoURL: string | null;
     avatarURL?: string | null;
     distance?: number;
     lastSeen?: number; // millisekunder siden epoch
     distanceMode?: string;
     age?: number;
-    photos?: string[];
     testAccount?: boolean;
   };
 }
