@@ -36,6 +36,9 @@ interface ActivityDrawerProps {
   headerText: string;
   userLocation: { latitude: number; longitude: number } | null;
   onSelect: (event: EventDoc) => void;
+  // Løft over bundnavigationen — når sat dækker nav-baren safe area,
+  // så drawerens egen bund-inset udgår
+  bottomOffset?: number;
 }
 
 /**
@@ -50,14 +53,15 @@ export default function ActivityDrawer({
   headerText,
   userLocation,
   onSelect,
+  bottomOffset = 0,
 }: ActivityDrawerProps) {
   const { colors, t, language, timeFormat, distanceUnit } = useTheme();
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
 
-  const collapsedH = DRAWER_COLLAPSED_HEIGHT + insets.bottom;
+  const collapsedH = DRAWER_COLLAPSED_HEIGHT + (bottomOffset > 0 ? 0 : insets.bottom);
   const halfH = Math.round(screenH * 0.42);
-  const openH = Math.round(screenH * 0.82);
+  const openH = Math.round(screenH * 0.82) - bottomOffset;
 
   // translateY: 0 = helt åben; (openH - collapsedH) = kollapset
   const collapsedY = openH - collapsedH;
@@ -150,7 +154,7 @@ export default function ActivityDrawer({
     <Animated.View
       style={[
         styles.sheet,
-        { height: openH, backgroundColor: colors.cardBackground },
+        { height: openH, bottom: bottomOffset, backgroundColor: colors.cardBackground },
         sheetStyle,
       ]}
     >
@@ -165,7 +169,7 @@ export default function ActivityDrawer({
         data={sorted}
         keyExtractor={item => item.id}
         renderItem={renderRow}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingBottom: (bottomOffset > 0 ? 0 : insets.bottom) + 24 }}
         ListEmptyComponent={
           <Text style={[styles.empty, { color: colors.textMuted }]}>{t.mapDrawerEmpty}</Text>
         }

@@ -3,26 +3,20 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Platform,
-  useWindowDimensions,
 } from 'react-native';
 import MapView, { Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import Geolocation from 'react-native-geolocation-service';
-import {
-  Plus,
-  User as ProfileIcon,
-  MessagesSquare as MessagesIcon,
-  Settings as SettingsIcon,
-} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GradientView from '../../components/GradientView';
+import RoketLogo from '../../assets/roket-logo-2.svg';
 import { useTheme } from '../../theme';
 import { EventDoc, overlapsWindow } from '../../events';
 import ActivityMarker from './ActivityMarker';
 import useNearbyActivities from './useNearbyActivities';
 import TimeScrubber from './TimeScrubber';
 import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
+import BottomNavBar, { NAV_BAR_CONTENT_HEIGHT } from './BottomNavBar';
 import { TimeWindow } from './scrubberTime';
 import { DARK_MAP_STYLE } from './mapDarkStyle';
 import { requireAccount } from '../../utils/guestGate';
@@ -39,15 +33,11 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.05,
 };
 
-const FAB_SIZE = 61;
-const FAB_RIGHT = 16;
-const NAV_BTN_SIZE = 48;
-const NAV_BTN_GAP = 10;
 
 export default function MapHomeScreen({ navigation }: any) {
   const { colors, t, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
+  const navHeight = NAV_BAR_CONTENT_HEIGHT + insets.bottom;
   const mapRef = useRef<MapView>(null);
   const [selected, setSelected] = useState<EventDoc | null>(null);
   const [initialRegion, setInitialRegion] = useState<Region | null>(null);
@@ -118,6 +108,9 @@ export default function MapHomeScreen({ navigation }: any) {
         toolbarEnabled={false}
         customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
         userInterfaceStyle={isDark ? 'dark' : 'light'}
+        // Google-attributionen skal være synlig (Maps ToS) — løft den over
+        // bundnav + kollapset drawer
+        mapPadding={{ top: 0, right: 0, left: 0, bottom: navHeight + DRAWER_COLLAPSED_HEIGHT }}
       >
         {visibleActivities.map(event => (
           <Marker
@@ -132,61 +125,30 @@ export default function MapHomeScreen({ navigation }: any) {
         ))}
       </MapView>
 
-      {/* Top-navigation — MapHome er hjemmeskærmen nu. Samme FAB-sprog som
-          grid'et: hver knap viser sin slice af skærmkant-gradienten */}
-      {(() => {
-        const navButtons = [
-          // Profil og beskeder kræver konto — settings er åben for gæster (sprog m.m.)
-          { icon: <ProfileIcon size={24} color="#fff" />, onPress: () => { if (requireAccount(navigation, t)) navigation.navigate('MyProfile'); } },
-          { icon: <MessagesIcon size={24} color="#fff" />, badge: unreadTotal, onPress: () => { if (requireAccount(navigation, t)) navigation.navigate('ChatsList'); } },
-          { icon: <SettingsIcon size={24} color="#fff" />, onPress: () => navigation.navigate('Settings') },
-        ];
-        const groupLeft = screenWidth - FAB_RIGHT - (navButtons.length * NAV_BTN_SIZE + (navButtons.length - 1) * NAV_BTN_GAP);
-        return (
-          <View style={[styles.topNav, { top: insets.top + 12 }]}>
-            {navButtons.map((btn, i) => {
-              const btnLeft = groupLeft + i * (NAV_BTN_SIZE + NAV_BTN_GAP);
-              return (
-                <TouchableOpacity key={i} onPress={btn.onPress} activeOpacity={0.8} style={styles.navShadow}>
-                  <GradientView
-                    colors={[colors.primaryBlue, colors.primaryRed]}
-                    start={{ x: -btnLeft / NAV_BTN_SIZE, y: 0 }}
-                    end={{ x: (screenWidth - btnLeft) / NAV_BTN_SIZE, y: 0 }}
-                    style={styles.navButton}
-                  >
-                    {btn.icon}
-                  </GradientView>
-                  {!!btn.badge && (
-                    <View style={[styles.navBadge, { backgroundColor: colors.primaryRed }]}>
-                      <Text style={styles.navBadgeText}>{btn.badge > 9 ? '9+' : btn.badge}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        );
-      })()}
-
-      {/* Opret aktivitet — pin-først-flowet starter her.
-          Skærmkant til skærmkant-gradient + hvid border: samme stil som grid'ets FABs */}
-      <TouchableOpacity
-        onPress={() => { if (requireAccount(navigation, t)) setShowPinPicker(true); }}
-        style={[styles.fab, { bottom: insets.bottom + DRAWER_COLLAPSED_HEIGHT + 108 }]}
-        activeOpacity={0.85}
+      {/* Logo-pille — kortet er ellers helt rent (redesign 2026-07) */}
+      <View
+        style={[
+          styles.logoPill,
+          {
+            top: insets.top + 10,
+            backgroundColor: isDark ? 'rgba(22,22,25,0.8)' : 'rgba(255,255,255,0.85)',
+            borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)',
+          },
+        ]}
       >
         <GradientView
           colors={[colors.primaryBlue, colors.primaryRed]}
-          start={{ x: -(screenWidth - FAB_RIGHT - FAB_SIZE) / FAB_SIZE, y: 0 }}
-          end={{ x: (screenWidth - (screenWidth - FAB_RIGHT - FAB_SIZE)) / FAB_SIZE, y: 0 }}
-          style={styles.fabInner}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.logoBox}
         >
-          <Plus size={30} color="#fff" strokeWidth={2.5} />
+          <RoketLogo width={16} height={16} fill="#fff" />
         </GradientView>
-      </TouchableOpacity>
+        <Text style={[styles.logoText, { color: colors.textPrimary }]}>Røket</Text>
+      </View>
 
       {!zoomedOut && (
-        <View style={[styles.scrubberWrap, { bottom: insets.bottom + DRAWER_COLLAPSED_HEIGHT + 10 }]}>
+        <View style={[styles.scrubberWrap, { bottom: navHeight + DRAWER_COLLAPSED_HEIGHT + 10 }]}>
           <TimeScrubber
             activities={activities}
             value={timeWindow}
@@ -200,6 +162,17 @@ export default function MapHomeScreen({ navigation }: any) {
         headerText={zoomedOut ? t.mapZoomIn : t.mapActivitiesCount(visibleActivities.length)}
         userLocation={userLocation}
         onSelect={setSelected}
+        bottomOffset={navHeight}
+      />
+
+      {/* Bundnavigation — profil og beskeder kræver konto; Mere (settings)
+          er åben for gæster (sprog m.m.) */}
+      <BottomNavBar
+        unreadTotal={unreadTotal}
+        onMessages={() => { if (requireAccount(navigation, t)) navigation.navigate('ChatsList'); }}
+        onCreate={() => { if (requireAccount(navigation, t)) setShowPinPicker(true); }}
+        onProfile={() => { if (requireAccount(navigation, t)) navigation.navigate('MyProfile'); }}
+        onMore={() => navigation.navigate('Settings')}
       />
 
       <MapPickerModal
@@ -248,72 +221,40 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  topNav: {
-    position: 'absolute',
-    right: FAB_RIGHT,
-    flexDirection: 'row',
-    gap: NAV_BTN_GAP,
-  },
-  navShadow: {
-    borderRadius: NAV_BTN_SIZE / 2 + 2,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  navButton: {
-    width: NAV_BTN_SIZE,
-    height: NAV_BTN_SIZE,
-    borderRadius: NAV_BTN_SIZE / 2,
-    ...Platform.select({ android: { overflow: 'hidden' as const } }),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#fff',
-  },
-  navBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '800',
-  },
   scrubberWrap: {
     position: 'absolute',
     left: 16,
     right: 16,
   },
-  // Matcher grid'ets fabShadow/fabButton (HomeScreen): hvid semi-border + skygge
-  fab: {
+  logoPill: {
     position: 'absolute',
-    right: FAB_RIGHT,
-    borderRadius: 32,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 42,
+    paddingLeft: 8,
+    paddingRight: 14,
+    borderRadius: 21,
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 7,
+    elevation: 4,
+    zIndex: 6,
   },
-  fabInner: {
-    width: FAB_SIZE,
-    height: FAB_SIZE,
-    borderRadius: FAB_SIZE / 2,
+  logoBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
     ...Platform.select({ android: { overflow: 'hidden' as const } }),
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  logoText: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: -0.15,
   },
 });
