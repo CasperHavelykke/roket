@@ -29,7 +29,8 @@ describe('overlapsWindow', () => {
   });
 
   test('event der starter efter vinduet er ikke synligt', () => {
-    const ev = { time: new Date('2026-06-15T14:00:01Z'), durationMinutes: 60 };
+    const justPast = new Date(from.getTime() + VISIBLE_WINDOW_MINUTES * 60 * 1000 + 1000);
+    const ev = { time: justPast, durationMinutes: 60 };
     expect(overlapsWindow(ev, from)).toBe(false);
   });
 

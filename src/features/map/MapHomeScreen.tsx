@@ -14,7 +14,6 @@ import { useTheme } from '../../theme';
 import { EventDoc, overlapsWindow } from '../../events';
 import ActivityMarker from './ActivityMarker';
 import useNearbyActivities from './useNearbyActivities';
-import TimeScrubber from './TimeScrubber';
 import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
 import BottomNavBar, { NAV_BAR_CONTENT_HEIGHT } from './BottomNavBar';
 import { TimeWindow } from './scrubberTime';
@@ -58,7 +57,7 @@ export default function MapHomeScreen({ navigation }: any) {
 
   // Tidsfiltrering sker i hukommelsen — at trække i scrubberen koster
   // nul netværkskald (geo-filtreringen skete allerede i Firestore).
-  // Vinduet kigger 2 timer frem fra scrub-positionen (VISIBLE_WINDOW_MINUTES).
+  // Vinduet kigger 3 timer frem fra scrub-positionen (VISIBLE_WINDOW_MINUTES).
   const visibleActivities = useMemo(() => {
     const at = timeWindow.mode === 'at' ? timeWindow.at : new Date();
     return activities.filter(ev => overlapsWindow(ev, at));
@@ -147,21 +146,14 @@ export default function MapHomeScreen({ navigation }: any) {
         <Text style={[styles.logoText, { color: colors.textPrimary }]}>Røket</Text>
       </View>
 
-      {!zoomedOut && (
-        <View style={[styles.scrubberWrap, { bottom: navHeight + DRAWER_COLLAPSED_HEIGHT + 10 }]}>
-          <TimeScrubber
-            activities={activities}
-            value={timeWindow}
-            onChange={setTimeWindow}
-          />
-        </View>
-      )}
-
       <ActivityDrawer
         activities={visibleActivities}
+        allActivities={activities}
         headerText={zoomedOut ? t.mapZoomIn : t.mapActivitiesCount(visibleActivities.length)}
         userLocation={userLocation}
         onSelect={setSelected}
+        timeWindow={timeWindow}
+        onChangeWindow={setTimeWindow}
         bottomOffset={navHeight}
       />
 
@@ -220,11 +212,6 @@ export default function MapHomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  scrubberWrap: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
   },
   logoPill: {
     position: 'absolute',

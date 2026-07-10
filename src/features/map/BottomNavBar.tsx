@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import MaskedView from '@react-native-masked-view/masked-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Map as MapIcon,
@@ -14,6 +15,7 @@ import { useTheme } from '../../theme';
 export const NAV_BAR_CONTENT_HEIGHT = 64;
 const FAB_SIZE = 54;
 const FAB_RAISE = 14;
+const ICON_SIZE = 23;
 
 interface BottomNavBarProps {
   unreadTotal: number;
@@ -40,12 +42,16 @@ export default function BottomNavBar({
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
 
-  // Skærmkant-gradient: midterknappen viser sin slice af en gradient der
-  // spænder over hele skærmbredden
-  const fabLeft = (screenWidth - FAB_SIZE) / 2;
+  // Den aktive fanes position måles så ikonets og labelens skærmkant-gradient
+  // kan vise den rigtige slice af en gradient der spænder over hele skærmbredden
+  const [activeTabLayout, setActiveTabLayout] = useState({ x: 0, w: 0 });
+  const [activeLabelWidth, setActiveLabelWidth] = useState(0);
+  const activeIconLeft = activeTabLayout.x + (activeTabLayout.w - ICON_SIZE) / 2;
+  const labelWidth = Math.max(activeLabelWidth, 1);
+  const activeLabelLeft = activeTabLayout.x + (activeTabLayout.w - labelWidth) / 2;
 
   const tab = (
-    icon: React.ReactNode,
+    icon: React.ReactElement,
     label: string,
     onPress: (() => void) | undefined,
     opts?: { active?: boolean; badge?: number },
@@ -55,24 +61,49 @@ export default function BottomNavBar({
       onPress={onPress}
       activeOpacity={0.7}
       disabled={!onPress}
+      onLayout={
+        opts?.active
+          ? e => setActiveTabLayout({ x: e.nativeEvent.layout.x, w: e.nativeEvent.layout.width })
+          : undefined
+      }
     >
-      <View>
-        {icon}
+      <View style={styles.iconSlot}>
+        {opts?.active ? (
+          // Gradient i selve ikon-stregen: ikonet er masken, gradienten fylder
+          <MaskedView maskElement={icon}>
+            <GradientView
+              colors={[colors.primaryBlue, colors.primaryRed]}
+              start={{ x: -activeIconLeft / ICON_SIZE, y: 0 }}
+              end={{ x: (screenWidth - activeIconLeft) / ICON_SIZE, y: 0 }}
+              style={{ width: ICON_SIZE, height: ICON_SIZE }}
+            />
+          </MaskedView>
+        ) : (
+          icon
+        )}
         {!!opts?.badge && (
           <View style={[styles.badge, { backgroundColor: colors.primaryRed, borderColor: colors.white }]}>
             <Text style={styles.badgeText}>{opts.badge > 9 ? '9+' : opts.badge}</Text>
           </View>
         )}
       </View>
-      <Text
-        style={[
-          styles.tabLabel,
-          { color: opts?.active ? colors.primaryRed : colors.textMuted },
-          opts?.active && styles.tabLabelActive,
-        ]}
-      >
-        {label}
-      </Text>
+      {opts?.active ? (
+        <MaskedView
+          onLayout={e => setActiveLabelWidth(e.nativeEvent.layout.width)}
+          maskElement={<Text style={[styles.tabLabel, styles.tabLabelActive]}>{label}</Text>}
+        >
+          {/* Usynlig tekst giver masken sin størrelse; gradienten fylder den */}
+          <Text style={[styles.tabLabel, styles.tabLabelActive, styles.sizer]}>{label}</Text>
+          <GradientView
+            colors={[colors.primaryBlue, colors.primaryRed]}
+            start={{ x: -activeLabelLeft / labelWidth, y: 0 }}
+            end={{ x: (screenWidth - activeLabelLeft) / labelWidth, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </MaskedView>
+      ) : (
+        <Text style={[styles.tabLabel, { color: colors.textMuted }]}>{label}</Text>
+      )}
     </TouchableOpacity>
   );
 
@@ -88,14 +119,14 @@ export default function BottomNavBar({
         },
       ]}
     >
-      {tab(<MapIcon size={23} color={colors.primaryRed} strokeWidth={2} />, t.navMap, undefined, { active: true })}
+      {tab(<MapIcon size={ICON_SIZE} color="#000" strokeWidth={2.2} />, t.navMap, undefined, { active: true })}
       {tab(<MessagesIcon size={23} color={colors.textMuted} strokeWidth={2} />, t.navMessages, onMessages, { badge: unreadTotal })}
 
       <TouchableOpacity onPress={onCreate} activeOpacity={0.85} style={[styles.fabWrap, { borderColor: colors.white }]}>
         <GradientView
           colors={[colors.primaryBlue, colors.primaryRed]}
-          start={{ x: -fabLeft / FAB_SIZE, y: 0 }}
-          end={{ x: (screenWidth - fabLeft) / FAB_SIZE, y: 0 }}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.fabInner}
         >
           <Plus size={26} color="#fff" strokeWidth={2.6} />
@@ -126,12 +157,21 @@ const styles = StyleSheet.create({
     gap: 3,
     minWidth: 56,
   },
+  iconSlot: {
+    height: ICON_SIZE,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   tabLabel: {
     fontSize: 10,
     fontWeight: '600',
   },
   tabLabelActive: {
     fontWeight: '700',
+    color: '#000',
+  },
+  sizer: {
+    opacity: 0,
   },
   badge: {
     position: 'absolute',

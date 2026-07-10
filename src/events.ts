@@ -70,9 +70,10 @@ export function eventFromData(id: string, data: any): EventDoc {
 
 // Kortets synligheds-vindue: fra det valgte tidspunkt og så langt frem.
 // Uden kig-frem ville "NU" kun vise events der bogstaveligt er i gang —
-// et event der starter om 20 min ville være usynligt. 2 timer matcher
-// "hvad sker der nu og den nærmeste tid"-semantikken.
-export const VISIBLE_WINDOW_MINUTES = 120;
+// et event der starter om 20 min ville være usynligt. 3 timer matcher
+// "hvad sker der nu og den nærmeste tid"-semantikken og giver samtidig
+// scrubber-kapslen en bredde der er til at gribe.
+export const VISIBLE_WINDOW_MINUTES = 180;
 
 // Er eventet i gang, eller starter det inden for vinduet, set fra `from`?
 export function overlapsWindow(

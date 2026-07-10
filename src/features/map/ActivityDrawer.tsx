@@ -22,9 +22,12 @@ import { useTheme } from '../../theme';
 import { EventDoc } from '../../events';
 import { formatDistance } from '../../utils/distance';
 import { formatTime, LOCALE_MAP } from '../../utils/eventTime';
+import TimeScrubber from './TimeScrubber';
+import { TimeWindow } from './scrubberTime';
 
-// Drawerens synlige højde i kollapset tilstand (håndtag + tæller-linje)
-export const DRAWER_COLLAPSED_HEIGHT = 64;
+// Drawerens synlige højde i kollapset tilstand:
+// håndtag + tidsvindue-scrubber + tæller-linje
+export const DRAWER_COLLAPSED_HEIGHT = 150;
 
 // Stiv, overdæmpet fjeder: kontant snap uden efter-sving.
 // overshootClamping dræber det "flyvende" gyng en blødere fjeder giver.
@@ -33,9 +36,14 @@ const SNAP_SPRING = { damping: 28, stiffness: 350, overshootClamping: true };
 interface ActivityDrawerProps {
   // Aktiviteter i det valgte tidsvindue (samme liste som kortets pins)
   activities: EventDoc[];
+  // ALLE aktiviteter i viewporten — scrubberens prikker skal også vise
+  // dem uden for vinduet
+  allActivities: EventDoc[];
   headerText: string;
   userLocation: { latitude: number; longitude: number } | null;
   onSelect: (event: EventDoc) => void;
+  timeWindow: TimeWindow;
+  onChangeWindow: (window: TimeWindow) => void;
   // Løft over bundnavigationen — når sat dækker nav-baren safe area,
   // så drawerens egen bund-inset udgår
   bottomOffset?: number;
@@ -50,9 +58,12 @@ interface ActivityDrawerProps {
  */
 export default function ActivityDrawer({
   activities,
+  allActivities,
   headerText,
   userLocation,
   onSelect,
+  timeWindow,
+  onChangeWindow,
   bottomOffset = 0,
 }: ActivityDrawerProps) {
   const { colors, t, language, timeFormat, distanceUnit } = useTheme();
@@ -159,11 +170,18 @@ export default function ActivityDrawer({
       ]}
     >
       <GestureDetector gesture={pan}>
-        <View style={styles.header}>
+        <View style={styles.handleArea}>
           <View style={[styles.handle, { backgroundColor: colors.textMuted }]} />
-          <Text style={[styles.headerText, { color: colors.textPrimary }]}>{headerText}</Text>
         </View>
       </GestureDetector>
+
+      {/* Tidsvinduet bor i drawerens top (redesign 2026-07) — vandret drag
+          på scrubberen og lodret drag på håndtaget generer ikke hinanden */}
+      <TimeScrubber activities={allActivities} value={timeWindow} onChange={onChangeWindow} />
+
+      <View style={[styles.countRow, { borderTopColor: colors.borderLight }]}>
+        <Text style={[styles.headerText, { color: colors.textPrimary }]}>{headerText}</Text>
+      </View>
 
       <FlatList
         data={sorted}
@@ -192,21 +210,27 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: -3 },
   },
-  header: {
+  handleArea: {
     alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 9,
+    paddingBottom: 8,
   },
   handle: {
     width: 40,
     height: 4,
     borderRadius: 2,
     opacity: 0.5,
-    marginBottom: 10,
+  },
+  countRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderTopWidth: 1,
   },
   headerText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '800',
   },
   row: {
     flexDirection: 'row',

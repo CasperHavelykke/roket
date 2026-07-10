@@ -11,74 +11,98 @@ import Animated, {
 } from 'react-native-reanimated';
 import GradientView from '../../components/GradientView';
 import { useTheme } from '../../theme';
-import { EventDoc } from '../../events';
+import { EventDoc, VISIBLE_WINDOW_MINUTES, eventEndsAt, overlapsWindow } from '../../events';
 import {
   TimeWindow,
-  NOW_SNAP_FRACTION,
-  endOfDay,
+  AXIS_START_HOUR,
+  AXIS_MINUTES,
+  NOW_SNAP_MINUTES,
+  axisEnd,
   fractionForTime,
+  fractionForWindow,
   windowForFraction,
 } from './scrubberTime';
 
-const THUMB_SIZE = 22;
-// Bred nok til den længste "nu"-label ("Maintenant") og "10:45 PM"
-const CHIP_WIDTH = 80;
-
 // ReText-mønsteret: en ikke-redigerbar TextInput hvis tekst sættes via
-// animatedProps — så kan labelen opdatere på UI-tråden under drag,
+// animatedProps — så kan readouten opdatere på UI-tråden under drag,
 // uden en eneste React-render.
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 interface TimeScrubberProps {
-  // Ufiltrerede aktiviteter i viewporten — bruges til prikkerne på tracken
+  // Ufiltrerede aktiviteter i viewporten — bruges til prikkerne på aksen
   activities: EventDoc[];
   value: TimeWindow;
   onChange: (window: TimeWindow) => void;
 }
 
+// Formatér minutter-på-døgnet (kan overstige 1440 hen over midnat).
+// Ren aritmetik så samme funktion kan køre som worklet på UI-tråden.
+function formatMinutes(totalMinutes: number, use24h: boolean): string {
+  'worklet';
+  const minutes = ((totalMinutes % 1440) + 1440) % 1440;
+  const hh = Math.floor(minutes / 60);
+  const mm = minutes % 60;
+  const mmStr = mm < 10 ? `0${mm}` : `${mm}`;
+  if (use24h) {
+    return `${hh < 10 ? `0${hh}` : `${hh}`}:${mmStr}`;
+  }
+  const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  return `${h12}:${mmStr} ${hh < 12 ? 'AM' : 'PM'}`;
+}
+
 /**
- * Tidslinjen i bunden af kortet: NU ─●──●────●─── 24.
+ * Tidsvinduet i drawerens top (redesign 2026-07): fast døgnakse 06→06,
+ * fortiden markeret som låst, og synligheds-vinduet som en gradient-kapsel
+ * man trækker langs aksen. Readouten ("Nu → 13:24") følger med live.
  *
- * Under drag opdateres kun thumb + label (Reanimated, UI-tråden).
+ * Under drag opdateres kun kapsel + readout (Reanimated, UI-tråden).
  * Først ved slip committes vinduet via onChange — dét re-filtrerer
- * kortets pins. Adskillelsen holder gesturen på 60fps uanset hvor
- * dyr filtreringen er.
+ * kortets pins og drawer-listen.
  */
 export default function TimeScrubber({ activities, value, onChange }: TimeScrubberProps) {
   const { colors, t, timeFormat } = useTheme();
   const [trackWidth, setTrackWidth] = useState(0);
 
   const now = new Date();
-  // Ren aritmetik til worklet'en — Date-API'er undgås på UI-tråden
-  const nowMinutesOfDay = now.getHours() * 60 + now.getMinutes();
-  const spanMinutes = 24 * 60 - nowMinutesOfDay;
+  const nowFraction = fractionForTime(now, now);
+  const windowFraction = VISIBLE_WINDOW_MINUTES / AXIS_MINUTES;
+  const maxFraction = Math.max(1 - windowFraction, nowFraction);
   const use24h = timeFormat === '24h';
   const nowLabel = t.mapScrubNow;
 
-  const fraction = useSharedValue(value.mode === 'at' ? fractionForTime(value.at, now) : 0);
+  // Ren aritmetik til worklet'en — Date-API'er undgås på UI-tråden
+  const nowMinutesOnAxis = (now.getTime() - (axisEnd(now).getTime() - AXIS_MINUTES * 60_000)) / 60_000;
+  const nowSnapFraction = nowFraction + NOW_SNAP_MINUTES / AXIS_MINUTES;
+  // "Nu → HH:MM" — slut-tiden for NU-vinduet er fast pr. render
+  const nowReadout = `${nowLabel} → ${formatMinutes(Math.round(nowMinutesOnAxis) + AXIS_START_HOUR * 60 + VISIBLE_WINDOW_MINUTES, use24h)}`;
 
-  // Hold thumben i sync hvis vinduet sættes udefra (fx nulstilles til NU)
+  const fraction = useSharedValue(fractionForWindow(value, now));
+
+  // Hold kapslen i sync hvis vinduet sættes udefra (fx nulstilles til NU)
   useEffect(() => {
-    const target = value.mode === 'at' ? fractionForTime(value.at, new Date()) : 0;
-    fraction.value = withTiming(target, { duration: 180 });
+    fraction.value = withTiming(fractionForWindow(value, new Date()), { duration: 180 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   const commit = (f: number) => {
-    onChange(windowForFraction(f, new Date()));
+    onChange(windowForFraction(f, new Date(), VISIBLE_WINDOW_MINUTES));
   };
+
+  // Fingeren styrer kapslens MIDTE — venstre-kant-forankring føles som om
+  // kapslen hopper væk fra grebet
+  const halfWindowFraction = windowFraction / 2;
 
   const pan = Gesture.Pan()
     .onBegin(e => {
       'worklet';
       if (trackWidth > 0) {
-        fraction.value = Math.min(Math.max(e.x / trackWidth, 0), 1);
+        fraction.value = Math.min(Math.max(e.x / trackWidth - halfWindowFraction, nowFraction), maxFraction);
       }
     })
     .onUpdate(e => {
       'worklet';
       if (trackWidth > 0) {
-        fraction.value = Math.min(Math.max(e.x / trackWidth, 0), 1);
+        fraction.value = Math.min(Math.max(e.x / trackWidth - halfWindowFraction, nowFraction), maxFraction);
       }
     })
     .onFinalize(() => {
@@ -86,58 +110,63 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
       runOnJS(commit)(fraction.value);
     });
 
-  // Label formatteres med ren aritmetik (kvarter-rundet, som et slip vil committe)
-  const label = useDerivedValue(() => {
+  // Readout formatteres som et slip ville committe (kvarter-rundet)
+  const readout = useDerivedValue(() => {
     const f = fraction.value;
-    if (f <= NOW_SNAP_FRACTION) {
-      return nowLabel;
+    if (f <= nowSnapFraction) {
+      return nowReadout;
     }
-    const minutes = Math.min(Math.round((nowMinutesOfDay + f * spanMinutes) / 15) * 15, 24 * 60);
-    const hh = Math.floor(minutes / 60);
-    const mm = minutes % 60;
-    const mmStr = mm < 10 ? `0${mm}` : `${mm}`;
-    if (use24h) {
-      return `${hh < 10 ? `0${hh}` : `${hh}`}:${mmStr}`;
-    }
-    const isAm = hh < 12 || hh === 24;
-    const h12 = hh % 12 === 0 ? 12 : hh % 12;
-    return `${h12}:${mmStr} ${isAm ? 'AM' : 'PM'}`;
+    const startMinutes = Math.round((AXIS_START_HOUR * 60 + f * AXIS_MINUTES) / 15) * 15;
+    return `${formatMinutes(startMinutes, use24h)} → ${formatMinutes(startMinutes + VISIBLE_WINDOW_MINUTES, use24h)}`;
   });
 
-  const labelProps = useAnimatedProps(() => ({ text: label.value } as any));
+  const readoutProps = useAnimatedProps(() => ({ text: readout.value } as any));
 
-  const travel = Math.max(trackWidth - THUMB_SIZE, 0);
-  const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: fraction.value * travel }],
-  }));
-  const chipStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: fraction.value * travel + THUMB_SIZE / 2 - CHIP_WIDTH / 2 }],
+  const capsuleStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: fraction.value * trackWidth }],
   }));
 
-  // Prik pr. aktivitets-starttid; allerede igangværende lander på NU (0).
-  // Kun dagens events — morgendagens ville ellers clampe til højre kant
-  // og ligne en falsk prik ved midnat. Deduperet i 2,5%-buckets.
-  const dotFractions = useMemo(() => {
-    const seen = new Set<number>();
+  // Prik pr. aktivitets-starttid på døgnaksen. Events i det committede
+  // vindue farves; resten er dæmpede. Grace-periode-events (slut men
+  // ikke slettet) og events efter aksens slut udelades.
+  const dots = useMemo(() => {
     const dotNow = new Date();
-    const dayEndMs = endOfDay(dotNow).getTime();
+    const axisEndMs = axisEnd(dotNow).getTime();
+    const windowStart = value.mode === 'at' ? value.at : dotNow;
+    const buckets = new Map<number, boolean>();
     activities.forEach(ev => {
-      if (ev.time.getTime() > dayEndMs) return;
-      seen.add(Math.round(fractionForTime(ev.time, dotNow) * 40) / 40);
+      if (ev.time.getTime() > axisEndMs) return;
+      if (eventEndsAt(ev).getTime() < dotNow.getTime()) return;
+      const bucket = Math.round(fractionForTime(ev.time, dotNow) * 40) / 40;
+      const active = overlapsWindow(ev, windowStart);
+      buckets.set(bucket, (buckets.get(bucket) ?? false) || active);
     });
-    return [...seen];
-  }, [activities]);
+    return [...buckets.entries()].map(([f, active]) => ({ f, active }));
+  }, [activities, value]);
+
+  // Timelabels følger tidsformatet — 06/12/18/00 i 24h, 6 AM/12 PM/… i 12h
+  const axisHourText = (hour: number) =>
+    use24h
+      ? (hour < 10 ? `0${hour}` : `${hour}`)
+      : `${hour % 12 === 0 ? 12 : hour % 12} ${hour % 24 < 12 ? 'AM' : 'PM'}`;
+
+  const hourLabel = (hour: number, leftPct: number) => (
+    <View key={leftPct} style={[styles.hourLabelBox, { left: `${leftPct}%` }]}>
+      <Text style={[styles.hourLabel, { color: colors.textMuted }]}>{axisHourText(hour)}</Text>
+    </View>
+  );
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-      <Animated.View pointerEvents="none" style={[styles.chip, chipStyle]}>
+    <View style={styles.wrap}>
+      <View style={styles.headerRow}>
+        <Text style={[styles.windowLabel, { color: colors.textMuted }]}>{t.scrubberWindowLabel}</Text>
         <AnimatedTextInput
           editable={false}
-          defaultValue={nowLabel}
-          animatedProps={labelProps}
-          style={[styles.chipText, { color: colors.textPrimary }]}
+          defaultValue={nowReadout}
+          animatedProps={readoutProps}
+          style={[styles.readout, { color: colors.textPrimary }]}
         />
-      </Animated.View>
+      </View>
 
       <GestureDetector gesture={pan}>
         <View
@@ -145,28 +174,49 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
           onLayout={e => setTrackWidth(e.nativeEvent.layout.width)}
         >
           <View style={[styles.track, { backgroundColor: colors.borderLight }]} />
-          {dotFractions.map(f => (
+          {/* Fortiden: låst zone fra aksens start til nu */}
+          <View
+            style={[
+              styles.pastZone,
+              { width: `${nowFraction * 100}%`, backgroundColor: colors.textMuted },
+            ]}
+          />
+          {dots.map(({ f, active }) => (
             <View
               key={f}
               pointerEvents="none"
-              style={[styles.dot, { backgroundColor: colors.textMuted, left: `${f * 100}%` }]}
+              style={[
+                styles.dot,
+                { backgroundColor: active ? colors.primaryBlueText : colors.textMuted, left: `${f * 100}%` },
+                !active && styles.dotInactive,
+              ]}
             />
           ))}
-          <Animated.View pointerEvents="none" style={[styles.thumbWrap, thumbStyle]}>
+          {/* Synligheds-vinduet: kapsel med gradient + markeret forkant */}
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.capsuleWrap, { width: Math.max(windowFraction * trackWidth, 1) }, capsuleStyle]}
+          >
             <GradientView
-              colors={[colors.primaryBlue, colors.primaryRed]}
+              colors={[`${colors.primaryBlue}59`, `${colors.primaryRed}59`]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.thumb}
+              end={{ x: 1, y: 0 }}
+              style={styles.capsule}
             />
+            <View style={[styles.capsuleEdge, { backgroundColor: colors.primaryBlueText }]} />
           </Animated.View>
         </View>
       </GestureDetector>
 
-      <View style={styles.endLabels}>
-        <Text style={[styles.endLabel, { color: colors.textMuted }]}>{nowLabel}</Text>
-        <Text style={[styles.endLabel, { color: colors.textMuted }]}>
-          {use24h ? '24:00' : '12 AM'}
+      <View style={styles.hourLabels}>
+        <Text style={[styles.hourLabel, styles.hourLabelLeft, { color: colors.textMuted }]}>
+          {axisHourText(AXIS_START_HOUR)}
+        </Text>
+        {hourLabel(12, 25)}
+        {hourLabel(18, 50)}
+        {hourLabel(0, 75)}
+        <Text style={[styles.hourLabel, styles.hourLabelRight, { color: colors.textMuted }]}>
+          {axisHourText(AXIS_START_HOUR)}
         </Text>
       </View>
     </View>
@@ -174,38 +224,44 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    paddingTop: 30,
-    paddingBottom: 8,
-    paddingHorizontal: 14,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+  wrap: {
+    paddingHorizontal: 18,
+    paddingBottom: 10,
   },
-  chip: {
-    position: 'absolute',
-    top: 4,
-    left: 14,
-    width: CHIP_WIDTH,
+  headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  chipText: {
+  windowLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  readout: {
     fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: '800',
+    textAlign: 'right',
     padding: 0,
-    width: CHIP_WIDTH,
+    minWidth: 150,
   },
   trackArea: {
-    height: 32,
+    height: 26,
     justifyContent: 'center',
   },
   track: {
     height: 4,
     borderRadius: 2,
+  },
+  pastZone: {
+    position: 'absolute',
+    left: 0,
+    top: 9,
+    height: 8,
+    borderRadius: 4,
+    opacity: 0.18,
   },
   dot: {
     position: 'absolute',
@@ -213,26 +269,55 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     marginLeft: -3,
-    top: 13,
+    top: 10,
   },
-  thumbWrap: {
+  dotInactive: {
+    opacity: 0.55,
+  },
+  capsuleWrap: {
     position: 'absolute',
-    top: 5,
+    left: 0,
+    top: 3,
+    height: 20,
   },
-  thumb: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    borderRadius: THUMB_SIZE / 2,
-    borderWidth: 2,
-    borderColor: '#fff',
+  capsule: {
+    flex: 1,
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+    overflow: 'hidden',
   },
-  endLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 2,
+  capsuleEdge: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    borderTopLeftRadius: 3,
+    borderBottomLeftRadius: 3,
+    opacity: 0.75,
   },
-  endLabel: {
-    fontSize: 10,
-    fontWeight: '600',
+  hourLabels: {
+    position: 'relative',
+    height: 15,
+    marginTop: 7,
+  },
+  // Midterlabels centreres om deres akse-position via en fast-bredde boks
+  hourLabelBox: {
+    position: 'absolute',
+    width: 48,
+    marginLeft: -24,
+    alignItems: 'center',
+  },
+  hourLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  hourLabelLeft: {
+    position: 'absolute',
+    left: 0,
+  },
+  hourLabelRight: {
+    position: 'absolute',
+    right: 0,
   },
 });

@@ -1,74 +1,63 @@
 import {
-  endOfDay,
-  timeAtFraction,
+  axisStart,
+  axisEnd,
   fractionForTime,
-  roundToStep,
+  fractionForWindow,
   windowForFraction,
-  NOW_SNAP_FRACTION,
+  NOW_SNAP_MINUTES,
 } from '../../../../src/features/map/scrubberTime';
 
-// Fast "nu": middag lokal tid — giver et 12-timers scrubber-interval
+// Vinduesbredden er en parameter i modellen — testene bruger appens reelle
+const WINDOW = 180;
+
+// Fast "nu": middag lokal tid — midt på 06→06-aksen
 const noon = new Date(2026, 5, 15, 12, 0, 0, 0);
+// Kl. 02 om natten — aksen skal stadig være GÅRSDAGENS 06→06
+const night = new Date(2026, 5, 15, 2, 0, 0, 0);
 
-describe('endOfDay', () => {
-  test('returnerer næste midnat lokal tid', () => {
-    expect(endOfDay(noon)).toEqual(new Date(2026, 5, 16, 0, 0, 0, 0));
-  });
-});
-
-describe('timeAtFraction', () => {
-  test('0 giver nu, 1 giver midnat', () => {
-    expect(timeAtFraction(0, noon)).toEqual(noon);
-    expect(timeAtFraction(1, noon)).toEqual(endOfDay(noon));
+describe('axisStart / axisEnd', () => {
+  test('efter kl. 06 starter aksen samme dag kl. 06', () => {
+    expect(axisStart(noon)).toEqual(new Date(2026, 5, 15, 6, 0, 0, 0));
+    expect(axisEnd(noon)).toEqual(new Date(2026, 5, 16, 6, 0, 0, 0));
   });
 
-  test('0.5 giver midtpunktet mellem nu og midnat', () => {
-    expect(timeAtFraction(0.5, noon)).toEqual(new Date(2026, 5, 15, 18, 0, 0, 0));
-  });
-
-  test('clamper fraktioner uden for [0..1]', () => {
-    expect(timeAtFraction(-0.5, noon)).toEqual(noon);
-    expect(timeAtFraction(1.5, noon)).toEqual(endOfDay(noon));
+  test('før kl. 06 hører natten til det foregående døgn', () => {
+    expect(axisStart(night)).toEqual(new Date(2026, 5, 14, 6, 0, 0, 0));
+    expect(axisEnd(night)).toEqual(new Date(2026, 5, 15, 6, 0, 0, 0));
   });
 });
 
 describe('fractionForTime', () => {
-  test('er invers af timeAtFraction', () => {
-    const t = timeAtFraction(0.3, noon);
-    expect(fractionForTime(t, noon)).toBeCloseTo(0.3, 10);
+  test('aksens kanter giver 0 og 1, midten 0.5', () => {
+    expect(fractionForTime(new Date(2026, 5, 15, 6, 0), noon)).toBe(0);
+    expect(fractionForTime(new Date(2026, 5, 15, 18, 0), noon)).toBe(0.5);
+    expect(fractionForTime(new Date(2026, 5, 16, 6, 0), noon)).toBe(1);
   });
 
-  test('tidspunkter før nu (igangværende aktiviteter) lander på 0', () => {
-    const started = new Date(2026, 5, 15, 10, 30);
-    expect(fractionForTime(started, noon)).toBe(0);
-  });
-});
-
-describe('roundToStep', () => {
-  test('runder til nærmeste kvarter', () => {
-    expect(roundToStep(new Date(2026, 5, 15, 18, 7), noon)).toEqual(new Date(2026, 5, 15, 18, 0));
-    expect(roundToStep(new Date(2026, 5, 15, 18, 8), noon)).toEqual(new Date(2026, 5, 15, 18, 15));
+  test('middag ligger kvart inde på aksen', () => {
+    expect(fractionForTime(noon, noon)).toBe(0.25);
   });
 
-  test('runder aldrig til før nu', () => {
-    const justAfterNoon = new Date(2026, 5, 15, 12, 4);
-    expect(roundToStep(justAfterNoon, noon).getTime()).toBeGreaterThanOrEqual(noon.getTime());
-  });
-
-  test('runder aldrig til efter midnat', () => {
-    const nearMidnight = new Date(2026, 5, 15, 23, 59);
-    expect(roundToStep(nearMidnight, noon).getTime()).toBeLessThanOrEqual(endOfDay(noon).getTime());
+  test('clamper tider uden for aksen', () => {
+    expect(fractionForTime(new Date(2026, 5, 15, 3, 0), noon)).toBe(0);
+    expect(fractionForTime(new Date(2026, 5, 17, 12, 0), noon)).toBe(1);
   });
 });
 
 describe('windowForFraction', () => {
-  test('nær venstre kant giver NU-vinduet', () => {
-    expect(windowForFraction(0, noon)).toEqual({ mode: 'now' });
-    expect(windowForFraction(NOW_SNAP_FRACTION, noon)).toEqual({ mode: 'now' });
+  test('positioner i fortiden clampes til NU', () => {
+    expect(windowForFraction(0, noon, WINDOW)).toEqual({ mode: 'now' });
+    expect(windowForFraction(0.1, noon, WINDOW)).toEqual({ mode: 'now' });
   });
 
-  test('midt på tracken giver kvarter-rundet fremtidigt tidspunkt', () => {
-    const w = windowForFraction(0.5, noon);
+  test('positioner tæt på nu snapper til NU', () => {
+    // Middag = 0.25; NOW_SNAP_MINUTES efter nu er stadig NU
+    const justAhead = 0.25 + (NOW_SNAP_MINUTES - 1) / (24 * 60);
+    expect(windowForFraction(justAhead, noon, WINDOW)).toEqual({ mode: 'now' });
+  });
+
+  test('midt på aksen giver kvarter-rundet fremtidigt starttidspunkt', () => {
+    const w = windowForFraction(0.5, noon, WINDOW);
     expect(w.mode).toBe('at');
     if (w.mode === 'at') {
       expect(w.at).toEqual(new Date(2026, 5, 15, 18, 0));
@@ -76,11 +65,32 @@ describe('windowForFraction', () => {
     }
   });
 
-  test('helt til højre giver midnat', () => {
-    const w = windowForFraction(1, noon);
+  test('helt til højre clamper så vinduet stadig er inden for aksen', () => {
+    const w = windowForFraction(1, noon, WINDOW);
     expect(w.mode).toBe('at');
     if (w.mode === 'at') {
-      expect(w.at).toEqual(endOfDay(noon));
+      // axisEnd 06:00 minus 3 timer = 03:00
+      expect(w.at).toEqual(new Date(2026, 5, 16, 3, 0));
+    }
+  });
+
+  test('sent på aksen hvor nu > maks-position giver NU', () => {
+    // Kl. 04: axisEnd er 06, maks-start (06-3h=03) ligger FØR nu → alt clamper til nu
+    const late = new Date(2026, 5, 15, 4, 0, 0, 0);
+    expect(windowForFraction(1, late, WINDOW)).toEqual({ mode: 'now' });
+  });
+});
+
+describe('fractionForWindow', () => {
+  test('NU-vinduet lander på nu-positionen', () => {
+    expect(fractionForWindow({ mode: 'now' }, noon)).toBe(0.25);
+  });
+
+  test('er invers af windowForFraction for frie positioner', () => {
+    const w = windowForFraction(0.5, noon, WINDOW);
+    expect(w.mode).toBe('at');
+    if (w.mode === 'at') {
+      expect(fractionForWindow(w, noon)).toBeCloseTo(0.5, 10);
     }
   });
 });
