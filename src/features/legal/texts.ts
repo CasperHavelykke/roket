@@ -21,18 +21,19 @@ Applikationen indsamler desuden følgende personlige oplysninger:
 \u2022 E-mailadresse (til kontooprettelse og login)
 \u2022 Visningsnavn og bio (til din offentlige profil)
 \u2022 Fødselsdato (til aldersverifikation og valgfri visning af alder)
-\u2022 Køn og seksualitet (valgfrit, til din profil)
-\u2022 Profilbilleder og chatbilleder (gemt på Google Firebase Storage)
+\u2022 Profilbillede og chatbilleder (gemt på Google Firebase Storage)
+\u2022 Aktiviteter du opretter eller deltager i: titel, beskrivelse, mødested, tidspunkt og placering (aktiviteter og deres gruppechats slettes automatisk kort efter aktivitetens afslutning)
 \u2022 Chatbeskeder (gemt på Google Firebase Firestore)
 \u2022 Push notification-token (til levering af beskednotifikationer)
 
 # Placeringsdata
 
-Applikationen indsamler din enheds placering, mens appen er i brug, for at vise brugere i nærheden. Placeringsdata indsamles ikke når appen er lukket eller kører i baggrunden.
+Applikationen indsamler din enheds placering, mens appen er i brug, for at vise aktiviteter i nærheden. Placeringsdata indsamles ikke når appen er lukket eller kører i baggrunden.
 
 Placeringsdata bruges på følgende måder:
 
-\u2022 Nærhedsvisning: Din placering bruges til at vise dig andre brugere i nærheden og til at vise dem din omtrentlige afstand.
+\u2022 Nærhedsvisning: Din placering bruges til at vise dig aktiviteter i nærheden og beregne din omtrentlige afstand til dem.
+\u2022 Valgfrie notifikationer: Hvis du slår det til, bruges din placering til at give dig besked om nye aktiviteter i nærheden.
 \u2022 Placeringsdata gemmes på Google Firebase Firestore og opdateres mens du bruger Applikationen.
 
 Tjenesteudbyderen kan bruge de oplysninger, du har givet, til at kontakte dig fra tid til anden for at give dig vigtige oplysninger, påkrævede meddelelser og markedsføringsmateriale.
@@ -60,7 +61,7 @@ Du kan stoppe al indsamling af oplysninger fra Applikationen ved blot at afinsta
 
 Tjenesteudbyderen vil opbevare brugerleverede data, så længe du bruger Applikationen og i en rimelig tid derefter. Du kan slette din konto og alle tilknyttede data direkte i Applikationen via Indstillinger > Slet konto. Du kan også kontakte os på casper.roket@proton.me, og vi vil svare inden for rimelig tid.
 
-Ved kontosletning fjernes følgende data permanent: din profil, chatbeskeder, profilbilleder, feedback og rapporter.
+Ved kontosletning fjernes følgende data permanent: din profil, chatbeskeder, profilbillede, aktiviteter, feedback og rapporter.
 
 # Alderskrav og børnesikkerhed
 
@@ -78,7 +79,7 @@ Tjenesteudbyderen er optaget af at beskytte fortroligheden af dine oplysninger. 
 
 Denne privatlivspolitik kan opdateres fra tid til anden af enhver grund. Tjenesteudbyderen vil informere dig om eventuelle ændringer i privatlivspolitikken ved at opdatere denne side med den nye privatlivspolitik. Du rådes til at konsultere denne privatlivspolitik regelmæssigt for eventuelle ændringer, da fortsat brug anses som godkendelse af alle ændringer.
 
-Denne privatlivspolitik er gældende fra 2026-02-27.
+Denne privatlivspolitik er gældende fra 2026-07-07.
 
 # Dit samtykke
 
@@ -106,18 +107,19 @@ The Application also collects the following personal information:
 \u2022 Email address (for account creation and login)
 \u2022 Display name and bio (for your public profile)
 \u2022 Date of birth (for age verification and optional age display)
-\u2022 Gender and sexuality (optional, for your profile)
-\u2022 Profile photos and chat images (stored on Google Firebase Storage)
+\u2022 Profile photo and chat images (stored on Google Firebase Storage)
+\u2022 Activities you create or join: title, description, meeting place, time and location (activities and their group chats are automatically deleted shortly after the activity ends)
 \u2022 Chat messages (stored on Google Firebase Firestore)
 \u2022 Push notification token (for delivering message notifications)
 
 # Location Data
 
-The Application collects your device's location while the app is in use, to show nearby users. Location data is not collected when the app is closed or running in the background.
+The Application collects your device's location while the app is in use, to show nearby activities. Location data is not collected when the app is closed or running in the background.
 
 Location data is used in the following ways:
 
-\u2022 Proximity display: Your location is used to show you other users nearby and to show them your approximate distance.
+\u2022 Proximity display: Your location is used to show you nearby activities and calculate your approximate distance to them.
+\u2022 Optional notifications: If you enable it, your location is used to notify you about new activities nearby.
 \u2022 Location data is stored on Google Firebase Firestore and updated while you are using the Application.
 
 The Service Provider may use the information you provided to contact you from time to time to provide you with important information, required notices and marketing promotions.
@@ -145,7 +147,7 @@ You can stop all collection of information by the Application easily by uninstal
 
 The Service Provider will retain User Provided data for as long as you use the Application and for a reasonable time thereafter. You can delete your account and all associated data directly in the Application via Settings > Delete Account. You may also contact us at casper.roket@proton.me and we will respond in a reasonable time.
 
-Upon account deletion, the following data is permanently removed: your profile, chat messages, profile photos, feedback and reports.
+Upon account deletion, the following data is permanently removed: your profile, chat messages, profile photo, activities, feedback and reports.
 
 # Age Requirement and Child Safety
 
@@ -163,7 +165,7 @@ The Service Provider is concerned about safeguarding the confidentiality of your
 
 This Privacy Policy may be updated from time to time for any reason. The Service Provider will notify you of any changes to the Privacy Policy by updating this page with the new Privacy Policy. You are advised to consult this Privacy Policy regularly for any changes, as continued use is deemed approval of all changes.
 
-This privacy policy is effective as of 2026-02-27.
+This privacy policy is effective as of 2026-07-07.
 
 # Your Consent
 
@@ -191,18 +193,19 @@ La Aplicación también recopila la siguiente información personal:
 \u2022 Dirección de correo electrónico (para la creación de cuenta e inicio de sesión)
 \u2022 Nombre visible y bio (para tu perfil público)
 \u2022 Fecha de nacimiento (para verificación de edad y visualización opcional de edad)
-\u2022 Género y sexualidad (opcional, para tu perfil)
-\u2022 Fotos de perfil e imágenes de chat (almacenadas en Google Firebase Storage)
+\u2022 Foto de perfil e imágenes de chat (almacenadas en Google Firebase Storage)
+\u2022 Actividades que creas o a las que te unes: título, descripción, lugar de encuentro, hora y ubicación (las actividades y sus chats de grupo se eliminan automáticamente poco después de que termine la actividad)
 \u2022 Mensajes de chat (almacenados en Google Firebase Firestore)
 \u2022 Token de notificaciones push (para la entrega de notificaciones de mensajes)
 
 # Datos de ubicación
 
-La Aplicación recopila la ubicación de tu dispositivo mientras la app está en uso, para mostrar usuarios cercanos. Los datos de ubicación no se recopilan cuando la app está cerrada o funcionando en segundo plano.
+La Aplicación recopila la ubicación de tu dispositivo mientras la app está en uso, para mostrar actividades cercanas. Los datos de ubicación no se recopilan cuando la app está cerrada o funcionando en segundo plano.
 
 Los datos de ubicación se utilizan de las siguientes maneras:
 
-\u2022 Visualización de proximidad: Tu ubicación se utiliza para mostrarte otros usuarios cercanos y para mostrarles tu distancia aproximada.
+\u2022 Visualización de proximidad: Tu ubicación se utiliza para mostrarte actividades cercanas y calcular tu distancia aproximada a ellas.
+\u2022 Notificaciones opcionales: Si lo activas, tu ubicación se utiliza para avisarte de nuevas actividades cercanas.
 \u2022 Los datos de ubicación se almacenan en Google Firebase Firestore y se actualizan mientras utilizas la Aplicación.
 
 El Proveedor del Servicio puede utilizar la información que proporcionaste para contactarte de vez en cuando para proporcionarte información importante, avisos requeridos y promociones de marketing.
@@ -230,7 +233,7 @@ Puedes detener toda la recopilación de información por parte de la Aplicación
 
 El Proveedor del Servicio conservará los datos proporcionados por el usuario mientras utilices la Aplicación y durante un tiempo razonable después. Puedes eliminar tu cuenta y todos los datos asociados directamente en la Aplicación a través de Ajustes > Eliminar cuenta. También puedes contactarnos en casper.roket@proton.me y responderemos en un tiempo razonable.
 
-Al eliminar la cuenta, se eliminan permanentemente los siguientes datos: tu perfil, mensajes de chat, fotos de perfil, comentarios y reportes.
+Al eliminar la cuenta, se eliminan permanentemente los siguientes datos: tu perfil, mensajes de chat, foto de perfil, actividades, comentarios y reportes.
 
 # Requisito de edad y seguridad infantil
 
@@ -248,7 +251,7 @@ El Proveedor del Servicio se preocupa por proteger la confidencialidad de tu inf
 
 Esta Política de Privacidad puede actualizarse de vez en cuando por cualquier motivo. El Proveedor del Servicio te notificará cualquier cambio en la Política de Privacidad actualizando esta página con la nueva Política de Privacidad. Se te recomienda consultar esta Política de Privacidad regularmente para cualquier cambio, ya que el uso continuado se considera aprobación de todos los cambios.
 
-Esta política de privacidad es efectiva a partir del 2026-02-27.
+Esta política de privacidad es efectiva a partir del 2026-07-07.
 
 # Tu consentimiento
 
@@ -276,18 +279,19 @@ Die Anwendung erhebt außerdem folgende personenbezogene Daten:
 \u2022 E-Mail-Adresse (für Kontoerstellung und Anmeldung)
 \u2022 Anzeigename und Bio (für Ihr öffentliches Profil)
 \u2022 Geburtsdatum (für Altersverifikation und optionale Altersanzeige)
-\u2022 Geschlecht und Sexualität (optional, für Ihr Profil)
-\u2022 Profilfotos und Chat-Bilder (gespeichert auf Google Firebase Storage)
+\u2022 Profilfoto und Chat-Bilder (gespeichert auf Google Firebase Storage)
+\u2022 Aktivitäten, die Sie erstellen oder an denen Sie teilnehmen: Titel, Beschreibung, Treffpunkt, Zeitpunkt und Standort (Aktivitäten und ihre Gruppenchats werden kurz nach Ende der Aktivität automatisch gelöscht)
 \u2022 Chat-Nachrichten (gespeichert auf Google Firebase Firestore)
 \u2022 Push-Benachrichtigungs-Token (für die Zustellung von Nachrichtenbenachrichtigungen)
 
 # Standortdaten
 
-Die Anwendung erfasst den Standort Ihres Geräts während der Nutzung der App, um Nutzer in der Nähe anzuzeigen. Standortdaten werden nicht erfasst, wenn die App geschlossen ist oder im Hintergrund läuft.
+Die Anwendung erfasst den Standort Ihres Geräts während der Nutzung der App, um Aktivitäten in der Nähe anzuzeigen. Standortdaten werden nicht erfasst, wenn die App geschlossen ist oder im Hintergrund läuft.
 
 Standortdaten werden folgendermaßen verwendet:
 
-\u2022 Nähe-Anzeige: Ihr Standort wird verwendet, um Ihnen andere Nutzer in der Nähe anzuzeigen und ihnen Ihre ungefähre Entfernung zu zeigen.
+\u2022 Nähe-Anzeige: Ihr Standort wird verwendet, um Ihnen Aktivitäten in der Nähe anzuzeigen und Ihre ungefähre Entfernung zu ihnen zu berechnen.
+\u2022 Optionale Benachrichtigungen: Wenn Sie dies aktivieren, wird Ihr Standort verwendet, um Sie über neue Aktivitäten in der Nähe zu informieren.
 \u2022 Standortdaten werden auf Google Firebase Firestore gespeichert und aktualisiert, während Sie die Anwendung nutzen.
 
 Der Dienstanbieter kann die von Ihnen bereitgestellten Informationen verwenden, um Sie gelegentlich zu kontaktieren, um Ihnen wichtige Informationen, erforderliche Mitteilungen und Marketingaktionen zukommen zu lassen.
@@ -315,7 +319,7 @@ Sie können die Erhebung aller Informationen durch die Anwendung einfach durch D
 
 Der Dienstanbieter bewahrt vom Nutzer bereitgestellte Daten so lange auf, wie Sie die Anwendung nutzen, und für einen angemessenen Zeitraum danach. Sie können Ihr Konto und alle zugehörigen Daten direkt in der Anwendung über Einstellungen > Konto löschen entfernen. Sie können uns auch unter casper.roket@proton.me kontaktieren, und wir werden innerhalb einer angemessenen Frist antworten.
 
-Bei der Kontolöschung werden folgende Daten dauerhaft entfernt: Ihr Profil, Chat-Nachrichten, Profilfotos, Feedback und Meldungen.
+Bei der Kontolöschung werden folgende Daten dauerhaft entfernt: Ihr Profil, Chat-Nachrichten, Profilfoto, Aktivitäten, Feedback und Meldungen.
 
 # Altersanforderung und Kindersicherheit
 
@@ -333,7 +337,7 @@ Der Dienstanbieter ist um den Schutz der Vertraulichkeit Ihrer Informationen bem
 
 Diese Datenschutzrichtlinie kann jederzeit und aus jedem Grund aktualisiert werden. Der Dienstanbieter wird Sie über Änderungen der Datenschutzrichtlinie informieren, indem er diese Seite mit der neuen Datenschutzrichtlinie aktualisiert. Es wird empfohlen, diese Datenschutzrichtlinie regelmäßig auf Änderungen zu überprüfen, da die fortgesetzte Nutzung als Zustimmung zu allen Änderungen gilt.
 
-Diese Datenschutzrichtlinie gilt ab dem 27.02.2026.
+Diese Datenschutzrichtlinie gilt ab dem 07.07.2026.
 
 # Ihre Einwilligung
 
@@ -361,18 +365,19 @@ L'Application collecte également les informations personnelles suivantes :
 \u2022 Adresse e-mail (pour la création de compte et la connexion)
 \u2022 Nom d'affichage et bio (pour votre profil public)
 \u2022 Date de naissance (pour la vérification de l'âge et l'affichage optionnel de l'âge)
-\u2022 Genre et sexualité (optionnel, pour votre profil)
-\u2022 Photos de profil et images de chat (stockées sur Google Firebase Storage)
+\u2022 Photo de profil et images de chat (stockées sur Google Firebase Storage)
+\u2022 Activités que vous créez ou rejoignez : titre, description, lieu de rencontre, heure et localisation (les activités et leurs chats de groupe sont automatiquement supprimés peu après la fin de l'activité)
 \u2022 Messages de chat (stockés sur Google Firebase Firestore)
 \u2022 Jeton de notification push (pour la livraison des notifications de messages)
 
 # Données de localisation
 
-L'Application collecte la localisation de votre appareil pendant l'utilisation de l'app, pour afficher les utilisateurs à proximité. Les données de localisation ne sont pas collectées lorsque l'application est fermée ou fonctionne en arrière-plan.
+L'Application collecte la localisation de votre appareil pendant l'utilisation de l'app, pour afficher les activités à proximité. Les données de localisation ne sont pas collectées lorsque l'application est fermée ou fonctionne en arrière-plan.
 
 Les données de localisation sont utilisées de la manière suivante :
 
-\u2022 Affichage de proximité : Votre localisation est utilisée pour vous montrer d'autres utilisateurs à proximité et pour leur montrer votre distance approximative.
+\u2022 Affichage de proximité : Votre localisation est utilisée pour vous montrer les activités à proximité et calculer votre distance approximative par rapport à elles.
+\u2022 Notifications optionnelles : Si vous les activez, votre localisation est utilisée pour vous informer des nouvelles activités à proximité.
 \u2022 Les données de localisation sont stockées sur Google Firebase Firestore et mises à jour pendant que vous utilisez l'Application.
 
 Le Fournisseur de services peut utiliser les informations que vous avez fournies pour vous contacter de temps à autre afin de vous fournir des informations importantes, des avis requis et des promotions marketing.
@@ -400,7 +405,7 @@ Vous pouvez arrêter toute collecte d'informations par l'Application simplement 
 
 Le Fournisseur de services conservera les données fournies par l'utilisateur aussi longtemps que vous utilisez l'Application et pendant une durée raisonnable par la suite. Vous pouvez supprimer votre compte et toutes les données associées directement dans l'Application via Paramètres > Supprimer le compte. Vous pouvez également nous contacter à casper.roket@proton.me et nous répondrons dans un délai raisonnable.
 
-Lors de la suppression du compte, les données suivantes sont définitivement supprimées : votre profil, vos messages de chat, vos photos de profil, vos commentaires et signalements.
+Lors de la suppression du compte, les données suivantes sont définitivement supprimées : votre profil, vos messages de chat, votre photo de profil, vos activités, vos commentaires et signalements.
 
 # Exigence d'âge et sécurité des enfants
 
@@ -418,7 +423,7 @@ Le Fournisseur de services se soucie de la protection de la confidentialité de 
 
 Cette Politique de confidentialité peut être mise à jour de temps à autre pour quelque raison que ce soit. Le Fournisseur de services vous informera de tout changement de la Politique de confidentialité en mettant à jour cette page avec la nouvelle Politique de confidentialité. Il vous est conseillé de consulter régulièrement cette Politique de confidentialité pour tout changement, car l'utilisation continue est considérée comme une approbation de tous les changements.
 
-Cette politique de confidentialité est en vigueur à compter du 27/02/2026.
+Cette politique de confidentialité est en vigueur à compter du 07/07/2026.
 
 # Votre consentement
 
@@ -446,18 +451,19 @@ A Aplicação também recolhe as seguintes informações pessoais:
 \u2022 Endereço de e-mail (para criação de conta e login)
 \u2022 Nome visível e bio (para o teu perfil público)
 \u2022 Data de nascimento (para verificação de idade e exibição opcional de idade)
-\u2022 Género e sexualidade (opcional, para o teu perfil)
-\u2022 Fotos de perfil e imagens de chat (armazenadas no Google Firebase Storage)
+\u2022 Foto de perfil e imagens de chat (armazenadas no Google Firebase Storage)
+\u2022 Atividades que crias ou em que participas: título, descrição, local de encontro, hora e localização (as atividades e os seus chats de grupo são automaticamente eliminados pouco depois do fim da atividade)
 \u2022 Mensagens de chat (armazenadas no Google Firebase Firestore)
 \u2022 Token de notificações push (para entrega de notificações de mensagens)
 
 # Dados de localização
 
-A Aplicação recolhe a localização do teu dispositivo enquanto a app está em uso, para mostrar utilizadores próximos. Os dados de localização não são recolhidos quando a app está fechada ou a funcionar em segundo plano.
+A Aplicação recolhe a localização do teu dispositivo enquanto a app está em uso, para mostrar atividades próximas. Os dados de localização não são recolhidos quando a app está fechada ou a funcionar em segundo plano.
 
 Os dados de localização são utilizados das seguintes formas:
 
-\u2022 Exibição de proximidade: A tua localização é utilizada para te mostrar outros utilizadores próximos e para lhes mostrar a tua distância aproximada.
+\u2022 Exibição de proximidade: A tua localização é utilizada para te mostrar atividades próximas e calcular a tua distância aproximada até elas.
+\u2022 Notificações opcionais: Se ativares, a tua localização é utilizada para te avisar sobre novas atividades próximas.
 \u2022 Os dados de localização são armazenados no Google Firebase Firestore e atualizados enquanto utilizas a Aplicação.
 
 O Prestador de Serviços pode utilizar as informações que forneceste para te contactar ocasionalmente para te fornecer informações importantes, avisos obrigatórios e promoções de marketing.
@@ -485,7 +491,7 @@ Podes parar toda a recolha de informações pela Aplicação simplesmente desins
 
 O Prestador de Serviços reterá os dados fornecidos pelo utilizador enquanto utilizares a Aplicação e por um período razoável depois. Podes eliminar a tua conta e todos os dados associados diretamente na Aplicação através de Definições > Eliminar conta. Também podes contactar-nos em casper.roket@proton.me e responderemos num prazo razoável.
 
-Ao eliminar a conta, os seguintes dados são permanentemente removidos: o teu perfil, mensagens de chat, fotos de perfil, feedback e denúncias.
+Ao eliminar a conta, os seguintes dados são permanentemente removidos: o teu perfil, mensagens de chat, foto de perfil, atividades, feedback e denúncias.
 
 # Requisito de idade e segurança infantil
 
@@ -503,7 +509,7 @@ O Prestador de Serviços preocupa-se com a proteção da confidencialidade das t
 
 Esta Política de Privacidade pode ser atualizada ocasionalmente por qualquer motivo. O Prestador de Serviços notificar-te-á de quaisquer alterações à Política de Privacidade atualizando esta página com a nova Política de Privacidade. Aconselhamos-te a consultar regularmente esta Política de Privacidade para quaisquer alterações, uma vez que o uso continuado é considerado aprovação de todas as alterações.
 
-Esta política de privacidade é efetiva a partir de 27/02/2026.
+Esta política de privacidade é efetiva a partir de 07/07/2026.
 
 # O teu consentimento
 
@@ -857,9 +863,10 @@ If you no longer have access to the app, you can request account deletion by sen
 
 When your account is deleted, the following data is permanently removed:
 
-\u2022 Your profile (display name, bio, gender, sexuality, date of birth)
-\u2022 All profile photos and chat images
+\u2022 Your profile (display name, bio, date of birth)
+\u2022 Your profile photo and chat images
 \u2022 All chat messages and conversations
+\u2022 Activities you have created
 \u2022 Your location data
 \u2022 Your feedback and reports
 \u2022 Your Firebase authentication account
@@ -882,9 +889,10 @@ Hvis du ikke længere har adgang til appen, kan du anmode om kontosletning ved a
 
 Når din konto slettes, fjernes følgende data permanent:
 
-\u2022 Din profil (visningsnavn, bio, køn, seksualitet, fødselsdato)
-\u2022 Alle profilbilleder og chatbilleder
+\u2022 Din profil (visningsnavn, bio, fødselsdato)
+\u2022 Dit profilbillede og chatbilleder
 \u2022 Alle chatbeskeder og samtaler
+\u2022 Aktiviteter du har oprettet
 \u2022 Dine placeringsdata
 \u2022 Din feedback og rapporter
 \u2022 Din Firebase-godkendelseskonto
@@ -907,9 +915,10 @@ Si ya no tienes acceso a la aplicación, puedes solicitar la eliminación de tu 
 
 Cuando se elimina tu cuenta, los siguientes datos se eliminan permanentemente:
 
-\u2022 Tu perfil (nombre visible, bio, género, sexualidad, fecha de nacimiento)
-\u2022 Todas las fotos de perfil e imágenes de chat
+\u2022 Tu perfil (nombre visible, bio, fecha de nacimiento)
+\u2022 Tu foto de perfil e imágenes de chat
 \u2022 Todos los mensajes de chat y conversaciones
+\u2022 Las actividades que has creado
 \u2022 Tus datos de ubicación
 \u2022 Tu feedback y reportes
 \u2022 Tu cuenta de autenticación de Firebase
@@ -932,9 +941,10 @@ Wenn Sie keinen Zugang mehr zur App haben, können Sie die Kontolöschung beantr
 
 Wenn Ihr Konto gelöscht wird, werden folgende Daten dauerhaft entfernt:
 
-\u2022 Ihr Profil (Anzeigename, Bio, Geschlecht, Sexualität, Geburtsdatum)
-\u2022 Alle Profilfotos und Chat-Bilder
+\u2022 Ihr Profil (Anzeigename, Bio, Geburtsdatum)
+\u2022 Ihr Profilfoto und Chat-Bilder
 \u2022 Alle Chat-Nachrichten und Gespräche
+\u2022 Von Ihnen erstellte Aktivitäten
 \u2022 Ihre Standortdaten
 \u2022 Ihr Feedback und Meldungen
 \u2022 Ihr Firebase-Authentifizierungskonto
@@ -957,9 +967,10 @@ Si vous n'avez plus accès à l'application, vous pouvez demander la suppression
 
 Lorsque votre compte est supprimé, les données suivantes sont définitivement supprimées :
 
-\u2022 Votre profil (nom d'affichage, bio, genre, sexualité, date de naissance)
-\u2022 Toutes les photos de profil et images de chat
+\u2022 Votre profil (nom d'affichage, bio, date de naissance)
+\u2022 Votre photo de profil et images de chat
 \u2022 Tous les messages de chat et conversations
+\u2022 Les activités que vous avez créées
 \u2022 Vos données de localisation
 \u2022 Vos commentaires et signalements
 \u2022 Votre compte d'authentification Firebase
@@ -982,9 +993,10 @@ Se já não tiveres acesso à aplicação, podes solicitar a eliminação da tua
 
 Quando a tua conta é eliminada, os seguintes dados são permanentemente removidos:
 
-\u2022 O teu perfil (nome visível, bio, género, sexualidade, data de nascimento)
-\u2022 Todas as fotos de perfil e imagens de chat
+\u2022 O teu perfil (nome visível, bio, data de nascimento)
+\u2022 A tua foto de perfil e imagens de chat
 \u2022 Todas as mensagens de chat e conversas
+\u2022 As atividades que criaste
 \u2022 Os teus dados de localização
 \u2022 O teu feedback e denúncias
 \u2022 A tua conta de autenticação Firebase

@@ -351,34 +351,75 @@ exports.onUserDeleted = auth.user().onDelete(async (user) => {
   const uid = user.uid;
   const bucket = getStorage().bucket();
 
+  // Hjælper: slet en chat helt — beskeder (i 450-batches, grænsen er 500),
+  // selve chat-doc'et og chat-billeder i Storage
+  const deleteChatDeep = async (chatId) => {
+    const chatRef = db.collection('chats').doc(chatId);
+    const messagesSnapshot = await chatRef.collection('messages').get();
+    const docs = messagesSnapshot.docs;
+    for (let i = 0; i < docs.length; i += 450) {
+      const batch = db.batch();
+      docs.slice(i, i + 450).forEach(msg => batch.delete(msg.ref));
+      await batch.commit();
+    }
+    await chatRef.delete().catch(() => {});
+    const [chatImageFiles] = await bucket.getFiles({ prefix: `chatImages/${chatId}/` }).catch(() => [[]]);
+    for (const file of chatImageFiles) {
+      await file.delete().catch(() => {});
+    }
+  };
+
   // 1. Slet bruger-profil
   await db.collection('users').doc(uid).delete().catch(() => {});
 
   // 2. Slet bruger-lokation
   await db.collection('userLocations').doc(uid).delete().catch(() => {});
 
-  // 3. Slet chats og deres beskeder (subcollections)
+  // 3. Slet brugerens EGNE events helt (inkl. gruppechat) — en aktivitet
+  //    uden vært er død, og privatlivspolitikken lover sletningen
+  const ownEventsSnapshot = await db.collection('events')
+    .where('creatorId', '==', uid)
+    .get();
+  for (const eventDoc of ownEventsSnapshot.docs) {
+    const chatId = eventDoc.data().chatId;
+    if (chatId) await deleteChatDeep(chatId);
+    await eventDoc.ref.delete().catch(() => {});
+  }
+
+  // 4. Andres events: fjern kun brugeren fra deltagerlisten
+  const joinedEventsSnapshot = await db.collection('events')
+    .where('participantIds', 'array-contains', uid)
+    .get();
+  for (const doc of joinedEventsSnapshot.docs) {
+    await doc.ref.update({ participantIds: FieldValue.arrayRemove(uid) }).catch(() => {});
+  }
+
+  // 5. Chats: event-gruppechats tilhører de ANDRE deltagere — dem forlader
+  //    brugeren kun (før pivotet var alle chats 1:1, så alt blev slettet;
+  //    det ville nu nuke fælles gruppechats). 1:1- og connection-chats
+  //    slettes helt som hidtil.
   const chatsSnapshot = await db.collection('chats')
     .where('participants', 'array-contains', uid)
     .get();
-
   for (const chatDoc of chatsSnapshot.docs) {
-    const chatId = chatDoc.id;
-    // Slet alle beskeder i chatten
-    const messagesSnapshot = await chatDoc.ref.collection('messages').get();
-    const batch = db.batch();
-    messagesSnapshot.docs.forEach(msg => batch.delete(msg.ref));
-    batch.delete(chatDoc.ref);
-    await batch.commit();
-
-    // Slet chat-billeder fra Storage
-    const [chatImageFiles] = await bucket.getFiles({ prefix: `chatImages/${chatId}/` }).catch(() => [[]]);
-    for (const file of chatImageFiles) {
-      await file.delete().catch(() => {});
+    if (chatDoc.data().eventId) {
+      await chatDoc.ref.update({ participants: FieldValue.arrayRemove(uid) }).catch(() => {});
+    } else {
+      await deleteChatDeep(chatDoc.id);
     }
   }
 
-  // 4. Slet feedback
+  // 6. Slet kontakt-anmodninger hvor brugeren er part
+  for (const field of ['from', 'to']) {
+    const requestsSnapshot = await db.collection('contactRequests')
+      .where(field, '==', uid)
+      .get();
+    for (const doc of requestsSnapshot.docs) {
+      await doc.ref.delete().catch(() => {});
+    }
+  }
+
+  // 7. Slet feedback
   const feedbackSnapshot = await db.collection('feedback')
     .where('userId', '==', uid)
     .get();
@@ -402,8 +443,10 @@ exports.onUserDeleted = auth.user().onDelete(async (user) => {
     await doc.ref.delete();
   }
 
-  // 7. Slet billeder fra Storage
+  // 10. Slet billeder fra Storage — avataren (Pivot 2.0's eneste billede)
+  //     plus de gamle grid-stier (levn indtil F7e-backfillen har ryddet dem)
   const filesToDelete = [
+    `profileAvatars/${uid}.jpg`,
     `profilePhotos/${uid}.jpg`,
     ...Array.from({ length: 5 }, (_, i) => `profilePhotos/${uid}_extra_${i}.jpg`),
   ];
@@ -990,28 +1033,67 @@ exports.adminDeleteUser = onCall(async (request) => {
   await db.collection('userLocations').doc(uid).delete().catch(() => {});
   results.push('lokation slettet');
 
-  // 3. Slet chats, beskeder og chat-billeder
-  const chatsSnapshot = await db.collection('chats')
-    .where('participants', 'array-contains', uid)
-    .get();
-
-  for (const chatDoc of chatsSnapshot.docs) {
-    const chatId = chatDoc.id;
-    const messagesSnapshot = await chatDoc.ref.collection('messages').get();
-    const batch = db.batch();
-    messagesSnapshot.docs.forEach(msg => batch.delete(msg.ref));
-    batch.delete(chatDoc.ref);
-    await batch.commit();
-
-    // Slet chat-billeder fra Storage
+  // Hjælper: slet en chat helt (beskeder i 450-batches + chat-billeder)
+  const deleteChatDeep = async (chatId) => {
+    const chatRef = db.collection('chats').doc(chatId);
+    const messagesSnapshot = await chatRef.collection('messages').get();
+    const docs = messagesSnapshot.docs;
+    for (let i = 0; i < docs.length; i += 450) {
+      const batch = db.batch();
+      docs.slice(i, i + 450).forEach(msg => batch.delete(msg.ref));
+      await batch.commit();
+    }
+    await chatRef.delete().catch(() => {});
     try {
       const [chatImageFiles] = await bucket.getFiles({ prefix: `chatImages/${chatId}/` });
       for (const file of chatImageFiles) {
         await file.delete().catch(() => {});
       }
     } catch { /* ignore */ }
+  };
+
+  // 3a. Brugerens egne events slettes helt (inkl. gruppechat)
+  const ownEventsSnapshot = await db.collection('events')
+    .where('creatorId', '==', uid)
+    .get();
+  for (const eventDoc of ownEventsSnapshot.docs) {
+    const chatId = eventDoc.data().chatId;
+    if (chatId) await deleteChatDeep(chatId);
+    await eventDoc.ref.delete().catch(() => {});
   }
-  results.push(`${chatsSnapshot.size} chats slettet`);
+  results.push(`${ownEventsSnapshot.size} egne events slettet`);
+
+  // 3b. Andres events: fjern kun brugeren fra deltagerlisten
+  const joinedEventsSnapshot = await db.collection('events')
+    .where('participantIds', 'array-contains', uid)
+    .get();
+  for (const d of joinedEventsSnapshot.docs) {
+    await d.ref.update({ participantIds: FieldValue.arrayRemove(uid) }).catch(() => {});
+  }
+
+  // 3c. Chats: gruppechats forlades kun (de tilhører de andre deltagere);
+  //     1:1- og connection-chats slettes helt
+  const chatsSnapshot = await db.collection('chats')
+    .where('participants', 'array-contains', uid)
+    .get();
+  for (const chatDoc of chatsSnapshot.docs) {
+    if (chatDoc.data().eventId) {
+      await chatDoc.ref.update({ participants: FieldValue.arrayRemove(uid) }).catch(() => {});
+    } else {
+      await deleteChatDeep(chatDoc.id);
+    }
+  }
+  results.push(`${chatsSnapshot.size} chats håndteret`);
+
+  // 3d. Slet kontakt-anmodninger hvor brugeren er part
+  for (const field of ['from', 'to']) {
+    const requestsSnapshot = await db.collection('contactRequests')
+      .where(field, '==', uid)
+      .get();
+    for (const d of requestsSnapshot.docs) {
+      await d.ref.delete().catch(() => {});
+    }
+  }
 
   // 4. Slet feedback + feedback-billeder
   const feedbackSnapshot = await db.collection('feedback')
@@ -1043,8 +1125,10 @@ exports.adminDeleteUser = onCall(async (request) => {
   }
   results.push(`${flaggedSnapshot.size} flaggedContent slettet`);
 
-  // 7. Slet profil- og feedback-billeder fra Storage
+  // 7. Slet profil- og feedback-billeder fra Storage — avataren plus de
+  //    gamle grid-stier (levn indtil F7e-backfillen har ryddet dem)
   const filesToDelete = [
+    `profileAvatars/${uid}.jpg`,
     `profilePhotos/${uid}.jpg`,
     ...Array.from({ length: 5 }, (_, i) => `profilePhotos/${uid}_extra_${i}.jpg`),
   ];
