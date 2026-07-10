@@ -319,7 +319,7 @@ export default function SettingsScreen({ navigation }: any) {
           )}
         </View>
 
-        <Text style={styles.copyright}>© 2026 Røket · v1.1.9 Beta</Text>
+        <Text style={styles.copyright}>© 2026 Røket · v2.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
