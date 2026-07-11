@@ -103,16 +103,32 @@ exports.sendChatNotification = onDocumentCreated(
       const recipients = (chatData.participants ?? []).filter(id => id !== senderId);
       if (recipients.length === 0) return;
 
+      // Ulæst-tæller for grupper bor HER: klienten kan kun nemt tælle op
+      // for én modpart (1:1), så serveren tæller op for alle modtagere.
+      // ChatScreen nulstiller sit eget felt når chatten åbnes.
+      const increments = {};
+      recipients.forEach(id => {
+        increments[`unreadCount.${id}`] = FieldValue.increment(1);
+      });
+      await chatDoc.ref.update(increments).catch(err =>
+        console.warn('Group unreadCount increment failed:', err),
+      );
+
       const recipientDocs = await Promise.all(
         recipients.map(id => db.collection('users').doc(id).get()),
       );
 
+      // Diagnostik (F6-lektien): stille filter-stier SKAL logge tal
+      let sent = 0;
+      let noToken = 0;
+      let blocked = 0;
       await Promise.all(recipientDocs.map(async docSnap => {
         const rData = docSnap.data();
         const token = rData?.fcmToken;
-        if (!token) return;
-        if ((rData?.blockedUsers ?? []).includes(senderId)) return;
+        if (!token) { noToken++; return; }
+        if ((rData?.blockedUsers ?? []).includes(senderId)) { blocked++; return; }
         try {
+          sent++;
           await getMessaging().send({
             token,
             notification: {
@@ -134,6 +150,7 @@ exports.sendChatNotification = onDocumentCreated(
           console.error('Group push failed for', docSnap.id, err);
         }
       }));
+      console.log(`Group push ${chatId}: ${sent} sent, ${noToken} no token, ${blocked} blocked (of ${recipients.length})`);
       return;
     }
 
@@ -145,11 +162,17 @@ exports.sendChatNotification = onDocumentCreated(
     const recipientData = recipientDoc.data();
     const fcmToken = recipientData?.fcmToken;
 
-    if (!fcmToken) return; // Modtager har ikke notifikationer aktiveret
+    if (!fcmToken) {
+      console.log(`1:1 push ${chatId}: skipped — recipient ${recipientId} has no token`);
+      return;
+    }
 
     // Tjek om modtageren har blokeret afsenderen
     const blockedUsers = recipientData?.blockedUsers ?? [];
-    if (blockedUsers.includes(senderId)) return;
+    if (blockedUsers.includes(senderId)) {
+      console.log(`1:1 push ${chatId}: skipped — sender blocked`);
+      return;
+    }
 
     await getMessaging().send({
       token: fcmToken,

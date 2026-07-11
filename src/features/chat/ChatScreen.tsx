@@ -543,7 +543,10 @@ export default function ChatScreen({ route, navigation }: any) {
           lastMessage: t.chatPhotoLabel,
           lastMessageTime: firestore.FieldValue.serverTimestamp(),
           lastMessageSenderId: currentUser.uid,
-          unreadCount: { [otherUser.id]: firestore.FieldValue.increment(uris.length) },
+          // Gruppe-tælleren øges server-side (sendChatNotification) — og for
+          // event-chats er otherUser.id chat-id'et, så increment her ville
+          // skrive et vrøvle-felt
+          ...(isEventChat ? {} : { unreadCount: { [otherUser.id]: firestore.FieldValue.increment(uris.length) } }),
         },
         { merge: true }
       );
