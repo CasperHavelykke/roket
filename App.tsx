@@ -215,6 +215,15 @@ function App() {
     // navigations-mål (fx Hold kontakten-anmodninger, der bare åbner appen)
     const navigateFromNotification = (data: any) => {
       if (!navigationRef.isReady() || !data) return;
+      // Hold kontakten-anmodning: åbn aktivitetens detalje på kortet, så
+      // modtageren kan acceptere direkte fra deltagerlisten
+      if (data.type === 'contactRequest' && data.eventId) {
+        (navigationRef as any).navigate('Tabs', {
+          screen: 'MapHome',
+          params: { openEventId: data.eventId, openEventNonce: Date.now() },
+        });
+        return;
+      }
       if (data.eventChatId && data.eventTitle) {
         navigationRef.navigate('Chat', {
           otherUser: { id: data.eventChatId, displayName: data.eventTitle, testAccount: false },
@@ -234,14 +243,18 @@ function App() {
     const unsubForeground = NotificationService.onForegroundMessage(remoteMessage => {
       const data = remoteMessage.data;
 
-      // Nærheds-push (ingen afsender-felter): vis banner med event-info.
-      // Tap navigerer ingen steder — aktiviteten ligger allerede på kortet.
-      if (data?.type === 'nearbyEvent') {
+      // Push uden afsender-felter (nærheds-events og Hold kontakten-
+      // anmodninger): vis banner med notifikationens egen titel/tekst og
+      // en type-specifik label. Anmodnings-tap åbner aktiviteten.
+      if (data?.type === 'nearbyEvent' || data?.type === 'contactRequest') {
+        const isContactRequest = data.type === 'contactRequest';
         bannerRef.current?.show({
           senderName: remoteMessage.notification?.title ?? '',
           senderId: '',
           message: remoteMessage.notification?.body ?? '',
           senderPhoto: null,
+          label: isContactRequest ? theme.t.bannerContactRequest : theme.t.bannerNearby,
+          contactEventId: isContactRequest ? ((data.eventId as string) || undefined) : undefined,
         });
         return;
       }
@@ -344,6 +357,14 @@ function App() {
 
   const handleBannerPress = useCallback((data: NotificationData) => {
     if (!navigationRef.isReady()) return;
+    // Hold kontakten-anmodning: åbn aktivitetens detalje på kortet
+    if (data.contactEventId) {
+      (navigationRef as any).navigate('Tabs', {
+        screen: 'MapHome',
+        params: { openEventId: data.contactEventId, openEventNonce: Date.now() },
+      });
+      return;
+    }
     // Bannere uden navigations-mål (fx nærheds-push) gør ingenting ved tap
     if (!data.eventChatId && !data.senderId) return;
     if (data.eventChatId && data.eventTitle) {

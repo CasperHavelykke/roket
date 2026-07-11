@@ -459,7 +459,7 @@ export default function ChatsListScreen({ navigation }: any) {
     <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.white }]}>
       {/* Tab-rod: flad stor titel i stedet for gradient-header — nav-baren
           i bunden fortæller allerede hvor man er (redesign 2026-07) */}
-      <View style={[styles.largeTitleRow, { paddingTop: insets.top + 14 }]}>
+      <View style={[styles.largeTitleRow, { paddingTop: insets.top + 26 }]}>
         <Text style={[styles.largeTitle, { color: colors.textPrimary }]}>{t.chatsTitle}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
           <RoketLogoHeader width={24} height={24} fill={colors.textPrimary} fillRule="evenodd" />

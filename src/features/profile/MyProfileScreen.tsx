@@ -140,7 +140,7 @@ export default function MyProfileScreen({ navigation }: any) {
     <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Tab-rod: flad stor titel — ingen tilbage-knap (nav-baren) og ingen
           rediger-blyant (tab-barens midterknap er rediger på denne fane) */}
-      <View style={[styles.largeTitleRow, { paddingTop: insets.top + 14 }]}>
+      <View style={[styles.largeTitleRow, { paddingTop: insets.top + 26 }]}>
         <Text style={[styles.largeTitle, { color: colors.textPrimary }]}>{t.navProfile}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
           <RoketHeaderLogo width={24} height={24} fill={colors.textPrimary} fillRule="evenodd" />

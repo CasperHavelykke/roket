@@ -18,6 +18,11 @@ export interface NotificationData {
   // Sat for event-gruppechats — tap skal åbne gruppechatten, ikke 1:1
   eventChatId?: string;
   eventTitle?: string;
+  // Label i højre side — default er "Ny besked"; pushes uden afsender
+  // (nærheds-events, Hold kontakten) sætter deres egen
+  label?: string;
+  // Hold kontakten-anmodning: tap åbner aktivitetens detalje på kortet
+  contactEventId?: string;
 }
 
 export interface NotificationBannerRef {
@@ -103,7 +108,7 @@ const NotificationBanner = forwardRef<NotificationBannerRef, { onPress: (data: N
               {data.message}
             </Text>
           </View>
-          <Text style={[styles.label, { color: colors.primaryBlue }]}>{t.notificationNewMessage}</Text>
+          <Text style={[styles.label, { color: colors.primaryBlueText }]}>{data.label ?? t.notificationNewMessage}</Text>
         </TouchableOpacity>
       </Animated.View>
     );

@@ -10,8 +10,9 @@ import Geolocation from 'react-native-geolocation-service';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GradientView from '../../components/GradientView';
 import RoketLogo from '../../assets/roket-logo-2.svg';
+import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
-import { EventDoc, overlapsWindow } from '../../events';
+import { EventDoc, eventFromData, overlapsWindow } from '../../events';
 import ActivityMarker from './ActivityMarker';
 import useNearbyActivities from './useNearbyActivities';
 import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
@@ -113,6 +114,24 @@ export default function MapHomeScreen({ navigation, route }: any) {
     }
   }, [route?.params?.createRequest]);
 
+  // Åbn en bestemt aktivitets detalje (Hold kontakten-push-tap). Hentes
+  // direkte pr. id — eventet kan ligge uden for den aktuelle viewport-query.
+  useEffect(() => {
+    const id = route?.params?.openEventId;
+    if (!id) return;
+    firestore()
+      .collection('events')
+      .doc(id)
+      .get()
+      .then(doc => {
+        if (!doc.exists()) return;
+        const ev = eventFromData(doc.id, doc.data());
+        if (ev.expiresAt.getTime() > Date.now()) setSelected(ev);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.openEventNonce]);
+
   if (!initialRegion) {
     return <View style={[styles.container, { backgroundColor: colors.background }]} />;
   }
@@ -148,7 +167,7 @@ export default function MapHomeScreen({ navigation, route }: any) {
         style={[
           styles.logoPill,
           {
-            top: insets.top + 10,
+            top: insets.top + 22,
             backgroundColor: isDark ? 'rgba(22,22,25,0.8)' : 'rgba(255,255,255,0.85)',
             borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)',
           },

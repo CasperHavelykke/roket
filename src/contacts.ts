@@ -90,6 +90,17 @@ export async function requestOrAcceptContact(
   return acceptIfPendingReceived(ref, existing, myUid, otherUid);
 }
 
+/**
+ * Fortryd egen afventende anmodning. Reglerne tillader kun afsenderen at
+ * slette, og kun mens status er pending — accepterede forbindelser røres ikke.
+ */
+export async function withdrawContactRequest(myUid: string, otherUid: string): Promise<void> {
+  await firestore()
+    .collection('contactRequests')
+    .doc(contactPairId(myUid, otherUid))
+    .delete();
+}
+
 async function acceptIfPendingReceived(
   ref: FirebaseFirestoreTypes.DocumentReference,
   data: ContactRequestDoc,

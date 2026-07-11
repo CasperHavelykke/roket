@@ -19,7 +19,7 @@ import TagIcon from '../../components/TagIcon';
 import GradientView from '../../components/GradientView';
 import useUserProfiles from '../../hooks/useUserProfiles';
 import useContactRequests from '../../hooks/useContactRequests';
-import { contactPairId, statusForRequest, requestOrAcceptContact, ContactStatus } from '../../contacts';
+import { contactPairId, statusForRequest, requestOrAcceptContact, withdrawContactRequest, ContactStatus } from '../../contacts';
 import { Clock, MapPin, Users, MessagesSquare } from 'lucide-react-native';
 import { EventDoc, isEventFull } from '../../events';
 
@@ -113,10 +113,29 @@ export default function EventDetailContent({
       );
     }
     if (status === 'pending_sent') {
+      // Tap fortryder anmodningen — listeneren flipper knappen tilbage
       return (
-        <View style={[styles.contactBtn, { borderColor: colors.borderLight }]}>
-          <Text style={[styles.contactBtnText, { color: colors.textMuted }]}>{t.contactsRequested}</Text>
-        </View>
+        <TouchableOpacity
+          style={[styles.contactBtn, { borderColor: colors.borderLight }]}
+          onPress={async () => {
+            if (contactBusy) return;
+            setContactBusyUid(uid);
+            try {
+              await withdrawContactRequest(user.uid, uid);
+            } catch (e) {
+              console.warn('Withdraw contact request failed:', e);
+            } finally {
+              setContactBusyUid(null);
+            }
+          }}
+          disabled={contactBusy}
+        >
+          {contactBusy ? (
+            <ActivityIndicator size="small" color={colors.textMuted} />
+          ) : (
+            <Text style={[styles.contactBtnText, { color: colors.textMuted }]}>{t.contactsRequested}</Text>
+          )}
+        </TouchableOpacity>
       );
     }
     if (status === 'pending_received') {
