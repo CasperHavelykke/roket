@@ -20,9 +20,7 @@ import LoginScreen from './src/features/auth/LoginScreen';
 import SignupScreen from './src/features/auth/SignupScreen';
 import ProfileViewScreen from './src/features/profile/ProfileViewScreen';
 import ChatScreen from './src/features/chat/ChatScreen';
-import ChatsListScreen from './src/features/chat/ChatsListScreen';
-import MyProfileScreen from './src/features/profile/MyProfileScreen';
-import SettingsScreen from './src/features/settings/SettingsScreen';
+import MainTabs from './src/navigation/MainTabs';
 import FeedbackScreen from './src/features/settings/FeedbackScreen';
 import BlockedUsersScreen from './src/features/settings/BlockedUsersScreen';
 import EditProfileScreen from './src/features/profile/EditProfileScreen';
@@ -31,7 +29,6 @@ import PrivacyPolicyScreen from './src/features/legal/PrivacyPolicyScreen';
 import TermsConditionsScreen from './src/features/legal/TermsConditionsScreen';
 import CommunityGuidelinesScreen from './src/features/legal/CommunityGuidelinesScreen';
 import ChildSafetyScreen from './src/features/legal/ChildSafetyScreen';
-import MapHomeScreen from './src/features/map/MapHomeScreen';
 import mobileAds from 'react-native-google-mobile-ads';
 
 mobileAds().initialize();
@@ -39,6 +36,8 @@ mobileAds().initialize();
 type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
+  // Fanerne (MapHome/ChatsList/MyProfile/Settings) bor i MainTabs
+  Tabs: undefined;
   ProfileView: { userId: string };
   Chat: {
     otherUser: { id: string; displayName: string; testAccount?: boolean };
@@ -46,9 +45,6 @@ type RootStackParamList = {
     eventTitle?: string;
     fromProfile?: boolean;
   };
-  ChatsList: undefined;
-  MyProfile: undefined;
-  Settings: undefined;
   Feedback: undefined;
   BlockedUsers: undefined;
   EditProfile: undefined;
@@ -57,7 +53,6 @@ type RootStackParamList = {
   TermsConditions: undefined;
   CommunityGuidelines: undefined;
   ChildSafety: undefined;
-  MapHome: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -116,7 +111,7 @@ function App() {
                       // Pivot 2.0: signOut giver gæstesession, intet stack-skifte —
                       // send brugeren hjem til kortet uanset hvor de stod
                       if (navigationRef.isReady()) {
-                        navigationRef.resetRoot({ index: 0, routes: [{ name: 'MapHome' }] });
+                        navigationRef.resetRoot({ index: 0, routes: [{ name: 'Tabs' }] });
                       }
                     } }],
                     { cancelable: false },
@@ -136,7 +131,7 @@ function App() {
                       [{ text: t.ok, onPress: () => {
                         auth().signOut();
                         if (navigationRef.isReady()) {
-                          navigationRef.resetRoot({ index: 0, routes: [{ name: 'MapHome' }] });
+                          navigationRef.resetRoot({ index: 0, routes: [{ name: 'Tabs' }] });
                         }
                       } }],
                       { cancelable: false },
@@ -256,10 +251,12 @@ function App() {
       // Ignorer notifikationer fra dig selv
       if (data.senderId === auth().currentUser?.uid) return;
 
-      // Don't show banner if on messages screen or in the relevant chat
+      // Don't show banner if on messages screen or in the relevant chat.
+      // getCurrentRoute() går ned i nested navigators, så navnet er stadig
+      // 'ChatsList' selvom skærmen nu bor i MainTabs (deraf string-casten)
       if (navigationRef.isReady()) {
         const state = navigationRef.getCurrentRoute();
-        if (state?.name === 'ChatsList') return;
+        if ((state?.name as string) === 'ChatsList') return;
         if (state?.name === 'Chat') {
           const params = state.params as any;
           if (data.eventChatId
@@ -414,12 +411,9 @@ function App() {
               </>
             ) : (
               <>
-                <Stack.Screen name="MapHome" component={MapHomeScreen} />
+                <Stack.Screen name="Tabs" component={MainTabs} />
                 <Stack.Screen name="ProfileView" component={ProfileViewScreen} />
                 <Stack.Screen name="Chat" component={ChatScreen} />
-                <Stack.Screen name="ChatsList" component={ChatsListScreen} />
-                <Stack.Screen name="MyProfile" component={MyProfileScreen} />
-                <Stack.Screen name="Settings" component={SettingsScreen} />
                 <Stack.Screen name="Feedback" component={FeedbackScreen} />
                 <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
                 <Stack.Screen name="EditProfile" component={EditProfileScreen} />

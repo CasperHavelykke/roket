@@ -13,7 +13,6 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ChevronRight } from 'lucide-react-native';
 import { distanceBetween } from 'geofire-common';
 import { Image } from 'react-native';
@@ -63,9 +62,6 @@ interface ActivityDrawerProps {
   onCloseDetail: () => void;
   onOpenChat: (chatId: string, eventTitle: string) => void;
   onRequireAccount: () => void;
-  // Løft over bundnavigationen — når sat dækker nav-baren safe area,
-  // så drawerens egen bund-inset udgår
-  bottomOffset?: number;
 }
 
 /**
@@ -87,18 +83,18 @@ export default function ActivityDrawer({
   onCloseDetail,
   onOpenChat,
   onRequireAccount,
-  bottomOffset = 0,
 }: ActivityDrawerProps) {
   const { colors, t, language, timeFormat, distanceUnit, isDark } = useTheme();
   // Kort-baggrund: en anelse mørkere end inputBackground i light mode så
   // kortene står tydeligt på det hvide sheet (mockup-tonen)
   const cardBg = isDark ? colors.inputBackground : '#F0F0F4';
-  const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
 
-  const collapsedH = DRAWER_COLLAPSED_HEIGHT + (bottomOffset > 0 ? 0 : insets.bottom);
+  // Draweren lever i en tab-scene der slutter ved nav-baren — bottom:0 er
+  // nav-barens overkant, og safe area er nav-barens problem
+  const collapsedH = DRAWER_COLLAPSED_HEIGHT;
   const halfH = Math.round(screenH * 0.42);
-  const openH = Math.round(screenH * 0.82) - bottomOffset;
+  const openH = Math.round(screenH * 0.78);
 
   // translateY: 0 = helt åben; (openH - collapsedH) = kollapset
   const collapsedY = openH - collapsedH;
@@ -270,7 +266,7 @@ export default function ActivityDrawer({
     <Animated.View
       style={[
         styles.sheet,
-        { height: openH, bottom: bottomOffset, backgroundColor: colors.white },
+        { height: openH, backgroundColor: colors.white },
         sheetStyle,
       ]}
     >
@@ -311,7 +307,7 @@ export default function ActivityDrawer({
             data={sorted}
             keyExtractor={item => item.id}
             renderItem={renderRow}
-            contentContainerStyle={{ paddingBottom: (bottomOffset > 0 ? 0 : insets.bottom) + 24 }}
+            contentContainerStyle={{ paddingBottom: 24 }}
             ListEmptyComponent={
               <Text style={[styles.empty, { color: colors.textMuted }]}>{t.mapDrawerEmpty}</Text>
             }

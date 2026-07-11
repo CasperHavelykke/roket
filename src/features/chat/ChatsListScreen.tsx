@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -87,10 +88,25 @@ export default function ChatsListScreen({ navigation }: any) {
   const [pinnedChatIds, setPinnedChatIds] = useState<Set<string>>(new Set());
   const currentUser = auth().currentUser;
 
-  useEffect(() => {
-    if (!currentUser) {
+  // Bind ved FOKUS, ikke mount: som tab unmountes skærmen aldrig, så en
+  // mount-bundet listener ville dø ved logout og aldrig gen-binde (F4-lektien).
+  // Blur rydder op — baggrundsfaner holder ingen listeners.
+  const boundUid = useRef<string | null>(null);
+  useFocusEffect(useCallback(() => {
+    // Skygger bevidst den ydre currentUser: frisk auth-state pr. fokus
+    const currentUser = auth().currentUser;
+    if (!currentUser || currentUser.isAnonymous) {
+      boundUid.current = null;
+      setChats([]);
       setLoading(false);
       return;
+    }
+    // Konto-skift: ryd den forrige kontos liste FØR der bindes — ellers
+    // blinker de gamle beskeder et øjeblik når snapshottet er på vej
+    if (boundUid.current !== currentUser.uid) {
+      boundUid.current = currentUser.uid;
+      setChats([]);
+      setLoading(true);
     }
 
     // Load pinned chats from user doc
@@ -211,7 +227,7 @@ export default function ChatsListScreen({ navigation }: any) {
       });
 
     return () => unsubscribe();
-  }, []);
+  }, []));
 
   const togglePin = async (chatId: string) => {
     if (!currentUser) return;
@@ -441,20 +457,14 @@ export default function ChatsListScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.white }]}>
-      <GradientView
-        colors={[colors.primaryBlue, colors.primaryRed]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[styles.header, { paddingTop: insets.top + 10 }]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.chatsTitle}</Text>
+      {/* Tab-rod: flad stor titel i stedet for gradient-header — nav-baren
+          i bunden fortæller allerede hvor man er (redesign 2026-07) */}
+      <View style={[styles.largeTitleRow, { paddingTop: insets.top + 14 }]}>
+        <Text style={[styles.largeTitle, { color: colors.textPrimary }]}>{t.chatsTitle}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
-          <RoketLogoHeader width={24} height={24} fillRule="evenodd" />
+          <RoketLogoHeader width={24} height={24} fill={colors.textPrimary} fillRule="evenodd" />
         </TouchableOpacity>
-      </GradientView>
+      </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -482,22 +492,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  largeTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 14,
-    paddingHorizontal: 16,
+    paddingBottom: 12,
+    paddingHorizontal: 18,
   },
-  backButton: {
-    marginRight: 12,
-  },
-  backButtonText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+  largeTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   loadingContainer: {
     flex: 1,

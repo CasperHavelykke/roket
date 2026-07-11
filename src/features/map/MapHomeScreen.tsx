@@ -15,11 +15,9 @@ import { EventDoc, overlapsWindow } from '../../events';
 import ActivityMarker from './ActivityMarker';
 import useNearbyActivities from './useNearbyActivities';
 import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
-import BottomNavBar, { NAV_BAR_CONTENT_HEIGHT } from './BottomNavBar';
 import { TimeWindow } from './scrubberTime';
 import { DARK_MAP_STYLE } from './mapDarkStyle';
 import { requireAccount } from '../../utils/guestGate';
-import useUnreadTotal from '../../hooks/useUnreadTotal';
 import CreateEventModal from '../events/CreateEventModal';
 import MapPickerModal from '../events/MapPickerModal';
 
@@ -56,10 +54,9 @@ function ActivityMapMarker({ event, onPress }: { event: EventDoc; onPress: () =>
 }
 
 
-export default function MapHomeScreen({ navigation }: any) {
+export default function MapHomeScreen({ navigation, route }: any) {
   const { colors, t, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const navHeight = NAV_BAR_CONTENT_HEIGHT + insets.bottom;
   const mapRef = useRef<MapView>(null);
   const [selected, setSelected] = useState<EventDoc | null>(null);
   const [initialRegion, setInitialRegion] = useState<Region | null>(null);
@@ -76,7 +73,6 @@ export default function MapHomeScreen({ navigation }: any) {
   const [timeWindow, setTimeWindow] = useState<TimeWindow>({ mode: 'now' });
 
   const { activities, zoomedOut } = useNearbyActivities(region);
-  const { total: unreadTotal } = useUnreadTotal();
 
   // Tidsfiltrering sker i hukommelsen — at trække i scrubberen koster
   // nul netværkskald (geo-filtreringen skete allerede i Firestore).
@@ -109,6 +105,14 @@ export default function MapHomeScreen({ navigation }: any) {
     );
   }, []);
 
+  // Opret-signal fra tab-barens midterknap: + på en anden fane hopper til
+  // Kort-fanen med et createRequest-param, som åbner pin-pickeren her
+  useEffect(() => {
+    if (route?.params?.createRequest) {
+      setShowPinPicker(true);
+    }
+  }, [route?.params?.createRequest]);
+
   if (!initialRegion) {
     return <View style={[styles.container, { backgroundColor: colors.background }]} />;
   }
@@ -131,8 +135,8 @@ export default function MapHomeScreen({ navigation }: any) {
         customMapStyle={isDark ? DARK_MAP_STYLE : undefined}
         userInterfaceStyle={isDark ? 'dark' : 'light'}
         // Google-attributionen skal være synlig (Maps ToS) — løft den over
-        // bundnav + kollapset drawer
-        mapPadding={{ top: 0, right: 0, left: 0, bottom: navHeight + DRAWER_COLLAPSED_HEIGHT }}
+        // den kollapsede drawer (tab-scenen slutter allerede ved nav-baren)
+        mapPadding={{ top: 0, right: 0, left: 0, bottom: DRAWER_COLLAPSED_HEIGHT }}
       >
         {visibleActivities.map(event => (
           <ActivityMapMarker key={event.id} event={event} onPress={() => setSelected(event)} />
@@ -183,18 +187,8 @@ export default function MapHomeScreen({ navigation }: any) {
           setSelected(null);
           requireAccount(navigation, t);
         }}
-        bottomOffset={navHeight}
       />
 
-      {/* Bundnavigation — profil og beskeder kræver konto; Mere (settings)
-          er åben for gæster (sprog m.m.) */}
-      <BottomNavBar
-        unreadTotal={unreadTotal}
-        onMessages={() => { if (requireAccount(navigation, t)) navigation.navigate('ChatsList'); }}
-        onCreate={() => { if (requireAccount(navigation, t)) setShowPinPicker(true); }}
-        onProfile={() => { if (requireAccount(navigation, t)) navigation.navigate('MyProfile'); }}
-        onMore={() => navigation.navigate('Settings')}
-      />
 
       <MapPickerModal
         visible={showPinPicker}

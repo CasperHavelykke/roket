@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -27,14 +28,21 @@ export default function SettingsScreen({ navigation }: any) {
   const currentUser = auth().currentUser;
   // Opt-in nærheds-push: læs nuværende værdi fra bruger-doc'et
   const [notifyNearby, setNotifyNearby] = useState(false);
+  // Gæste-status som STATE: som always-mounted tab re-renderer skærmen
+  // ikke af sig selv ved login/logout — fokus opdaterer den (F4-lektien)
+  const [isGuest, setIsGuest] = useState(auth().currentUser?.isAnonymous ?? true);
 
-  useEffect(() => {
-    const uid = auth().currentUser?.uid;
-    if (!uid || auth().currentUser?.isAnonymous) return;
-    firestore().collection('users').doc(uid).get().then(doc => {
+  useFocusEffect(useCallback(() => {
+    const user = auth().currentUser;
+    setIsGuest(user?.isAnonymous ?? true);
+    if (!user || user.isAnonymous) {
+      setNotifyNearby(false);
+      return;
+    }
+    firestore().collection('users').doc(user.uid).get().then(doc => {
       setNotifyNearby(doc.data()?.notifyNearbyActivities === true);
     }).catch(() => {});
-  }, []);
+  }, []));
 
   if (!currentUser) return null;
 
@@ -110,9 +118,10 @@ export default function SettingsScreen({ navigation }: any) {
             }
           } catch (_) {}
           auth().signOut();
-          // Pivot 2.0: logout fører til gæste-session, ikke login-skærm —
-          // navigér hjem til kortet så man ikke bliver stående i Settings
-          navigation.popToTop();
+          // Pivot 2.0: logout fører til gæste-session, ikke login-skærm.
+          // Settings er en TAB — popToTop er en no-op her; hop eksplicit
+          // til Kort-fanen så man ikke bliver stående i Mere som gæst
+          navigation.navigate('MapHome');
         },
       },
     ]);
@@ -156,20 +165,14 @@ export default function SettingsScreen({ navigation }: any) {
 
   return (
     <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
-      <GradientView
-        colors={[colors.primaryBlue, colors.primaryRed]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[styles.header, { paddingTop: insets.top + 10 }]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={[styles.backButtonText, { color: colors.textWhite }]}>←</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textWhite }]}>{t.settingsTitle}</Text>
+      {/* Tab-rod: flad stor titel i stedet for gradient-header — nav-baren
+          i bunden fortæller allerede hvor man er (redesign 2026-07) */}
+      <View style={[styles.largeTitleRow, { paddingTop: insets.top + 14 }]}>
+        <Text style={[styles.largeTitle, { color: colors.textPrimary }]}>{t.settingsTitle}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
-          <RoketLogo width={24} height={24} fillRule="evenodd" />
+          <RoketLogo width={24} height={24} fill={colors.textPrimary} fillRule="evenodd" />
         </TouchableOpacity>
-      </GradientView>
+      </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom }]}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsLanguage}</Text>
@@ -195,7 +198,7 @@ export default function SettingsScreen({ navigation }: any) {
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsNotifications}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           {/* Opt-in nærheds-push (Pivot 2.0) — kun for rigtige konti */}
-          {!auth().currentUser?.isAnonymous && (
+          {!isGuest && (
             <View style={[styles.row, { borderBottomColor: colors.borderLight }]}>
               <Text style={[styles.rowText, { color: colors.textPrimary, flex: 1 }]}>{t.settingsNotifyNearby}</Text>
               <Switch
@@ -288,7 +291,7 @@ export default function SettingsScreen({ navigation }: any) {
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsAccount}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
           {/* Skift adgangskode giver ingen mening for gæster (ingen email-konto) */}
-          {!auth().currentUser?.isAnonymous && (
+          {!isGuest && (
             <TouchableOpacity
               style={[styles.row, { borderBottomColor: colors.borderLight }]}
               onPress={handleChangePassword}
@@ -298,7 +301,7 @@ export default function SettingsScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
 
-          {auth().currentUser?.isAnonymous ? (
+          {isGuest ? (
             // Gæst: vis vej til konto i stedet for logout/slet
             <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('Login')}>
               <Text style={[styles.rowText, { color: colors.primaryBlueText }]}>{t.settingsLogin}</Text>
@@ -329,25 +332,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  largeTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 14,
-    paddingHorizontal: 16,
+    paddingBottom: 12,
+    paddingHorizontal: 18,
   },
-  backButton: {
-    marginRight: 12,
-  },
-  backButtonText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+  largeTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   content: {
     padding: 20,
+    paddingTop: 4,
     paddingBottom: 40,
   },
   sectionTitle: {

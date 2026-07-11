@@ -2,110 +2,121 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import {
   Map as MapIcon,
   MessagesSquare as MessagesIcon,
   Plus,
+  SquarePen,
   User as ProfileIcon,
   Settings as SettingsIcon,
 } from 'lucide-react-native';
 import GradientView from '../../components/GradientView';
 import { useTheme } from '../../theme';
+import { requireAccount } from '../../utils/guestGate';
+import useUnreadTotal from '../../hooks/useUnreadTotal';
 
 export const NAV_BAR_CONTENT_HEIGHT = 64;
 const FAB_SIZE = 54;
 const FAB_RAISE = 14;
 const ICON_SIZE = 23;
 
-interface BottomNavBarProps {
-  unreadTotal: number;
-  onMessages: () => void;
-  onCreate: () => void;
-  onProfile: () => void;
-  onMore: () => void;
-}
-
 /**
- * Bundnavigation på forsiden (redesign 2026-07). Kort-fanen er altid aktiv —
- * MapHome ER hjemmeskærmen; de øvrige faner navigerer til deres skærme.
- * Midterknappen (opret) bruger skærmkant til skærmkant-gradienten ligesom
- * appens øvrige FABs.
+ * Persistent bundnavigation — custom tabBar for MainTabs (redesign 2026-07).
+ * Kort er hjemmefanen; Beskeder/Profil er gæste-gatede; Mere (settings) er
+ * åben. Midterknappen er FANENS PRIMÆRE HANDLING: opret aktivitet overalt,
+ * undtagen på Profil hvor den bliver til rediger-blyanten. Aktivt ikon og
+ * label får skærmkant-gradienten i selve stregen via MaskedView.
  */
-export default function BottomNavBar({
-  unreadTotal,
-  onMessages,
-  onCreate,
-  onProfile,
-  onMore,
-}: BottomNavBarProps) {
+export default function BottomNavBar({ state, navigation }: BottomTabBarProps) {
   const { colors, t } = useTheme();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
+  const { total: unreadTotal } = useUnreadTotal();
 
-  // Den aktive fanes position måles så ikonets og labelens skærmkant-gradient
-  // kan vise den rigtige slice af en gradient der spænder over hele skærmbredden
-  const [activeTabLayout, setActiveTabLayout] = useState({ x: 0, w: 0 });
-  const [activeLabelWidth, setActiveLabelWidth] = useState(0);
-  const activeIconLeft = activeTabLayout.x + (activeTabLayout.w - ICON_SIZE) / 2;
-  const labelWidth = Math.max(activeLabelWidth, 1);
-  const activeLabelLeft = activeTabLayout.x + (activeTabLayout.w - labelWidth) / 2;
+  const activeRoute = state.routes[state.index].name;
+
+  // Fanernes positioner måles så gradient-maskerne kan vise den rigtige
+  // slice af en gradient der spænder over hele skærmbredden
+  const [tabLefts, setTabLefts] = useState<Record<string, { x: number; width: number }>>({});
+
+  const gradientFor = (routeName: string, width: number) => {
+    const layout = tabLefts[routeName];
+    const left = layout ? layout.x + (layout.width - width) / 2 : 0;
+    return {
+      start: { x: -left / width, y: 0 },
+      end: { x: (screenWidth - left) / width, y: 0 },
+    };
+  };
 
   const tab = (
+    routeName: string,
     icon: React.ReactElement,
     label: string,
-    onPress: (() => void) | undefined,
-    opts?: { active?: boolean; badge?: number },
-  ) => (
-    <TouchableOpacity
-      style={styles.tab}
-      onPress={onPress}
-      activeOpacity={0.7}
-      disabled={!onPress}
-      onLayout={
-        opts?.active
-          ? e => setActiveTabLayout({ x: e.nativeEvent.layout.x, w: e.nativeEvent.layout.width })
-          : undefined
-      }
-    >
-      <View style={styles.iconSlot}>
-        {opts?.active ? (
-          // Gradient i selve ikon-stregen: ikonet er masken, gradienten fylder
-          <MaskedView maskElement={icon}>
+    onPress: () => void,
+    badge?: number,
+  ) => {
+    const active = activeRoute === routeName;
+    const iconGradient = gradientFor(routeName, ICON_SIZE);
+    return (
+      <TouchableOpacity
+        key={routeName}
+        style={styles.tab}
+        onPress={onPress}
+        activeOpacity={0.7}
+        onLayout={e => {
+          // Træk værdierne ud FØR setState — synthetic events genbruges,
+          // så e.nativeEvent er null når updater-callbacken kører
+          const { x, width } = e.nativeEvent.layout;
+          setTabLefts(prev => ({ ...prev, [routeName]: { x, width } }));
+        }}
+      >
+        <View style={styles.iconSlot}>
+          {active ? (
+            // Gradient i selve ikon-stregen: ikonet er masken, gradienten fylder
+            <MaskedView maskElement={icon}>
+              <GradientView
+                colors={[colors.primaryBlue, colors.primaryRed]}
+                {...iconGradient}
+                style={{ width: ICON_SIZE, height: ICON_SIZE }}
+              />
+            </MaskedView>
+          ) : (
+            icon
+          )}
+          {!!badge && (
+            <View style={[styles.badge, { backgroundColor: colors.primaryRed, borderColor: colors.white }]}>
+              <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+            </View>
+          )}
+        </View>
+        {active ? (
+          <MaskedView
+            maskElement={<Text style={[styles.tabLabel, styles.tabLabelActive]}>{label}</Text>}
+          >
             <GradientView
               colors={[colors.primaryBlue, colors.primaryRed]}
-              start={{ x: -activeIconLeft / ICON_SIZE, y: 0 }}
-              end={{ x: (screenWidth - activeIconLeft) / ICON_SIZE, y: 0 }}
-              style={{ width: ICON_SIZE, height: ICON_SIZE }}
+              {...gradientFor(routeName, 56)}
+              style={styles.labelFill}
             />
           </MaskedView>
         ) : (
-          icon
+          <Text style={[styles.tabLabel, { color: colors.textMuted }]}>{label}</Text>
         )}
-        {!!opts?.badge && (
-          <View style={[styles.badge, { backgroundColor: colors.primaryRed, borderColor: colors.white }]}>
-            <Text style={styles.badgeText}>{opts.badge > 9 ? '9+' : opts.badge}</Text>
-          </View>
-        )}
-      </View>
-      {opts?.active ? (
-        <MaskedView
-          onLayout={e => setActiveLabelWidth(e.nativeEvent.layout.width)}
-          maskElement={<Text style={[styles.tabLabel, styles.tabLabelActive]}>{label}</Text>}
-        >
-          {/* Usynlig tekst giver masken sin størrelse; gradienten fylder den */}
-          <Text style={[styles.tabLabel, styles.tabLabelActive, styles.sizer]}>{label}</Text>
-          <GradientView
-            colors={[colors.primaryBlue, colors.primaryRed]}
-            start={{ x: -activeLabelLeft / labelWidth, y: 0 }}
-            end={{ x: (screenWidth - activeLabelLeft) / labelWidth, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </MaskedView>
-      ) : (
-        <Text style={[styles.tabLabel, { color: colors.textMuted }]}>{label}</Text>
-      )}
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
+
+  // Midterknappen: rediger-blyant på Profil-fanen, ellers opret aktivitet.
+  // Opret hopper til Kort-fanen og signalerer pin-picker via param.
+  const onCenterPress = () => {
+    if (!requireAccount(navigation as any, t)) return;
+    if (activeRoute === 'MyProfile') {
+      navigation.navigate('EditProfile' as never);
+    } else {
+      (navigation as any).navigate('MapHome', { createRequest: Date.now() });
+    }
+  };
 
   return (
     <View
@@ -119,38 +130,58 @@ export default function BottomNavBar({
         },
       ]}
     >
-      {tab(<MapIcon size={ICON_SIZE} color="#000" strokeWidth={2.2} />, t.navMap, undefined, { active: true })}
-      {tab(<MessagesIcon size={23} color={colors.textMuted} strokeWidth={2} />, t.navMessages, onMessages, { badge: unreadTotal })}
+      {tab(
+        'MapHome',
+        <MapIcon size={ICON_SIZE} color={activeRoute === 'MapHome' ? '#000' : colors.textMuted} strokeWidth={2.2} />,
+        t.navMap,
+        () => navigation.navigate('MapHome' as never),
+      )}
+      {tab(
+        'ChatsList',
+        <MessagesIcon size={ICON_SIZE} color={activeRoute === 'ChatsList' ? '#000' : colors.textMuted} strokeWidth={2} />,
+        t.navMessages,
+        () => { if (requireAccount(navigation as any, t)) navigation.navigate('ChatsList' as never); },
+        unreadTotal,
+      )}
 
-      <TouchableOpacity onPress={onCreate} activeOpacity={0.85} style={[styles.fabWrap, { borderColor: colors.white }]}>
+      <TouchableOpacity onPress={onCenterPress} activeOpacity={0.85} style={[styles.fabWrap, { borderColor: colors.white }]}>
         <GradientView
           colors={[colors.primaryBlue, colors.primaryRed]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.fabInner}
         >
-          <Plus size={26} color="#fff" strokeWidth={2.6} />
+          {activeRoute === 'MyProfile' ? (
+            <SquarePen size={23} color="#fff" strokeWidth={2.4} />
+          ) : (
+            <Plus size={26} color="#fff" strokeWidth={2.6} />
+          )}
         </GradientView>
       </TouchableOpacity>
 
-      {tab(<ProfileIcon size={23} color={colors.textMuted} strokeWidth={2} />, t.navProfile, onProfile)}
-      {tab(<SettingsIcon size={23} color={colors.textMuted} strokeWidth={2} />, t.navMore, onMore)}
+      {tab(
+        'MyProfile',
+        <ProfileIcon size={ICON_SIZE} color={activeRoute === 'MyProfile' ? '#000' : colors.textMuted} strokeWidth={2} />,
+        t.navProfile,
+        () => { if (requireAccount(navigation as any, t)) navigation.navigate('MyProfile' as never); },
+      )}
+      {tab(
+        'Settings',
+        <SettingsIcon size={ICON_SIZE} color={activeRoute === 'Settings' ? '#000' : colors.textMuted} strokeWidth={2} />,
+        t.navMore,
+        () => navigation.navigate('Settings' as never),
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   bar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     borderTopWidth: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-around',
     paddingTop: 11,
-    zIndex: 10,
   },
   tab: {
     alignItems: 'center',
@@ -169,9 +200,12 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     fontWeight: '700',
     color: '#000',
+    textAlign: 'center',
+    width: 56,
   },
-  sizer: {
-    opacity: 0,
+  labelFill: {
+    width: 56,
+    height: 13,
   },
   badge: {
     position: 'absolute',

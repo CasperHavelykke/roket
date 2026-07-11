@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,11 +18,11 @@ import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
 import { EventDoc, eventFromData } from '../../events';
 import { formatTime, LOCALE_MAP } from '../../utils/eventTime';
-import { MapPin, SquarePen as EditIcon } from 'lucide-react-native';
-import MaskedView from '@react-native-masked-view/masked-view';
+import { MapPin } from 'lucide-react-native';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
+import RoketHeaderLogo from '../../assets/roket-logo-simpel.svg';
 
 export default function MyProfileScreen({ navigation }: any) {
   const { colors, isDark, t, distanceUnit, showTestBadges, language, timeFormat } = useTheme();
@@ -41,11 +41,25 @@ export default function MyProfileScreen({ navigation }: any) {
   const [activeEvents, setActiveEvents] = useState<EventDoc[]>([]);
   const currentUser = auth().currentUser;
 
-  useEffect(() => {
-    if (!currentUser) return;
+  // Bind ved FOKUS, ikke mount: som tab unmountes skærmen aldrig — en
+  // mount-bundet listener ville dø ved logout og pege på gammel uid efter
+  // konto-skift (F4-lektien). Blur rydder op.
+  const eventsBoundUid = useRef<string | null>(null);
+  useFocusEffect(useCallback(() => {
+    const user = auth().currentUser;
+    if (!user || user.isAnonymous) {
+      eventsBoundUid.current = null;
+      setActiveEvents([]);
+      return;
+    }
+    // Konto-skift: ryd den forrige kontos aktiviteter før der bindes
+    if (eventsBoundUid.current !== user.uid) {
+      eventsBoundUid.current = user.uid;
+      setActiveEvents([]);
+    }
     const unsub = firestore()
       .collection('events')
-      .where('participantIds', 'array-contains', currentUser.uid)
+      .where('participantIds', 'array-contains', user.uid)
       .onSnapshot(snap => {
         const now = Date.now();
         const list = snap.docs
@@ -55,8 +69,7 @@ export default function MyProfileScreen({ navigation }: any) {
         setActiveEvents(list);
       }, err => console.warn('Active events subscription error:', err));
     return () => unsub();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []));
 
   useEffect(() => {
     LocationService.checkCurrentPrecision().then(p => setLocationGranted(p !== 'denied'));
@@ -68,12 +81,32 @@ export default function MyProfileScreen({ navigation }: any) {
     return t.profileLastSeenDays(Math.floor(diff / 86400000));
   };
 
+  const profileBoundUid = useRef<string | null>(null);
   useFocusEffect(
     useCallback(() => {
-      if (!currentUser) return;
+      // Frisk auth-state pr. fokus — render-closurens currentUser kan være
+      // forældet efter konto-skift på en always-mounted tab
+      const user = auth().currentUser;
+      if (!user || user.isAnonymous) {
+        profileBoundUid.current = null;
+        return;
+      }
+      // Konto-skift: ryd den forrige kontos profilfelter FØR der hentes —
+      // ellers blinker den gamle profil et øjeblik
+      if (profileBoundUid.current !== user.uid) {
+        profileBoundUid.current = user.uid;
+        setDisplayName('');
+        setBio('');
+        setStatus('');
+        setStatusTag(null);
+        setAvatarURL(null);
+        setAge(null);
+        setLastSeen(null);
+        setTestAccount(false);
+      }
       firestore()
         .collection('users')
-        .doc(currentUser.uid)
+        .doc(user.uid)
         .get()
         .then(doc => {
           const data = doc.data();
@@ -103,32 +136,14 @@ export default function MyProfileScreen({ navigation }: any) {
 
   if (!currentUser) return null;
 
-  // Skærmkant-til-skærmkant gradient på header-blyanten: ikonet viser sin
-  // skive af en skærm-spændende gradient ud fra sin x-position (jf. memory).
-  const EDIT_ICON_SIZE = 24;
-  const screenW = Dimensions.get('window').width;
-  const editIconLeft = screenW - 16 - EDIT_ICON_SIZE;
-
   return (
     <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backButtonText, { color: isDark ? colors.textWhite : colors.primaryBlue }]}>{t.myProfileBack}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('EditProfile')}
-          activeOpacity={0.7}
-          style={styles.editIconBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <MaskedView maskElement={<EditIcon size={EDIT_ICON_SIZE} color="#000" strokeWidth={2} />}>
-            <GradientView
-              colors={[colors.primaryBlue, colors.primaryRed]}
-              start={{ x: -editIconLeft / EDIT_ICON_SIZE, y: 0 }}
-              end={{ x: (screenW - editIconLeft) / EDIT_ICON_SIZE, y: 0 }}
-              style={{ width: EDIT_ICON_SIZE, height: EDIT_ICON_SIZE }}
-            />
-          </MaskedView>
+      {/* Tab-rod: flad stor titel — ingen tilbage-knap (nav-baren) og ingen
+          rediger-blyant (tab-barens midterknap er rediger på denne fane) */}
+      <View style={[styles.largeTitleRow, { paddingTop: insets.top + 14 }]}>
+        <Text style={[styles.largeTitle, { color: colors.textPrimary }]}>{t.navProfile}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Feedback', { category: 'bug' })} style={{ marginLeft: 'auto' }}>
+          <RoketHeaderLogo width={24} height={24} fill={colors.textPrimary} fillRule="evenodd" />
         </TouchableOpacity>
       </View>
 
@@ -290,16 +305,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  topBar: {
+  largeTitleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    paddingBottom: 8,
+    paddingBottom: 12,
+    paddingHorizontal: 18,
   },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  largeTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   scrollContent: {
     paddingBottom: 40,
@@ -562,8 +577,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
-  },
-  editIconBtn: {
-    padding: 4,
   },
 });

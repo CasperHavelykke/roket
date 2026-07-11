@@ -990,7 +990,8 @@ export default function ChatScreen({ route, navigation }: any) {
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={() => setShowLogoMenu(!showLogoMenu)} style={{ marginLeft: 'auto' }}>
-          <RoketLogoSimpel width={24} height={24} fillRule="evenodd" />
+          {/* SVG'en er farveløs (fill styres af brugsstedet) — hvid på gradient-headeren */}
+          <RoketLogoSimpel width={24} height={24} fill="#fff" fillRule="evenodd" />
         </TouchableOpacity>
       </GradientView>
 
