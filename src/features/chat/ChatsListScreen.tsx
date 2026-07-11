@@ -96,9 +96,11 @@ export default function ChatsListScreen({ navigation }: any) {
   // mount-bundet listener ville dø ved logout og aldrig gen-binde (F4-lektien).
   // Blur rydder op — baggrundsfaner holder ingen listeners.
   const boundUid = useRef<string | null>(null);
+  const [isGuest, setIsGuest] = useState(auth().currentUser?.isAnonymous ?? true);
   useFocusEffect(useCallback(() => {
     // Skygger bevidst den ydre currentUser: frisk auth-state pr. fokus
     const currentUser = auth().currentUser;
+    setIsGuest(!currentUser || currentUser.isAnonymous);
     if (!currentUser || currentUser.isAnonymous) {
       boundUid.current = null;
       setChats([]);
@@ -525,7 +527,20 @@ export default function ChatsListScreen({ navigation }: any) {
       ) : chats.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t.chatsEmpty}</Text>
-          <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>{t.chatsEmptySubtext}</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>
+            {isGuest ? t.guestChatsHint : t.chatsEmptySubtext}
+          </Text>
+          {isGuest && (
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')} activeOpacity={0.85} style={styles.guestCtaWrap}>
+              <GradientView
+                colors={[colors.primaryBlue, colors.primaryRed]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.guestCta}
+              >
+                <Text style={styles.guestCtaText}>{t.guestCreateAccount}</Text>
+              </GradientView>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
@@ -565,6 +580,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  guestCtaWrap: {
+    alignSelf: 'stretch',
+    marginTop: 24,
+    borderRadius: 15,
+  },
+  guestCta: {
+    height: 52,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestCtaText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '800',
   },
   emptyText: {
     fontSize: 20,

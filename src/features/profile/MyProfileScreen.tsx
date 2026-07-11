@@ -41,6 +41,13 @@ export default function MyProfileScreen({ navigation }: any) {
   const [activeEvents, setActiveEvents] = useState<EventDoc[]>([]);
   const currentUser = auth().currentUser;
 
+  // Gæste-status som state — always-mounted tab re-renderer ikke selv ved
+  // login/logout, så fokus opdaterer den (samme mønster som Settings)
+  const [isGuest, setIsGuest] = useState(auth().currentUser?.isAnonymous ?? true);
+  useFocusEffect(useCallback(() => {
+    setIsGuest(auth().currentUser?.isAnonymous ?? true);
+  }, []));
+
   // Bind ved FOKUS, ikke mount: som tab unmountes skærmen aldrig — en
   // mount-bundet listener ville dø ved logout og pege på gammel uid efter
   // konto-skift (F4-lektien). Blur rydder op.
@@ -135,6 +142,82 @@ export default function MyProfileScreen({ navigation }: any) {
   );
 
   if (!currentUser) return null;
+
+  // Gæst: eksempel-profil i stedet for gate — man må gerne SE hvad en
+  // profil er, kontoen kræves først når man vil lave sin egen
+  if (isGuest) {
+    return (
+      <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.largeTitleRow, { paddingTop: insets.top + 26 }]}>
+          <Text style={[styles.largeTitle, { color: colors.textPrimary }]}>{t.navProfile}</Text>
+        </View>
+        <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}>
+          <View style={styles.content}>
+            <View style={[styles.guestExampleBadge, { backgroundColor: colors.borderLight }]}>
+              <Text style={[styles.guestExampleBadgeText, { color: colors.textMuted }]}>{t.guestProfileExample}</Text>
+            </View>
+            <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
+              <TagIcon tag="coffee" size={14} color="#fff" />
+              <Text style={styles.tagPillText}>{String((t as any).tagCoffee ?? 'Kaffe')}</Text>
+            </View>
+            <View style={styles.statusQuoteWrap}>
+              <View style={styles.statusAccent}>
+                <GradientView
+                  colors={[colors.primaryBlue, colors.primaryRed]}
+                  start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                  style={styles.statusAccentFill}
+                />
+              </View>
+              <Text style={[styles.statusQuote, { color: colors.textPrimary }]}>
+                {'“'}{t.guestProfileSampleStatus}{'”'}
+              </Text>
+            </View>
+            {/* Mockede aktiviteter — viser hvad "Aktiv i" betyder */}
+            <View style={styles.aboutSection}>
+              <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{t.profileActiveIn}</Text>
+              {([
+                { tag: 'gaming', title: t.guestSampleActivity1, meta: t.guestSampleActivityMeta1 },
+                { tag: 'walk', title: t.guestSampleActivity2, meta: t.guestSampleActivityMeta2 },
+              ] as const).map(item => (
+                <View key={item.tag} style={styles.activityRow}>
+                  <GradientView
+                    colors={[colors.primaryBlue, colors.primaryRed]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.activityIcon}
+                  >
+                    <TagIcon tag={item.tag} size={14} color="#fff" strokeWidth={2.2} />
+                  </GradientView>
+                  <View style={styles.activityText}>
+                    <Text style={[styles.activityTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+                      {item.title}
+                    </Text>
+                    <Text style={[styles.activityMeta, { color: colors.textMuted }]} numberOfLines={1}>
+                      {item.meta}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <Text style={[styles.guestHint, { color: colors.textMuted }]}>{t.guestProfileHint}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')} activeOpacity={0.85} style={styles.guestCtaWrap}>
+              <GradientView
+                colors={[colors.primaryBlue, colors.primaryRed]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.guestCta}
+              >
+                <Text style={styles.guestCtaText}>{t.guestCreateAccount}</Text>
+              </GradientView>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.guestLoginLink}>
+              <Text style={[styles.guestLoginText, { color: colors.primaryBlueText }]}>{t.settingsLogin}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
@@ -304,6 +387,47 @@ export default function MyProfileScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  guestExampleBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginBottom: 14,
+  },
+  guestExampleBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  guestHint: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 24,
+    marginBottom: 18,
+  },
+  guestCtaWrap: {
+    borderRadius: 15,
+  },
+  guestCta: {
+    height: 52,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestCtaText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  guestLoginLink: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  guestLoginText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   largeTitleRow: {
     flexDirection: 'row',

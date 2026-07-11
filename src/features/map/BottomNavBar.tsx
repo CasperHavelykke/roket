@@ -140,7 +140,8 @@ export default function BottomNavBar({ state, navigation }: BottomTabBarProps) {
         'ChatsList',
         <MessagesIcon size={ICON_SIZE} color={activeRoute === 'ChatsList' ? '#000' : colors.textMuted} strokeWidth={2} />,
         t.navMessages,
-        () => { if (requireAccount(navigation as any, t)) navigation.navigate('ChatsList' as never); },
+        // Gæster må gerne KIGGE (tom tilstand med CTA) — kun handlinger er gated
+        () => navigation.navigate('ChatsList' as never),
         unreadTotal,
       )}
 
@@ -163,7 +164,8 @@ export default function BottomNavBar({ state, navigation }: BottomTabBarProps) {
         'MyProfile',
         <ProfileIcon size={ICON_SIZE} color={activeRoute === 'MyProfile' ? '#000' : colors.textMuted} strokeWidth={2} />,
         t.navProfile,
-        () => { if (requireAccount(navigation as any, t)) navigation.navigate('MyProfile' as never); },
+        // Gæster ser en eksempel-profil med opret-CTA
+        () => navigation.navigate('MyProfile' as never),
       )}
       {tab(
         'Settings',
