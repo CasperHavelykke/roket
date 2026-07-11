@@ -36,6 +36,17 @@ import RoketStars from '../../assets/roket-logo-stars-only.svg';
 import RoketStarsDark from '../../assets/roket-logo-stars-dark.svg';
 import EventDetailModal from '../events/EventDetailModal';
 import { EventDoc, eventFromData, eventEndsAt } from '../../events';
+import useContactRequests from '../../hooks/useContactRequests';
+import {
+  contactPairId,
+  statusForRequest,
+  requestOrAcceptContact,
+  withdrawContactRequest,
+  reRequestContact,
+  wipeChat,
+  blockUser,
+  ContactStatus,
+} from '../../contacts';
 
 interface Message {
   id: string;
@@ -306,6 +317,10 @@ export default function ChatScreen({ route, navigation }: any) {
   const [reportMessage, setReportMessage] = useState<Message | null>(null);
   const [eventDoc, setEventDoc] = useState<EventDoc | null>(null);
   const [showEventDetail, setShowEventDetail] = useState(false);
+  // Connection-brud (Pivot 2.0): sat = chatten er låst; den der IKKE
+  // slettede kan anmode igen, den der slettede kan acceptere/blokere
+  const [disconnectedBy, setDisconnectedBy] = useState<string | null>(null);
+  const [reconnectBusy, setReconnectBusy] = useState(false);
   const [senderProfiles, setSenderProfiles] = useState<Record<string, { name: string; avatarURL: string | null }>>({});
   const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [otherUserTag, setOtherUserTag] = useState<string | null>(null);
@@ -334,6 +349,22 @@ export default function ChatScreen({ route, navigation }: any) {
     };
     checkBlock();
   }, []);
+
+  // Lyt til brud-flaget på 1:1-/connection-chats (serveren rydder det ved accept)
+  useEffect(() => {
+    if (isEventChat || !chatId) return;
+    const unsub = firestore().collection('chats').doc(chatId).onSnapshot(
+      doc => setDisconnectedBy(doc.exists() ? (doc.data()?.disconnectedBy ?? null) : null),
+      () => {},
+    );
+    return () => unsub();
+  }, [chatId, isEventChat]);
+
+  // Gen-anmodningens live status (none/pending_sent/pending_received)
+  const contactRequests = useContactRequests();
+  const reconnectStatus: ContactStatus = currentUser
+    ? statusForRequest(contactRequests[contactPairId(currentUser.uid, otherUser.id)] ?? null, currentUser.uid)
+    : 'none';
 
   const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
   const chatCreatedRef = useRef(false);
@@ -1071,6 +1102,112 @@ export default function ChatScreen({ route, navigation }: any) {
               {t.chatBlocked}
             </Text>
           </View>
+        ) : disconnectedBy && currentUser ? (
+          // Brudt forbindelse: input erstattes af gen-anmodnings-flowet.
+          // Reglerne låser skrivning, så det her er UI'et for tilstanden.
+          <View style={[styles.reconnectBar, { backgroundColor: colors.white, borderTopColor: colors.border }]}>
+            {disconnectedBy !== currentUser.uid ? (
+              <>
+                <Text style={[styles.reconnectText, { color: colors.textMuted }]}>
+                  {t.chatDisconnectedPrompt(otherUser.displayName)}
+                </Text>
+                <View style={styles.reconnectButtons}>
+                  {reconnectStatus === 'pending_sent' ? (
+                    <TouchableOpacity
+                      style={[styles.reconnectBtn, { borderColor: colors.borderLight }]}
+                      disabled={reconnectBusy}
+                      onPress={async () => {
+                        setReconnectBusy(true);
+                        try { await withdrawContactRequest(currentUser.uid, otherUser.id); }
+                        catch (e) { console.warn('Withdraw failed:', e); }
+                        finally { setReconnectBusy(false); }
+                      }}
+                    >
+                      <Text style={[styles.reconnectBtnText, { color: colors.textMuted }]}>{t.contactsRequested}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.reconnectBtn, { borderColor: colors.primaryBlue }]}
+                      disabled={reconnectBusy}
+                      onPress={async () => {
+                        setReconnectBusy(true);
+                        try { await reRequestContact(currentUser.uid, otherUser.id); }
+                        catch (e) { console.warn('Re-request failed:', e); Alert.alert(t.error, t.contactsError); }
+                        finally { setReconnectBusy(false); }
+                      }}
+                    >
+                      <Text style={[styles.reconnectBtnText, { color: colors.primaryBlueText }]}>{t.chatReconnectRequest}</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={[styles.reconnectBtn, { borderColor: colors.border }]}
+                    disabled={reconnectBusy}
+                    onPress={() => {
+                      Alert.alert(t.chatsDeleteTitle, t.chatsDeleteMessage, [
+                        { text: t.cancel, style: 'cancel' },
+                        {
+                          text: t.chatsDeleteConfirm,
+                          style: 'destructive',
+                          onPress: async () => {
+                            try { await wipeChat(chatId, currentUser.uid); } catch (e) { console.warn('Wipe failed:', e); }
+                            navigation.goBack();
+                          },
+                        },
+                      ]);
+                    }}
+                  >
+                    <Text style={[styles.reconnectBtnText, { color: colors.textPrimary }]}>{t.chatsDelete}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : reconnectStatus === 'pending_received' ? (
+              <>
+                <Text style={[styles.reconnectText, { color: colors.textMuted }]}>
+                  {t.chatReconnectIncoming(otherUser.displayName)}
+                </Text>
+                <View style={styles.reconnectButtons}>
+                  <TouchableOpacity
+                    style={[styles.reconnectBtn, styles.reconnectBtnFilled, { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue }]}
+                    disabled={reconnectBusy}
+                    onPress={async () => {
+                      setReconnectBusy(true);
+                      try { await requestOrAcceptContact(currentUser.uid, otherUser.id, 'reconnect'); }
+                      catch (e) { console.warn('Accept failed:', e); Alert.alert(t.error, t.contactsError); }
+                      finally { setReconnectBusy(false); }
+                    }}
+                  >
+                    <Text style={[styles.reconnectBtnText, { color: '#fff' }]}>{t.contactsAccept}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.reconnectBtn, { borderColor: colors.primaryRed }]}
+                    disabled={reconnectBusy}
+                    onPress={() => {
+                      Alert.alert(t.profileBlockConfirm(otherUser.displayName), '', [
+                        { text: t.cancel, style: 'cancel' },
+                        {
+                          text: t.profileBlockButton,
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              await blockUser(currentUser.uid, otherUser.id);
+                              await wipeChat(chatId, currentUser.uid);
+                            } catch (e) { console.warn('Block failed:', e); }
+                            navigation.goBack();
+                          },
+                        },
+                      ]);
+                    }}
+                  >
+                    <Text style={[styles.reconnectBtnText, { color: colors.primaryRed }]}>{t.profileBlockButton}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <Text style={[styles.reconnectText, { color: colors.textMuted }]}>
+                {t.chatYouDisconnected}
+              </Text>
+            )}
+          </View>
         ) : (
         <View>
           {inputText.length > 800 && (
@@ -1376,6 +1513,37 @@ const styles = StyleSheet.create({
   },
   timestampThem: {
     color: '#aaa',
+  },
+  reconnectBar: {
+    borderTopWidth: 1,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  reconnectText: {
+    fontSize: 13.5,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  reconnectButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  reconnectBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reconnectBtnFilled: {
+    borderWidth: 1.5,
+  },
+  reconnectBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   blockedBar: {
     padding: 16,

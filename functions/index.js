@@ -207,24 +207,123 @@ exports.onContactRequestCreated = onDocumentCreated(
       db.collection('users').doc(data.from).get(),
     ]);
 
-    const token = toDoc.data()?.fcmToken;
-    if (!token) return;
     if ((toDoc.data()?.blockedUsers ?? []).includes(data.from)) return;
 
     const fromName = fromDoc.data()?.displayName ?? 'Nogen';
+
+    // Gen-anmodning efter brud: skriv systembesked + bump lastMessage så
+    // samtalen dukker op igen i modtagerens liste (clearedBy-mekanikken)
+    const chatRef = db.collection('chats').doc(event.params.pairId);
+    const chatSnap = await chatRef.get();
+    const isReconnect = chatSnap.exists && !!chatSnap.data().disconnectedBy;
+    if (isReconnect) {
+      const sysText = `${fromName} vil gerne holde kontakten igen`;
+      await chatRef.collection('messages').add({
+        senderId: data.from,
+        text: sysText,
+        timestamp: FieldValue.serverTimestamp(),
+        system: true,
+      });
+      await chatRef.update({
+        lastMessage: sysText.slice(0, 500),
+        lastMessageTime: FieldValue.serverTimestamp(),
+        lastMessageSenderId: data.from,
+      }).catch(err => console.warn('Reconnect lastMessage bump failed:', err));
+    }
+
+    const token = toDoc.data()?.fcmToken;
+    if (!token) {
+      console.log(`Contact request push skipped — recipient ${data.to} has no token`);
+      return;
+    }
+
     await getMessaging().send({
       token,
       notification: {
         title: fromName,
-        body: `${fromName} vil gerne holde kontakten`,
+        body: isReconnect
+          ? `${fromName} vil gerne holde kontakten igen`
+          : `${fromName} vil gerne holde kontakten`,
       },
-      data: { type: 'contactRequest', eventId: data.eventId ?? '' },
+      // Gen-anmodning: Acceptér/Blokér bor i chatten → senderId/senderName
+      // lader det eksisterende tap-flow åbne 1:1-chatten. Første anmodning:
+      // tap åbner aktivitetens detalje (deltagerlisten).
+      data: isReconnect
+        ? { senderId: data.from, senderName: fromName }
+        : { type: 'contactRequest', eventId: data.eventId ?? '' },
       android: {
         priority: 'high',
         notification: { channelId: 'chat_messages', sound: 'default' },
       },
       apns: { payload: { aps: { sound: 'default' } } },
     });
+  }
+);
+
+// Connection-chats: "slet samtalen" er et BRUD med fortrydelsesret.
+// Klienten må kun sætte to flag (reglerne håndhæver det):
+//   disconnectedBy = egen uid  → blødt brud: samtykke + beskeder slettes,
+//     modparten får en systembesked og kan anmode igen
+//   wipeBy = egen uid          → fuldt farvel (kun efter brud): chat,
+//     beskeder og evt. gen-anmodning slettes helt for begge
+// Selve oprydningen sker her — klienten må ikke slette andres beskeder,
+// og beskederne SKAL væk (chat-id'et er deterministisk, så gamle beskeder
+// ville spøge hvis parret nogensinde forbandt igen).
+exports.onConnectionEnded = onDocumentUpdated(
+  'chats/{chatId}',
+  async event => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    if (!before || !after || after.type !== 'connection') return;
+
+    const db = getFirestore();
+    const chatRef = event.data.after.ref;
+    const { chatId } = event.params;
+
+    const deleteAllMessages = async () => {
+      const msgs = await chatRef.collection('messages').get();
+      const docs = msgs.docs;
+      for (let i = 0; i < docs.length; i += 450) {
+        const batch = db.batch();
+        docs.slice(i, i + 450).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+      return docs.length;
+    };
+
+    // Fuldt farvel
+    if (after.wipeBy && !before.wipeBy) {
+      await db.collection('contactRequests').doc(chatId).delete().catch(() => {});
+      const n = await deleteAllMessages();
+      await chatRef.delete().catch(() => {});
+      console.log(`Connection ${chatId} wiped by ${after.wipeBy} (${n} messages)`);
+      return;
+    }
+
+    // Blødt brud
+    if (after.disconnectedBy && !before.disconnectedBy) {
+      const uid = after.disconnectedBy;
+      await db.collection('contactRequests').doc(chatId).delete().catch(() => {});
+      const n = await deleteAllMessages();
+
+      const name = (await db.collection('users').doc(uid).get()).data()?.displayName || 'Din kontakt';
+      // Hardcoded dansk som appens øvrige server-tekster
+      const sysText = `${name} har slettet samtalen`;
+      await chatRef.collection('messages').add({
+        senderId: uid,
+        text: sysText,
+        timestamp: FieldValue.serverTimestamp(),
+        system: true,
+      });
+      await chatRef.update({
+        [`clearedBy.${uid}`]: FieldValue.serverTimestamp(),
+        lastMessage: sysText.slice(0, 500),
+        lastMessageTime: FieldValue.serverTimestamp(),
+        lastMessageSenderId: uid,
+        unreadCount: {},
+      });
+      console.log(`Connection ${chatId} disconnected by ${uid} (${n} messages deleted)`);
+    }
   }
 );
 
@@ -240,6 +339,17 @@ exports.onContactRequestAccepted = onDocumentUpdated(
     if (before.status !== 'pending' || after.status !== 'accepted') return;
 
     const db = getFirestore();
+
+    // Genforbindelse efter slet: ryd disconnectedBy server-side (kun serveren
+    // må røre feltet — ellers kunne en klient låse chatten op udenom accept)
+    const chatRef = db.collection('chats').doc(event.params.pairId);
+    const chatSnap = await chatRef.get();
+    if (chatSnap.exists && chatSnap.data().disconnectedBy) {
+      await chatRef.update({ disconnectedBy: FieldValue.delete() }).catch(err =>
+        console.warn('Clear disconnectedBy failed:', err),
+      );
+    }
+
     const [fromDoc, toDoc] = await Promise.all([
       db.collection('users').doc(after.from).get(),
       db.collection('users').doc(after.to).get(),

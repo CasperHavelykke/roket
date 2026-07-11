@@ -145,10 +145,14 @@ service cloud.firestore {
                       request.auth.uid == resource.data.from ||
                       request.auth.uid == resource.data.to);
 
-      // AKTIVITETS-GATEN: anmodning kræver at BEGGE er deltagere i det
-      // angivne event lige nu (verificeret server-side — klienten kan ikke
-      // opdigte fælles deltagelse). Muligt så længe event-doc'et lever,
-      // dvs. under eventet + grace-perioden.
+      // To lovlige veje til en anmodning:
+      // 1) GEN-ANMODNING efter brud: parrets connection-chat findes og
+      //    MODPARTEN var den der slettede (disconnectedBy == to). Tjekkes
+      //    FØRST og exists-gated — get() på manglende docs fejler hele
+      //    reglen, ikke kun disjunkten.
+      // 2) AKTIVITETS-GATEN: BEGGE er deltagere i det angivne event lige nu
+      //    (verificeret server-side — klienten kan ikke opdigte fælles
+      //    deltagelse). Muligt så længe event-doc'et lever.
       allow create: if isFullUser() &&
                        request.resource.data.from == request.auth.uid &&
                        request.resource.data.to is string &&
@@ -156,8 +160,15 @@ service cloud.firestore {
                        (pairId == request.resource.data.from + '_' + request.resource.data.to ||
                         pairId == request.resource.data.to + '_' + request.resource.data.from) &&
                        request.resource.data.status == 'pending' &&
-                       get(/databases/$(database)/documents/events/$(request.resource.data.eventId))
-                         .data.participantIds.hasAll([request.resource.data.from, request.resource.data.to]);
+                       (
+                         (exists(/databases/$(database)/documents/chats/$(pairId)) &&
+                          get(/databases/$(database)/documents/chats/$(pairId)).data.type == 'connection' &&
+                          'disconnectedBy' in get(/databases/$(database)/documents/chats/$(pairId)).data &&
+                          get(/databases/$(database)/documents/chats/$(pairId)).data.disconnectedBy == request.resource.data.to)
+                         ||
+                         get(/databases/$(database)/documents/events/$(request.resource.data.eventId))
+                           .data.participantIds.hasAll([request.resource.data.from, request.resource.data.to])
+                       );
 
       // Accept: KUN modtageren, KUN status-feltet, KUN pending → accepted
       allow update: if isFullUser() &&
@@ -213,10 +224,31 @@ service cloud.firestore {
       // Staff kan opdatere chat-felter (admin-panel events: eventTitle, eventTag, expiresAt)
       allow update: if isStaff();
 
-      // Kun deltagere kan opdatere (lastMessage, lastMessageTime)
+      // Kun deltagere kan opdatere (lastMessage, lastMessageTime) — men
+      // aldrig brud-felterne; dem sætter de dedikerede regler nedenfor,
+      // og kun serveren rydder dem (accept-triggeren)
       allow update: if isFullUser() &&
                        request.auth.uid in resource.data.participants &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['disconnectedBy', 'wipeBy']) &&
                        (!('lastMessage' in request.resource.data) || (request.resource.data.lastMessage is string && request.resource.data.lastMessage.size() <= 500));
+
+      // Connection-brud: deltager må sætte disconnectedBy = SIN EGEN uid,
+      // kun det felt, og kun én gang (serveren rydder op via trigger)
+      allow update: if isFullUser() &&
+                       request.auth.uid in resource.data.participants &&
+                       resource.data.type == 'connection' &&
+                       !('disconnectedBy' in resource.data) &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['disconnectedBy']) &&
+                       request.resource.data.disconnectedBy == request.auth.uid;
+
+      // Fuldt farvel: efter et brud må hver part bede om total sletning
+      // (trigger sletter chat + beskeder + evt. gen-anmodning)
+      allow update: if isFullUser() &&
+                       request.auth.uid in resource.data.participants &&
+                       resource.data.type == 'connection' &&
+                       'disconnectedBy' in resource.data &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wipeBy']) &&
+                       request.resource.data.wipeBy == request.auth.uid;
 
       // Event-chat: tillad join/leave (tilføj/fjern sig selv fra participants)
       allow update: if isFullUser() &&
@@ -247,9 +279,12 @@ service cloud.firestore {
         // Admins og moderatorer kan læse alle beskeder (til moderation)
         allow read: if isStaff();
 
-        // Kun deltagere kan sende beskeder, og senderId skal matche den indloggede bruger
+        // Kun deltagere kan sende beskeder, og senderId skal matche den
+        // indloggede bruger. Brudte connection-chats (disconnectedBy sat)
+        // er låst for skrivning indtil en gen-anmodning accepteres.
         allow create: if isFullUser() &&
                          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
+                         !('disconnectedBy' in get(/databases/$(database)/documents/chats/$(chatId)).data) &&
                          request.resource.data.senderId == request.auth.uid &&
                          (!('text' in request.resource.data) || (request.resource.data.text is string && request.resource.data.text.size() <= 2000));
 

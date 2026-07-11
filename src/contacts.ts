@@ -101,6 +101,56 @@ export async function withdrawContactRequest(myUid: string, otherUid: string): P
     .delete();
 }
 
+/**
+ * "Slet samtalen" på en connection-chat = blødt brud: klienten sætter kun
+ * disconnectedBy-flaget; serveren (onConnectionEnded) sletter beskeder og
+ * samtykke og efterlader en systembesked, så modparten kan anmode igen.
+ */
+export async function disconnectChat(chatId: string, myUid: string): Promise<void> {
+  await firestore().collection('chats').doc(chatId).update({ disconnectedBy: myUid });
+}
+
+/**
+ * Fuldt farvel efter et brud: chat, beskeder og evt. gen-anmodning slettes
+ * helt for begge parter (server-trigger). Kun muligt når disconnectedBy er sat.
+ */
+export async function wipeChat(chatId: string, myUid: string): Promise<void> {
+  await firestore().collection('chats').doc(chatId).update({ wipeBy: myUid });
+}
+
+/**
+ * Blokér en bruger: både blockedUsers-arrayet (klient-filtrering) og et
+ * blocks-doc (admin-panelets moderationskø) — de to skal altid følges ad.
+ */
+export async function blockUser(myUid: string, otherUid: string): Promise<void> {
+  await Promise.all([
+    firestore().collection('users').doc(myUid).update({
+      blockedUsers: firestore.FieldValue.arrayUnion(otherUid),
+    }),
+    firestore().collection('blocks').add({
+      blockerId: myUid,
+      blockedUserId: otherUid,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+      status: 'pending',
+    }),
+  ]);
+}
+
+/**
+ * Gen-anmodning efter et brud. Reglernes chat-gate (disconnectedBy == to)
+ * erstatter aktivitets-gaten — eventet er for længst auto-slettet, så
+ * eventId er en dummy.
+ */
+export async function reRequestContact(myUid: string, otherUid: string): Promise<void> {
+  await firestore().collection('contactRequests').doc(contactPairId(myUid, otherUid)).set({
+    from: myUid,
+    to: otherUid,
+    eventId: 'reconnect',
+    status: 'pending',
+    createdAt: firestore.FieldValue.serverTimestamp(),
+  });
+}
+
 async function acceptIfPendingReceived(
   ref: FirebaseFirestoreTypes.DocumentReference,
   data: ContactRequestDoc,

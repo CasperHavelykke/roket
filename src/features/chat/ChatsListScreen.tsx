@@ -25,6 +25,7 @@ import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketLogoHeader from '../../assets/roket-logo-simpel.svg';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
+import { disconnectChat, wipeChat, blockUser } from '../../contacts';
 
 interface ChatPreview {
   chatId: string;
@@ -39,6 +40,9 @@ interface ChatPreview {
   isEvent?: boolean;
   eventId?: string;
   eventTag?: StatusTagId | null;
+  // Connection-chats (Pivot 2.0): slet = brud med fortrydelsesret
+  isConnection?: boolean;
+  disconnectedBy?: string | null;
 }
 
 type SwipeAction = { label: string; color: string; onPress: () => void };
@@ -206,6 +210,8 @@ export default function ChatsListScreen({ navigation }: any) {
             lastMessageTime: data.lastMessageTime,
             unreadCount,
             pinned: pinnedSet.has(doc.id),
+            isConnection: data.type === 'connection',
+            disconnectedBy: data.disconnectedBy ?? null,
           });
         }
 
@@ -263,6 +269,52 @@ export default function ChatsListScreen({ navigation }: any) {
   };
 
   const confirmDelete = (item: ChatPreview) => {
+    // Connection-chats: slet = brud med fortrydelsesret (Pivot 2.0).
+    // Legacy 1:1 (live Play-app) beholder det gamle slet-for-mig-flow.
+    if (item.isConnection && currentUser) {
+      const uid = currentUser.uid;
+
+      // Chatten er allerede brudt AF MIG og er dukket op igen = modparten
+      // har gen-anmodet. Slet nr. 2 = blokér (brugerens beslutning).
+      if (item.disconnectedBy === uid) {
+        Alert.alert(t.profileBlockConfirm(item.otherUserName), '', [
+          { text: t.cancel, style: 'cancel' },
+          {
+            text: t.profileBlockButton,
+            style: 'destructive',
+            onPress: async () => {
+              setChats(prev => prev.filter(c => c.chatId !== item.chatId));
+              try {
+                await blockUser(uid, item.otherUserId);
+                await wipeChat(item.chatId, uid);
+              } catch (e) { console.warn('Block from list failed:', e); }
+            },
+          },
+        ]);
+        return;
+      }
+
+      Alert.alert(t.chatsDeleteTitle, t.chatsDeleteMessage, [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.chatsDeleteConfirm,
+          style: 'destructive',
+          onPress: async () => {
+            setChats(prev => prev.filter(c => c.chatId !== item.chatId));
+            try {
+              if (item.disconnectedBy) {
+                // Modparten brød — mit slet er det fulde farvel
+                await wipeChat(item.chatId, uid);
+              } else {
+                await disconnectChat(item.chatId, uid);
+              }
+            } catch (e) { console.warn('Disconnect failed:', e); }
+          },
+        },
+      ]);
+      return;
+    }
+
     Alert.alert(t.chatsDeleteTitle, t.chatsDeleteMessage, [
       { text: t.cancel, style: 'cancel' },
       { text: t.chatsDeleteConfirm, style: 'destructive', onPress: () => deleteConversationForMe(item) },
