@@ -14,14 +14,18 @@ import { useTheme } from '../../theme';
 import { EventDoc, VISIBLE_WINDOW_MINUTES, eventEndsAt, overlapsWindow } from '../../events';
 import {
   TimeWindow,
-  AXIS_START_HOUR,
   AXIS_MINUTES,
   NOW_SNAP_MINUTES,
+  axisStart,
   axisEnd,
   fractionForTime,
   fractionForWindow,
   windowForFraction,
 } from './scrubberTime';
+
+// Striberne i fortids-zonen (mockup-hatch): tynde diagonale streger
+const STRIPE_SPACING = 7;
+const STRIPE_WIDTH = 3;
 
 // ReText-mønsteret: en ikke-redigerbar TextInput hvis tekst sættes via
 // animatedProps — så kan readouten opdatere på UI-tråden under drag,
@@ -64,17 +68,19 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
   const [trackWidth, setTrackWidth] = useState(0);
 
   const now = new Date();
+  const axisStartDate = axisStart(now);
   const nowFraction = fractionForTime(now, now);
   const windowFraction = VISIBLE_WINDOW_MINUTES / AXIS_MINUTES;
   const maxFraction = Math.max(1 - windowFraction, nowFraction);
   const use24h = timeFormat === '24h';
   const nowLabel = t.mapScrubNow;
 
-  // Ren aritmetik til worklet'en — Date-API'er undgås på UI-tråden
-  const nowMinutesOnAxis = (now.getTime() - (axisEnd(now).getTime() - AXIS_MINUTES * 60_000)) / 60_000;
+  // Ren aritmetik til worklet'en — Date-API'er undgås på UI-tråden.
+  // Aksen starter altid på en hel time, så minutter-på-døgnet er nok.
+  const axisStartMinutesOfDay = axisStartDate.getHours() * 60;
   const nowSnapFraction = nowFraction + NOW_SNAP_MINUTES / AXIS_MINUTES;
   // "Nu → HH:MM" — slut-tiden for NU-vinduet er fast pr. render
-  const nowReadout = `${nowLabel} → ${formatMinutes(Math.round(nowMinutesOnAxis) + AXIS_START_HOUR * 60 + VISIBLE_WINDOW_MINUTES, use24h)}`;
+  const nowReadout = `${nowLabel} → ${formatMinutes(now.getHours() * 60 + now.getMinutes() + VISIBLE_WINDOW_MINUTES, use24h)}`;
 
   const fraction = useSharedValue(fractionForWindow(value, now));
 
@@ -116,7 +122,7 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
     if (f <= nowSnapFraction) {
       return nowReadout;
     }
-    const startMinutes = Math.round((AXIS_START_HOUR * 60 + f * AXIS_MINUTES) / 15) * 15;
+    const startMinutes = Math.round((axisStartMinutesOfDay + f * AXIS_MINUTES) / 15) * 15;
     return `${formatMinutes(startMinutes, use24h)} → ${formatMinutes(startMinutes + VISIBLE_WINDOW_MINUTES, use24h)}`;
   });
 
@@ -174,13 +180,31 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
           onLayout={e => setTrackWidth(e.nativeEvent.layout.width)}
         >
           <View style={[styles.track, { backgroundColor: colors.borderLight }]} />
-          {/* Fortiden: låst zone fra aksens start til nu */}
-          <View
-            style={[
-              styles.pastZone,
-              { width: `${nowFraction * 100}%`, backgroundColor: colors.textMuted },
-            ]}
-          />
+          {/* Fortiden: stribet, låst zone fra aksens start til nu — fader
+              ud mod venstre kant */}
+          {trackWidth > 0 && (
+            <View pointerEvents="none" style={[styles.pastZone, { width: nowFraction * trackWidth }]}>
+              {Array.from(
+                { length: Math.ceil((nowFraction * trackWidth) / STRIPE_SPACING) + 2 },
+                (_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.stripe,
+                      { left: i * STRIPE_SPACING, backgroundColor: colors.textMuted },
+                    ]}
+                  />
+                ),
+              )}
+              {/* Fade mod venstre — farven skal matche drawerens sheet-baggrund */}
+              <GradientView
+                colors={[colors.white, `${colors.white}00`]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+            </View>
+          )}
           {dots.map(({ f, active }) => (
             <View
               key={f}
@@ -210,13 +234,13 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
 
       <View style={styles.hourLabels}>
         <Text style={[styles.hourLabel, styles.hourLabelLeft, { color: colors.textMuted }]}>
-          {axisHourText(AXIS_START_HOUR)}
+          {axisHourText(axisStartDate.getHours())}
         </Text>
-        {hourLabel(12, 25)}
-        {hourLabel(18, 50)}
-        {hourLabel(0, 75)}
+        {hourLabel((axisStartDate.getHours() + 6) % 24, 25)}
+        {hourLabel((axisStartDate.getHours() + 12) % 24, 50)}
+        {hourLabel((axisStartDate.getHours() + 18) % 24, 75)}
         <Text style={[styles.hourLabel, styles.hourLabelRight, { color: colors.textMuted }]}>
-          {axisHourText(AXIS_START_HOUR)}
+          {axisHourText(axisStartDate.getHours())}
         </Text>
       </View>
     </View>
@@ -258,10 +282,18 @@ const styles = StyleSheet.create({
   pastZone: {
     position: 'absolute',
     left: 0,
-    top: 9,
-    height: 8,
-    borderRadius: 4,
-    opacity: 0.18,
+    top: 8,
+    height: 10,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  stripe: {
+    position: 'absolute',
+    top: -4,
+    width: STRIPE_WIDTH,
+    height: 18,
+    opacity: 0.3,
+    transform: [{ rotate: '35deg' }],
   },
   dot: {
     position: 'absolute',

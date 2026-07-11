@@ -1,14 +1,15 @@
 // Ren tids-matematik for TimeScrubber — ingen React/gesture-afhængigheder,
 // så logikken kan unit-testes ligesom mapQuery og overlapsTime.
 //
-// Redesign 2026-07: fast døgnakse 06→06 i stedet for NU→midnat. Aksen er
-// læselig (faste timelabels), fortiden er synlig men låst, og selve
-// synligheds-vinduet er en kapsel man trækker langs aksen.
+// Redesign 2026-07, 2. iteration: RULLENDE døgnakse fra nu−6t til nu+18t
+// (rundet til hele timer). Den faste 06→06-akse knækkede om natten — kl. 05
+// var der bogstaveligt talt intet at scrubbe. Den rullende akse giver altid
+// mindst 15 timers fremtid (inkl. næste morgen), og fortiden (~25%) vises
+// som stribet, låst kontekst.
 
 export type TimeWindow = { mode: 'now' } | { mode: 'at'; at: Date };
 
-// Aksen starter kl. 06 — natten hører til det foregående døgn
-export const AXIS_START_HOUR = 6;
+export const AXIS_PAST_HOURS = 6;
 export const AXIS_MINUTES = 24 * 60;
 
 // Committede tider rundes til kvarter
@@ -17,22 +18,22 @@ export const SNAP_STEP_MINUTES = 15;
 // Vindues-starter inden for dette af nu snapper tilbage til "NU"
 export const NOW_SNAP_MINUTES = 20;
 
-// Seneste kl. 06 (lokal tid) — aksens venstre kant. Før kl. 06 om
-// morgenen er det gårsdagens kl. 06.
+// Aksens venstre kant: nu rundet NED til hel time, minus AXIS_PAST_HOURS.
+// Hele timer gør timelabels læselige selv om aksen ruller med døgnet.
 export function axisStart(now: Date): Date {
   const start = new Date(now);
-  start.setHours(AXIS_START_HOUR, 0, 0, 0);
-  if (start.getTime() > now.getTime()) start.setDate(start.getDate() - 1);
+  start.setMinutes(0, 0, 0);
+  start.setHours(start.getHours() - AXIS_PAST_HOURS);
   return start;
 }
 
 export function axisEnd(now: Date): Date {
   const end = axisStart(now);
-  end.setDate(end.getDate() + 1);
+  end.setHours(end.getHours() + 24);
   return end;
 }
 
-// Tidspunkt → fraktion [0..1] på 06→06-aksen
+// Tidspunkt → fraktion [0..1] på den rullende akse
 export function fractionForTime(time: Date, now: Date): number {
   const startMs = axisStart(now).getTime();
   const f = (time.getTime() - startMs) / (AXIS_MINUTES * 60_000);

@@ -1,50 +1,34 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
-  Text,
   Modal,
   StyleSheet,
   TouchableOpacity,
-  Pressable,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
   Animated,
-  Image,
   PanResponder,
-  Linking,
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme';
-import { getStatusTag } from '../../statusTags';
-import TagIcon from '../../components/TagIcon';
-import GradientView from '../../components/GradientView';
-import useUserProfiles from '../../hooks/useUserProfiles';
-import useContactRequests from '../../hooks/useContactRequests';
-import { contactPairId, statusForRequest, requestOrAcceptContact, ContactStatus } from '../../contacts';
-import { Clock, MapPin, Users, MessagesSquare } from 'lucide-react-native';
-import { EventDoc, isEventFull } from '../../events';
-
-// Cap på renderede deltager-rækker — store events må ikke koste en lang
-// liste af Image-mounts i en modal (jf. skalerbarheds-princippet)
-const MAX_PARTICIPANTS_SHOWN = 20;
+import EventDetailContent from './EventDetailContent';
+import { EventDoc } from '../../events';
 
 interface EventDetailModalProps {
   visible: boolean;
   event: EventDoc | null;
   onClose: () => void;
   onOpenChat: (chatId: string, eventTitle: string) => void;
-  // Gæste-gate (Pivot 2.0): kaldes hvis en gæst forsøger at deltage.
-  // Udeladt (legacy grid-flow) → join afvises stille af Firestore-reglerne.
+  // Gæste-gate (Pivot 2.0): kaldes hvis en gæst forsøger at deltage
   onRequireAccount?: () => void;
 }
 
+/**
+ * Modal-indpakning af EventDetailContent. Efter forside-redesignet
+ * (detalje-i-drawer) bruges modalen kun fra chattens Hold kontakten-nudge,
+ * hvor detaljen skal åbne OVEN PÅ chatten — draweren findes kun på kortet.
+ */
 export default function EventDetailModal({ visible, event, onClose, onOpenChat, onRequireAccount }: EventDetailModalProps) {
-  const { colors, t, timeFormat, language } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const [busy, setBusy] = useState(false);
   const [mounted, setMounted] = useState(visible);
   const [displayEvent, setDisplayEvent] = useState<EventDoc | null>(event);
   const translateY = useRef(new Animated.Value(600)).current;
@@ -72,6 +56,7 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat, 
         Animated.timing(overlayOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
       ]).start(() => setMounted(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const panResponder = useRef(
@@ -90,183 +75,7 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat, 
     }),
   ).current;
 
-  // Deltagerprofiler (navn + avatar) — batched + session-cachet.
-  // SKAL kaldes før early-return (Rules of Hooks).
-  const { profiles } = useUserProfiles(displayEvent?.participantIds ?? []);
-  // Hold kontakten: live status for mine anmodninger (flipper i realtid ved
-  // accept; hooken gen-binder selv ved auth-skift)
-  const contactRequests = useContactRequests();
-  const [contactBusyUid, setContactBusyUid] = useState<string | null>(null);
-
   if (!displayEvent || !mounted) return null;
-  const ev = displayEvent;
-
-  const user = auth().currentUser;
-  const isCreator = user?.uid === ev.creatorId;
-  const isParticipant = !!user && ev.participantIds.includes(user.uid);
-  const tag = getStatusTag(ev.tag);
-  const full = isEventFull(ev);
-
-  const handleContactTap = async (otherUid: string) => {
-    if (!user || contactBusyUid) return;
-    setContactBusyUid(otherUid);
-    try {
-      await requestOrAcceptContact(user.uid, otherUid, ev.id);
-      // Hooket live-opdaterer knappens tilstand via listeneren
-    } catch (e) {
-      console.warn('Contact request failed:', e);
-      Alert.alert(t.error, t.contactsError);
-    } finally {
-      setContactBusyUid(null);
-    }
-  };
-
-  const renderContactButton = (uid: string) => {
-    // Kun deltagere med rigtig konto kan holde kontakten — og aldrig med sig selv
-    if (!user || user.isAnonymous || !isParticipant || uid === user.uid) return null;
-
-    const status: ContactStatus = statusForRequest(
-      contactRequests[contactPairId(user.uid, uid)] ?? null,
-      user.uid,
-    );
-    const busy = contactBusyUid === uid;
-
-    if (status === 'connected') {
-      return (
-        <View style={[styles.contactBtn, { borderColor: colors.borderLight }]}>
-          <Text style={[styles.contactBtnText, { color: colors.textMuted }]}>{t.contactsConnected}</Text>
-        </View>
-      );
-    }
-    if (status === 'pending_sent') {
-      return (
-        <View style={[styles.contactBtn, { borderColor: colors.borderLight }]}>
-          <Text style={[styles.contactBtnText, { color: colors.textMuted }]}>{t.contactsRequested}</Text>
-        </View>
-      );
-    }
-    if (status === 'pending_received') {
-      return (
-        <TouchableOpacity
-          style={[styles.contactBtn, styles.contactBtnFilled, { backgroundColor: colors.primaryBlue, borderColor: colors.primaryBlue }]}
-          onPress={() => handleContactTap(uid)}
-          disabled={busy}
-        >
-          {busy ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={[styles.contactBtnText, { color: '#fff' }]}>{t.contactsAccept}</Text>
-          )}
-        </TouchableOpacity>
-      );
-    }
-    return (
-      <TouchableOpacity
-        style={[styles.contactBtn, { borderColor: colors.primaryBlue }]}
-        onPress={() => handleContactTap(uid)}
-        disabled={busy}
-      >
-        {busy ? (
-          <ActivityIndicator size="small" color={colors.primaryBlueText} />
-        ) : (
-          <Text style={[styles.contactBtnText, { color: colors.primaryBlueText }]}>{t.contactsRequest}</Text>
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  const handleJoin = async () => {
-    if (!user) return;
-    if (user.isAnonymous) {
-      onRequireAccount?.();
-      return;
-    }
-    setBusy(true);
-    try {
-      const batch = firestore().batch();
-      batch.update(firestore().collection('events').doc(ev.id), {
-        participantIds: firestore.FieldValue.arrayUnion(user.uid),
-      });
-      batch.update(firestore().collection('chats').doc(ev.chatId), {
-        participants: firestore.FieldValue.arrayUnion(user.uid),
-      });
-      await batch.commit();
-      // Optimistisk opdater lokalt så Chat/Forlad-knapper vises straks
-      setDisplayEvent(prev => prev ? { ...prev, participantIds: [...prev.participantIds, user.uid] } : prev);
-    } catch (e) {
-      console.error('Join failed:', e);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleLeave = async () => {
-    if (!user) return;
-    setBusy(true);
-    // Tolerér mismatched state: hvis bruger kun er i den ene, fjernes de stadig der.
-    try {
-      await firestore().collection('events').doc(ev.id).update({
-        participantIds: firestore.FieldValue.arrayRemove(user.uid),
-      });
-    } catch (e) {
-      console.warn('Event leave failed (maybe already removed):', e);
-    }
-    try {
-      await firestore().collection('chats').doc(ev.chatId).update({
-        participants: firestore.FieldValue.arrayRemove(user.uid),
-      });
-    } catch (e) {
-      console.warn('Chat leave failed (maybe already removed):', e);
-    }
-    setBusy(false);
-    onClose();
-  };
-
-  const handleCancel = () => {
-    Alert.alert(t.eventsCancel, t.eventsCancelConfirm, [
-      { text: t.cancel, style: 'cancel' },
-      {
-        text: t.delete,
-        style: 'destructive',
-        onPress: async () => {
-          setBusy(true);
-          try {
-            await firestore().collection('events').doc(ev.id).delete();
-            await firestore().collection('chats').doc(ev.chatId).delete();
-            onClose();
-          } catch (e) {
-            console.error('Cancel failed:', e);
-          } finally {
-            setBusy(false);
-          }
-        },
-      },
-    ]);
-  };
-
-  const localeMap: Record<string, string> = {
-    da: 'da-DK', en: 'en-GB', es: 'es-ES', de: 'de-DE', fr: 'fr-FR', pt: 'pt-PT',
-  };
-  const locale = localeMap[language] || 'en-GB';
-
-  const formatDateTime = (d: Date) => {
-    const today = new Date();
-    const isToday = today.toDateString() === d.toDateString();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const isTomorrow = tomorrow.toDateString() === d.toDateString();
-    const timeStr = d.toLocaleTimeString(locale, {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: timeFormat === '12h',
-    });
-    const dayLabel = isToday
-      ? t.eventsTimeToday
-      : isTomorrow
-        ? t.eventsTimeTomorrow
-        : d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
-    return `${dayLabel} ${timeStr}`;
-  };
 
   return (
     <Modal visible={mounted} animationType="none" transparent onRequestClose={onClose}>
@@ -278,157 +87,13 @@ export default function EventDetailModal({ visible, event, onClose, onOpenChat, 
           <View style={styles.handleArea} {...panResponder.panHandlers}>
             <View style={styles.handle} />
           </View>
-          <ScrollView style={styles.content}>
-            <View style={styles.headerRow}>
-              {tag && <TagIcon tag={tag.id} size={28} color={colors.textPrimary} />}
-              <Text style={[styles.title, { color: colors.textPrimary }]}>{ev.title}</Text>
-            </View>
-
-            <View style={[styles.infoBox, { backgroundColor: colors.card }]}>
-              <View style={styles.infoRow}>
-                <Clock size={18} color={colors.textPrimary} />
-                <Text style={[styles.infoLine, { color: colors.textPrimary }]}>
-                  {formatDateTime(ev.time)}
-                </Text>
-              </View>
-              {(ev.meetingPlace || ev.location) ? (
-                <Pressable
-                  style={styles.infoRow}
-                  onPress={() => {
-                    const q = ev.location
-                      ? `${ev.location.latitude},${ev.location.longitude}`
-                      : encodeURIComponent(ev.meetingPlace);
-                    const url = `https://www.google.com/maps/search/?api=1&query=${q}`;
-                    Linking.openURL(url).catch(() => {});
-                  }}
-                  disabled={!ev.location && !ev.meetingPlace}
-                >
-                  {({ pressed }) => (
-                    <>
-                      <MapPin size={18} color={colors.textPrimary} />
-                      <Text style={[styles.infoLine, { color: colors.primaryBlueText, opacity: pressed ? 0.5 : 1 }]}>
-                        {ev.meetingPlace || ((t as any).eventsOpenInMaps ?? 'Vis på kort')}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
-              ) : null}
-              <View style={styles.infoRow}>
-                <Users size={18} color={colors.textSecondary} />
-                <Text style={[styles.infoLine, { color: colors.textSecondary }]}>
-                  {ev.maxParticipants
-                    ? t.eventsParticipantsOf(ev.participantIds.length, ev.maxParticipants)
-                    : t.eventsParticipants(ev.participantIds.length)}
-                </Text>
-              </View>
-            </View>
-
-            {/* Deltagerliste — fundamentet for "Hold kontakten" (Fase 4 chunk C).
-                Cappet visning: lange lister render kun de første og viser "+N". */}
-            {ev.participantIds.length > 0 && (
-              <View style={styles.participantsSection}>
-                {ev.participantIds.slice(0, MAX_PARTICIPANTS_SHOWN).map(uid => {
-                  const profile = profiles[uid];
-                  const name = profile?.displayName || t.chatsUnknown;
-                  const isHost = uid === ev.creatorId;
-                  return (
-                    <View key={uid} style={styles.participantRow}>
-                      {profile?.avatarURL ? (
-                        <Image source={{ uri: profile.avatarURL }} style={styles.participantAvatar} />
-                      ) : (
-                        <GradientView
-                          colors={[colors.primaryBlue, colors.primaryRed]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 1 }}
-                          style={[styles.participantAvatar, styles.participantAvatarFallback]}
-                        >
-                          <Text style={styles.participantInitial}>{name.charAt(0).toUpperCase()}</Text>
-                        </GradientView>
-                      )}
-                      <Text style={[styles.participantName, { color: colors.textPrimary }]} numberOfLines={1}>
-                        {name}
-                      </Text>
-                      {isHost && (
-                        <View style={[styles.hostBadge, { backgroundColor: colors.primaryBlue }]}>
-                          <Text style={styles.hostBadgeText}>{t.eventsHostBadge}</Text>
-                        </View>
-                      )}
-                      {uid === user?.uid && (
-                        <View style={[styles.hostBadge, { backgroundColor: colors.borderLight }]}>
-                          <Text style={[styles.hostBadgeText, { color: colors.textMuted }]}>{t.eventsYouBadge}</Text>
-                        </View>
-                      )}
-                      {renderContactButton(uid)}
-                    </View>
-                  );
-                })}
-                {ev.participantIds.length > MAX_PARTICIPANTS_SHOWN && (
-                  <Text style={[styles.participantsMore, { color: colors.textMuted }]}>
-                    {t.eventsParticipantsMore(ev.participantIds.length - MAX_PARTICIPANTS_SHOWN)}
-                  </Text>
-                )}
-              </View>
-            )}
-
-            {ev.description ? (
-              <>
-                <Text style={[styles.descriptionLabel, { color: colors.textSecondary }]}>
-                  {t.descriptionLabel}
-                </Text>
-                <Text style={[styles.description, { color: colors.textPrimary }]}>
-                  {ev.description}
-                </Text>
-              </>
-            ) : null}
-          </ScrollView>
-
-          <View style={styles.footer}>
-            {isCreator ? (
-              <>
-                <TouchableOpacity
-                  style={[styles.cta, { backgroundColor: colors.primaryBlue }]}
-                  onPress={() => onOpenChat(ev.chatId, ev.title)}
-                >
-                  <MessagesSquare size={18} color="#fff" />
-                  <Text style={[styles.ctaText, { marginLeft: 8 }]}>Chat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.ctaSecondary, { borderColor: colors.primaryRed }]}
-                  onPress={handleCancel}
-                  disabled={busy}
-                >
-                  <Text style={[styles.ctaSecondaryText, { color: colors.primaryRed }]}>{t.eventsCancel}</Text>
-                </TouchableOpacity>
-              </>
-            ) : isParticipant ? (
-              <>
-                <TouchableOpacity
-                  style={[styles.cta, { backgroundColor: colors.primaryBlue }]}
-                  onPress={() => onOpenChat(ev.chatId, ev.title)}
-                >
-                  <MessagesSquare size={18} color="#fff" />
-                  <Text style={[styles.ctaText, { marginLeft: 8 }]}>Chat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.ctaSecondary, { borderColor: colors.border }]}
-                  onPress={handleLeave}
-                  disabled={busy}
-                >
-                  <Text style={[styles.ctaSecondaryText, { color: colors.textPrimary }]}>{t.eventsLeave}</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity
-                style={[styles.cta, { backgroundColor: full ? colors.textMuted : colors.primaryBlue }, full && { opacity: 0.6 }]}
-                onPress={handleJoin}
-                disabled={busy || full}
-              >
-                {busy ? <ActivityIndicator color="#fff" /> : (
-                  <Text style={styles.ctaText}>{full ? t.eventsFull : t.eventsJoin}</Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
+          <EventDetailContent
+            event={displayEvent}
+            onClose={onClose}
+            onOpenChat={onOpenChat}
+            onRequireAccount={onRequireAccount}
+            scrollMaxHeight={400}
+          />
         </Animated.View>
       </View>
     </Modal>
@@ -465,136 +130,5 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: '#ccc',
-  },
-  content: {
-    maxHeight: 400,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-  },
-  emoji: {
-    fontSize: 32,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    flex: 1,
-  },
-  infoBox: {
-    borderRadius: 14,
-    padding: 14,
-    gap: 10,
-    marginBottom: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  infoLine: {
-    fontSize: 15,
-    fontWeight: '500',
-    flex: 1,
-  },
-  descriptionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  description: {
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  participantsSection: {
-    marginBottom: 16,
-  },
-  participantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  participantAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-  },
-  participantAvatarFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  participantInitial: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  participantName: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  hostBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    marginLeft: 8,
-  },
-  hostBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  participantsMore: {
-    fontSize: 13,
-    marginTop: 4,
-    marginLeft: 40,
-  },
-  contactBtn: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginLeft: 8,
-    minWidth: 72,
-    alignItems: 'center',
-  },
-  contactBtnFilled: {
-    borderWidth: 1,
-  },
-  contactBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  footer: {
-    paddingTop: 16,
-    gap: 10,
-  },
-  cta: {
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  ctaText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  ctaSecondary: {
-    paddingVertical: 13,
-    borderRadius: 14,
-    alignItems: 'center',
-    borderWidth: 1.5,
-  },
-  ctaSecondaryText: {
-    fontWeight: '700',
-    fontSize: 15,
   },
 });

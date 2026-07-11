@@ -11,9 +11,18 @@ interface ActivityMarkerProps {
 }
 
 const BUBBLE_SIZE = 38;
+const STEM_HEIGHT = 7;
+// OBS: brug normal flex-flow her — absolut-positionerede børn i markør-views
+// tegnes forkert af react-native-maps' rasterizer på Fabric. Snapshot-racen
+// (halvfærdigt view fryses som bitmap) løses i stedet med en kort
+// tracksViewChanges-opvarmning i MapHomeScreen.
 
 export default function ActivityMarker({ tag }: ActivityMarkerProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+
+  // Ren hvid lyste op på det mørke kort og forsvandt på det lyse —
+  // dæmpet hvid/mørk efter tema, på både kant og hale
+  const edgeColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(50,50,60,0.2)';
 
   return (
     <View style={styles.container}>
@@ -21,7 +30,7 @@ export default function ActivityMarker({ tag }: ActivityMarkerProps) {
         colors={[colors.primaryBlue, colors.primaryRed]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.bubble}
+        style={[styles.bubble, { borderColor: edgeColor }]}
       >
         {tag ? (
           <TagIcon tag={tag} size={19} color="#fff" strokeWidth={2.2} />
@@ -29,7 +38,7 @@ export default function ActivityMarker({ tag }: ActivityMarkerProps) {
           <CalendarClock size={19} color="#fff" strokeWidth={2.2} />
         )}
       </GradientView>
-      <View style={[styles.stem, { borderTopColor: colors.primaryRed }]} />
+      <View style={[styles.stem, { borderTopColor: edgeColor }]} />
     </View>
   );
 }
@@ -45,19 +54,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#fff',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
   },
   stem: {
     width: 0,
     height: 0,
     borderLeftWidth: 5,
     borderRightWidth: 5,
-    borderTopWidth: 7,
+    borderTopWidth: STEM_HEIGHT,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     marginTop: -1,

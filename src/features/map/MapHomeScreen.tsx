@@ -20,7 +20,6 @@ import { TimeWindow } from './scrubberTime';
 import { DARK_MAP_STYLE } from './mapDarkStyle';
 import { requireAccount } from '../../utils/guestGate';
 import useUnreadTotal from '../../hooks/useUnreadTotal';
-import EventDetailModal from '../events/EventDetailModal';
 import CreateEventModal from '../events/CreateEventModal';
 import MapPickerModal from '../events/MapPickerModal';
 
@@ -31,6 +30,30 @@ const DEFAULT_REGION: Region = {
   latitudeDelta: 0.05,
   longitudeDelta: 0.05,
 };
+
+/**
+ * Marker med tracksViewChanges-opvarmning: rasterizeren fryser view'et som
+ * bitmap, og på Fabric sker snapshottet før gradient/SVG har tegnet →
+ * skæve haler og tomme bobler. Vi holder tracking åben kort efter mount
+ * og fryser først når alt er tegnet.
+ */
+function ActivityMapMarker({ event, onPress }: { event: EventDoc; onPress: () => void }) {
+  const [track, setTrack] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setTrack(false), 600);
+    return () => clearTimeout(id);
+  }, []);
+  return (
+    <Marker
+      coordinate={event.location}
+      onPress={onPress}
+      tracksViewChanges={track}
+      anchor={{ x: 0.5, y: 1 }}
+    >
+      <ActivityMarker tag={event.tag} />
+    </Marker>
+  );
+}
 
 
 export default function MapHomeScreen({ navigation }: any) {
@@ -112,15 +135,7 @@ export default function MapHomeScreen({ navigation }: any) {
         mapPadding={{ top: 0, right: 0, left: 0, bottom: navHeight + DRAWER_COLLAPSED_HEIGHT }}
       >
         {visibleActivities.map(event => (
-          <Marker
-            key={event.id}
-            coordinate={event.location}
-            onPress={() => setSelected(event)}
-            tracksViewChanges={false}
-            anchor={{ x: 0.5, y: 1 }}
-          >
-            <ActivityMarker tag={event.tag} />
-          </Marker>
+          <ActivityMapMarker key={event.id} event={event} onPress={() => setSelected(event)} />
         ))}
       </MapView>
 
@@ -154,6 +169,20 @@ export default function MapHomeScreen({ navigation }: any) {
         onSelect={setSelected}
         timeWindow={timeWindow}
         onChangeWindow={setTimeWindow}
+        selected={selected}
+        onCloseDetail={() => setSelected(null)}
+        onOpenChat={(chatId, eventTitle) => {
+          setSelected(null);
+          navigation.navigate('Chat', {
+            otherUser: { id: chatId, displayName: eventTitle, testAccount: false },
+            eventChatId: chatId,
+            eventTitle,
+          });
+        }}
+        onRequireAccount={() => {
+          setSelected(null);
+          requireAccount(navigation, t);
+        }}
         bottomOffset={navHeight}
       />
 
@@ -188,23 +217,6 @@ export default function MapHomeScreen({ navigation }: any) {
         initialLocation={pendingLocation}
       />
 
-      <EventDetailModal
-        visible={!!selected}
-        event={selected}
-        onRequireAccount={() => {
-          setSelected(null);
-          requireAccount(navigation, t);
-        }}
-        onClose={() => setSelected(null)}
-        onOpenChat={(chatId, eventTitle) => {
-          setSelected(null);
-          navigation.navigate('Chat', {
-            otherUser: { id: chatId, displayName: eventTitle, testAccount: false },
-            eventChatId: chatId,
-            eventTitle,
-          });
-        }}
-      />
     </View>
   );
 }
