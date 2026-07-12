@@ -42,9 +42,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Roket uses the camera for profile photos and chat photos.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Roket uses your location to show people nearby.</string>
+	<string>Roket uses your location to show nearby activities.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Roket uses your location to show people nearby.</string>
+	<string>Roket uses your location to show nearby activities.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Roket uses your photo library for profile photos and chat photos.</string>
 	<key>RCTNewArchEnabled</key>

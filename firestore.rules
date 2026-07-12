@@ -69,9 +69,17 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Bruger-lokationer (separat for hyppige opdateringer)
+    // Bruger-lokationer (separat for hyppige opdateringer).
+    // Kun nærved-push-matchningen (server-side, admin SDK) forbruger dem
+    // efter at bruger-til-bruger-afstand blev fjernet 2026-07 — klienter
+    // må derfor kun læse deres EGEN lokation, aldrig andres.
+    // OBS FASE 7E: stramningen (kun-egen-læsning) må FØRST deployes når
+    // v2.0.0 har erstattet v1.1.9 på Play — den gamle grid-forside læser
+    // ALLE lokationer og ville gå i stykker. Web-appen (gammelt grid) gør
+    // det samme og skal redesignes før/samtidig.
     match /userLocations/{userId} {
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if isStaff();
       allow create, update: if isFullUser() && request.auth.uid == userId;
       allow create, update: if isAdmin();
       allow delete: if isFullUser() && request.auth.uid == userId;

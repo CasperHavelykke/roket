@@ -64,6 +64,9 @@ function App() {
   const [networkError, setNetworkError] = useState(false);
   const [showNotifDisclosure, setShowNotifDisclosure] = useState(false);
   const notifDisclosureResolve = useRef<(() => void) | null>(null);
+  // Nærved-opt-in fra brugerens profil-doc — styrer om lokations-watch'et
+  // overhovedet kører (lokation uploades KUN ved aktivt tilvalg)
+  const [nearbyOptIn, setNearbyOptIn] = useState(false);
   const theme = useThemeProvider();
   const bannerRef = useRef<NotificationBannerRef>(null);
 
@@ -163,6 +166,7 @@ function App() {
               }
 
               setAuthState(true);
+              setNearbyOptIn(data?.notifyNearbyActivities === true);
 
               // Vis disclosure-modal før notification-permission (kun første gang)
               const initNotifications = async () => {
@@ -188,6 +192,7 @@ function App() {
             setInitializing(false);
           });
       } else {
+        setNearbyOptIn(false);
         // Pivot 2.0: ingen bruger → log ind som anonym gæst, så kortet kan
         // browses uden konto. Gæstens profil-doc findes ikke → authState
         // forbliver null → app-stacken vises (MapHome). Fejler anonym
@@ -306,9 +311,21 @@ function App() {
     return () => unsubForeground();
   }, [authState]);
 
-  // Global location watch — opdaterer lokation uanset hvilken skærm brugeren er på
+  // Global location watch — kører KUN når brugeren aktivt har slået
+  // nærved-notifikationer til (eneste forbruger af serverlokation efter at
+  // bruger-til-bruger-afstand blev fjernet 2026-07). Uden opt-in uploades
+  // intet, og et evt. gammelt userLocations-doc ryddes op.
   useEffect(() => {
     if (authState !== true) return;
+
+    if (!nearbyOptIn) {
+      const user = auth().currentUser;
+      if (user) {
+        firestore().collection('userLocations').doc(user.uid).delete().catch(() => {});
+      }
+      return;
+    }
+
     let watchId: number | null = null;
 
     const startWatch = async () => {
@@ -325,8 +342,13 @@ function App() {
         async (latitude, longitude) => {
           const user = auth().currentUser;
           if (!user) return;
+          // Kvantiseret til ~1 km-grid (2 decimaler): rå GPS forlader aldrig
+          // enheden, og 10 km-radius-matchningen er ligeglad med præcisionen
           await firestore().collection('userLocations').doc(user.uid).set({
-            location: new firestore.GeoPoint(latitude, longitude),
+            location: new firestore.GeoPoint(
+              Math.round(latitude * 100) / 100,
+              Math.round(longitude * 100) / 100,
+            ),
             updatedAt: firestore.FieldValue.serverTimestamp(),
           });
         },
@@ -353,7 +375,7 @@ function App() {
       if (watchId !== null) LocationService.clearWatch(watchId);
       subscription.remove();
     };
-  }, [authState]);
+  }, [authState, nearbyOptIn]);
 
   const handleBannerPress = useCallback((data: NotificationData) => {
     if (!navigationRef.isReady()) return;
@@ -420,7 +442,7 @@ function App() {
     <SafeAreaProvider>
       <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
       <StatusBar barStyle={theme.isDark ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-      <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceMode: theme.distanceMode, setDistanceMode: theme.setDistanceMode, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, showTestBadges: theme.showTestBadges, loginTestInfo: theme.loginTestInfo, t: theme.t }}>
+      <ThemeContext.Provider value={{ colors: theme.colors, mode: theme.mode, isDark: theme.isDark, setMode: theme.setMode, timeFormat: theme.timeFormat, setTimeFormat: theme.setTimeFormat, language: theme.language, setLanguage: theme.setLanguage, distanceUnit: theme.distanceUnit, setDistanceUnit: theme.setDistanceUnit, showTestBadges: theme.showTestBadges, loginTestInfo: theme.loginTestInfo, t: theme.t }}>
         <NavigationContainer ref={navigationRef} theme={navTheme}>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             {authState === false ? (

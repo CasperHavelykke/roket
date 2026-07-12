@@ -69,14 +69,14 @@ const darkColors = {
 export type ThemeColors = typeof lightColors;
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type TimeFormat = '12h' | '24h';
-export type DistanceMode = 'exact' | 'fuzzy' | 'hidden';
+// distanceMode ('exact'/'fuzzy'/'hidden') blev fjernet 2026-07 sammen med
+// bruger-til-bruger-afstand — kun afstand til aktiviteter vises nu
 export type DistanceUnit = 'km' | 'mi';
 export type { Language, Translations };
 
 const THEME_STORAGE_KEY = '@roket_theme_mode';
 const TIME_FORMAT_STORAGE_KEY = '@roket_time_format';
 const LANGUAGE_STORAGE_KEY = '@roket_language';
-const DISTANCE_MODE_STORAGE_KEY = '@roket_distance_mode';
 const DISTANCE_UNIT_STORAGE_KEY = '@roket_distance_unit';
 
 interface ThemeContextType {
@@ -88,8 +88,6 @@ interface ThemeContextType {
   setTimeFormat: (format: TimeFormat) => void;
   language: Language;
   setLanguage: (lang: Language) => void;
-  distanceMode: DistanceMode;
-  setDistanceMode: (mode: DistanceMode) => void;
   distanceUnit: DistanceUnit;
   setDistanceUnit: (unit: DistanceUnit) => void;
   showTestBadges: boolean;
@@ -106,8 +104,6 @@ export const ThemeContext = createContext<ThemeContextType>({
   setTimeFormat: () => {},
   language: 'da',
   setLanguage: () => {},
-  distanceMode: 'exact',
-  setDistanceMode: () => {},
   distanceUnit: 'km',
   setDistanceUnit: () => {},
   showTestBadges: true,
@@ -120,11 +116,10 @@ export function useTheme() {
 }
 
 // Hjælper: gem alle indstillinger til AsyncStorage (lokal cache)
-function cacheSettings(m: ThemeMode, tf: TimeFormat, lang: Language, dm: DistanceMode, du: DistanceUnit) {
+function cacheSettings(m: ThemeMode, tf: TimeFormat, lang: Language, du: DistanceUnit) {
   AsyncStorage.setItem(THEME_STORAGE_KEY, m);
   AsyncStorage.setItem(TIME_FORMAT_STORAGE_KEY, tf);
   AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-  AsyncStorage.setItem(DISTANCE_MODE_STORAGE_KEY, dm);
   AsyncStorage.setItem(DISTANCE_UNIT_STORAGE_KEY, du);
 }
 
@@ -167,7 +162,6 @@ export function useThemeProvider() {
   const [mode, setModeState] = useState<ThemeMode>('system');
   const [timeFormat, setTimeFormatState] = useState<TimeFormat>('24h');
   const [language, setLanguageState] = useState<Language>(getDeviceLanguage);
-  const [distanceMode, setDistanceModeState] = useState<DistanceMode>('exact');
   const [distanceUnit, setDistanceUnitState] = useState<DistanceUnit>('km');
   const [showTestBadges, setShowTestBadges] = useState(true);
   const [loginTestInfo, setLoginTestInfo] = useState('For testing use mail: test@test.com password: Test1234');
@@ -189,9 +183,8 @@ export function useThemeProvider() {
       AsyncStorage.getItem(THEME_STORAGE_KEY),
       AsyncStorage.getItem(TIME_FORMAT_STORAGE_KEY),
       AsyncStorage.getItem(LANGUAGE_STORAGE_KEY),
-      AsyncStorage.getItem(DISTANCE_MODE_STORAGE_KEY),
       AsyncStorage.getItem(DISTANCE_UNIT_STORAGE_KEY),
-    ]).then(([storedMode, storedTime, storedLang, storedDistance, storedUnit]) => {
+    ]).then(([storedMode, storedTime, storedLang, storedUnit]) => {
       if (storedMode === 'light' || storedMode === 'dark' || storedMode === 'system') {
         setModeState(storedMode);
       }
@@ -200,9 +193,6 @@ export function useThemeProvider() {
       }
       if (['da', 'en', 'es', 'de', 'fr', 'pt'].includes(storedLang || '')) {
         setLanguageState(storedLang as Language);
-      }
-      if (storedDistance === 'exact' || storedDistance === 'fuzzy' || storedDistance === 'hidden') {
-        setDistanceModeState(storedDistance);
       }
       if (storedUnit === 'km' || storedUnit === 'mi') {
         setDistanceUnitState(storedUnit);
@@ -222,13 +212,6 @@ export function useThemeProvider() {
         const data = doc.data();
         const s = data?.settings;
         if (!s) {
-          // Migrér distanceMode fra gammelt felt hvis det findes
-          if (data?.distanceMode) {
-            const dm = data.distanceMode;
-            if (dm === 'exact' || dm === 'fuzzy' || dm === 'hidden') {
-              setDistanceModeState(dm);
-            }
-          }
           firestoreDone.current = true;
           markLoaded();
           return;
@@ -242,9 +225,6 @@ export function useThemeProvider() {
         if (['da', 'en', 'es', 'de', 'fr', 'pt'].includes(s.language)) {
           setLanguageState(s.language);
         }
-        if (s.distanceMode === 'exact' || s.distanceMode === 'fuzzy' || s.distanceMode === 'hidden') {
-          setDistanceModeState(s.distanceMode);
-        }
         if (s.distanceUnit === 'km' || s.distanceUnit === 'mi') {
           setDistanceUnitState(s.distanceUnit);
         }
@@ -253,7 +233,6 @@ export function useThemeProvider() {
           s.themeMode ?? 'system',
           s.timeFormat ?? '24h',
           s.language ?? 'da',
-          s.distanceMode ?? 'exact',
           s.distanceUnit ?? 'km',
         );
         firestoreDone.current = true;
@@ -303,17 +282,6 @@ export function useThemeProvider() {
     saveToFirestore('language', lang);
   };
 
-  const setDistanceMode = (dm: DistanceMode) => {
-    setDistanceModeState(dm);
-    AsyncStorage.setItem(DISTANCE_MODE_STORAGE_KEY, dm);
-    saveToFirestore('distanceMode', dm);
-    // Gem også som top-level felt så andre brugere kan læse det
-    const uid = auth().currentUser?.uid;
-    if (uid) {
-      firestore().collection('users').doc(uid).update({ distanceMode: dm }).catch(() => {});
-    }
-  };
-
   const setDistanceUnit = (du: DistanceUnit) => {
     setDistanceUnitState(du);
     AsyncStorage.setItem(DISTANCE_UNIT_STORAGE_KEY, du);
@@ -332,8 +300,6 @@ export function useThemeProvider() {
     setTimeFormat,
     language,
     setLanguage,
-    distanceMode,
-    setDistanceMode,
     distanceUnit,
     setDistanceUnit,
     showTestBadges,

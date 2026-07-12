@@ -16,18 +16,23 @@ import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { useTheme, ThemeMode, TimeFormat, Language, DistanceMode, DistanceUnit } from '../../theme';
+import { useTheme, ThemeMode, TimeFormat, Language, DistanceUnit } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
+import DisclosureModal from '../../components/DisclosureModal';
+import { MapPin as MapPinIcon } from 'lucide-react-native';
 import RoketLogo from '../../assets/roket-logo-simpel.svg';
 import RoketStars from '../../assets/roket-logo-stars-only.svg';
 
 
 export default function SettingsScreen({ navigation }: any) {
-  const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit, t } = useTheme();
+  const { colors, isDark, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceUnit, setDistanceUnit, t } = useTheme();
   const insets = useSafeAreaInsets();
   const currentUser = auth().currentUser;
   // Opt-in nærheds-push: læs nuværende værdi fra bruger-doc'et
   const [notifyNearby, setNotifyNearby] = useState(false);
+  // Prominent disclosure (Play-krav): indsamlingen starter først her, så
+  // bekræft-modalen vises hver gang toggle'n slås TIL
+  const [showNearbyConfirm, setShowNearbyConfirm] = useState(false);
   // Gæste-status som STATE: som always-mounted tab re-renderer skærmen
   // ikke af sig selv ved login/logout — fokus opdaterer den (F4-lektien)
   const [isGuest, setIsGuest] = useState(auth().currentUser?.isAnonymous ?? true);
@@ -66,20 +71,22 @@ export default function SettingsScreen({ navigation }: any) {
     { value: 'pt', label: 'Português' },
   ];
 
-  const distanceModes: { value: DistanceMode; label: string }[] = [
-    { value: 'exact', label: t.settingsDistanceExact },
-    { value: 'fuzzy', label: distanceUnit === 'mi' ? t.settingsDistanceFuzzyMi : t.settingsDistanceFuzzy },
-    { value: 'hidden', label: t.settingsDistanceHidden },
-  ];
-
   const distanceUnits: { value: DistanceUnit; label: string }[] = [
     { value: 'km', label: t.settingsDistanceUnitKm },
     { value: 'mi', label: t.settingsDistanceUnitMi },
   ];
 
-
-  const handleDistanceModeChange = async (mode: DistanceMode) => {
-    setDistanceMode(mode);
+  const saveNotifyNearby = (value: boolean) => {
+    setNotifyNearby(value);
+    const uid = auth().currentUser?.uid;
+    if (uid) {
+      firestore().collection('users').doc(uid)
+        .update({ notifyNearbyActivities: value })
+        .catch(err => {
+          console.warn('Failed to save notifyNearbyActivities:', err);
+          setNotifyNearby(!value);
+        });
+    }
   };
 
   const handleChangePassword = () => {
@@ -204,15 +211,12 @@ export default function SettingsScreen({ navigation }: any) {
               <Switch
                 value={notifyNearby}
                 onValueChange={value => {
-                  setNotifyNearby(value);
-                  const uid = auth().currentUser?.uid;
-                  if (uid) {
-                    firestore().collection('users').doc(uid)
-                      .update({ notifyNearbyActivities: value })
-                      .catch(err => {
-                        console.warn('Failed to save notifyNearbyActivities:', err);
-                        setNotifyNearby(!value);
-                      });
+                  // TIL kræver bekræftelse (indsamlingen starter her);
+                  // FRA slår bare fra — watch'et stopper og doc'et slettes
+                  if (value) {
+                    setShowNearbyConfirm(true);
+                  } else {
+                    saveNotifyNearby(false);
                   }
                 }}
                 trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
@@ -324,6 +328,20 @@ export default function SettingsScreen({ navigation }: any) {
 
         <Text style={styles.copyright}>© 2026 Røket · v2.0.0</Text>
       </ScrollView>
+
+      <DisclosureModal
+        visible={showNearbyConfirm}
+        icon={<MapPinIcon size={64} color={isDark ? '#fff' : colors.textPrimary} />}
+        title={t.disclosureLocationTitle}
+        message={t.disclosureNearbyMessage}
+        acceptLabel={t.disclosureNearbyAccept}
+        cancelLabel={t.cancel}
+        onAccept={() => {
+          setShowNearbyConfirm(false);
+          saveNotifyNearby(true);
+        }}
+        onCancel={() => setShowNearbyConfirm(false)}
+      />
     </SafeAreaView>
   );
 }

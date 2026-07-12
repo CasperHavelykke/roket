@@ -20,11 +20,10 @@ import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
-import LocationService from '../../services/LocationService';
 import { ArrowLeft, MoreVertical } from 'lucide-react-native';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
-import { EventDoc, eventFromData } from '../../events';
+import { EventDoc, eventFromData, eventEndsAt } from '../../events';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import useUserProfiles from '../../hooks/useUserProfiles';
 import ActivityCard, { ACTIVITY_CARD_AVATARS } from '../../components/ActivityCard';
@@ -37,22 +36,15 @@ interface RouteParams {
     status?: string;
     statusTag?: StatusTagId | null;
     avatarURL?: string | null;
-    distance?: number;
     lastSeen?: number; // millisekunder siden epoch
-    distanceMode?: string;
     age?: number;
     testAccount?: boolean;
   };
 }
 
 export default function ProfileViewScreen({ route, navigation }: any) {
-  const { colors, isDark, t, distanceMode, distanceUnit, showTestBadges, language, timeFormat } = useTheme();
+  const { colors, isDark, t, showTestBadges, language, timeFormat } = useTheme();
   const insets = useSafeAreaInsets();
-  const [locationGranted, setLocationGranted] = useState(true);
-
-  useEffect(() => {
-    LocationService.checkCurrentPrecision().then(p => setLocationGranted(p !== 'denied'));
-  }, []);
 
   const formatLastSeen = (lastSeenMs?: number): string => {
     if (!lastSeenMs) return '';
@@ -85,7 +77,10 @@ export default function ProfileViewScreen({ route, navigation }: any) {
         const now = Date.now();
         const list = snap.docs
           .map(d => eventFromData(d.id, d.data()))
-          .filter(ev => ev.expiresAt.getTime() > now)
+          // Sluttid, IKKE expiresAt: i 4-timers grace-perioden efter slut
+          // lever eventet stadig i databasen (chat + Hold kontakten), men
+          // "Aktiv i" skal ikke vise afsluttede aktiviteter
+          .filter(ev => eventEndsAt(ev).getTime() > now)
           .sort((a, b) => a.time.getTime() - b.time.getTime());
         setActiveEvents(list);
       }, err => console.warn('Active events subscription error:', err));
@@ -150,28 +145,6 @@ export default function ProfileViewScreen({ route, navigation }: any) {
     Alert.alert(t.profileReportThanks, t.profileReportReceived);
   };
 
-  const formatDistance = (distance?: number): string => {
-    if (distance == null) return '';
-    if (distanceMode === 'hidden' || user.distanceMode === 'hidden') return '';
-    if (distanceUnit === 'mi') {
-      const miles = distance * 0.621371;
-      if ((distanceMode === 'fuzzy' || user.distanceMode === 'fuzzy') && distance < 0.03) {
-        return t.distanceUnder100ft;
-      }
-      if (miles < 1) {
-        return t.distanceFeet(Math.round(miles * 5280));
-      }
-      return t.distanceMiles(miles.toFixed(1));
-    }
-    if ((distanceMode === 'fuzzy' || user.distanceMode === 'fuzzy') && distance < 0.03) {
-      return t.distanceUnder30;
-    }
-    if (distance < 1) {
-      return t.distanceMeters(Math.round(distance * 1000));
-    }
-    return t.distanceKm(distance.toFixed(1).replace('.', ','));
-  };
-
   return (
     <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -193,10 +166,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
           const hasName = !!user.displayName;
           const hasAge = user.age != null;
           const lastSeenText = user.lastSeen !== undefined ? formatLastSeen(user.lastSeen) : '';
-          const distanceText = locationGranted && user.distance !== undefined ? formatDistance(user.distance) : '';
-          const hasDistance = !!distanceText;
           const hasLastSeen = !!lastSeenText;
-          const hasIdentityFooter = hasName || hasAge || hasDistance || hasLastSeen;
           const isEmpty = !hasStatus && !hasTag && !hasBio && !hasActivities;
           const initials = (() => {
             if (!hasName) return '';
@@ -248,9 +218,9 @@ export default function ProfileViewScreen({ route, navigation }: any) {
                     <Text style={[styles.infoName, { color: colors.textPrimary }]} numberOfLines={1}>
                       {user.displayName || ''}{user.displayName && hasAge ? `, ${user.age}` : hasAge ? `${user.age}` : ''}
                     </Text>
-                    {(hasLastSeen || hasDistance) && (
+                    {hasLastSeen && (
                       <Text style={[styles.infoMeta, { color: colors.textMuted }]} numberOfLines={1}>
-                        {[lastSeenText, distanceText].filter(Boolean).join(' · ')}
+                        {lastSeenText}
                       </Text>
                     )}
                   </View>

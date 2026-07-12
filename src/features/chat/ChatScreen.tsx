@@ -962,27 +962,11 @@ export default function ChatScreen({ route, navigation }: any) {
           <TouchableOpacity
             style={styles.headerInfo}
             onPress={async () => {
-              const [otherDoc, myLocDoc, theirLocDoc] = await Promise.all([
-                firestore().collection('users').doc(otherUser.id).get(),
-                firestore().collection('userLocations').doc(currentUser.uid).get(),
-                firestore().collection('userLocations').doc(otherUser.id).get(),
-              ]);
+              // Bevidst INGEN userLocations-opslag: afstand mellem brugere er
+              // fjernet (privacy 2026-07) — kun afstand til aktiviteter vises
+              const otherDoc = await firestore().collection('users').doc(otherUser.id).get();
               const data = otherDoc.data();
               if (!data) return;
-
-              let distance: number | undefined;
-              const myLoc = myLocDoc.data()?.location;
-              const theirLoc = theirLocDoc.data()?.location;
-              if (myLoc && theirLoc) {
-                const R = 6371;
-                const toRad = (d: number) => d * (Math.PI / 180);
-                const dLat = toRad(theirLoc.latitude - myLoc.latitude);
-                const dLon = toRad(theirLoc.longitude - myLoc.longitude);
-                const a = Math.sin(dLat / 2) ** 2 +
-                  Math.cos(toRad(myLoc.latitude)) * Math.cos(toRad(theirLoc.latitude)) *
-                  Math.sin(dLon / 2) ** 2;
-                distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-              }
 
               navigation.navigate('ProfileView', {
                 user: {
@@ -993,11 +977,8 @@ export default function ChatScreen({ route, navigation }: any) {
                   bio: data.bio || '',
                   avatarURL: data.avatarURL || null,
                   lastSeen: data.lastSeen?.toDate?.()?.getTime(),
-                  distanceMode: data.distanceMode ?? 'exact',
                   age: data.age,
                   testAccount: data.testAccount ?? false,
-                  distance,
-                  location: theirLoc ? { latitude: theirLoc.latitude, longitude: theirLoc.longitude } : undefined,
                 },
                 fromChat: true,
               });

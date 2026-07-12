@@ -15,10 +15,8 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme';
-import LocationService from '../../services/LocationService';
-import { EventDoc, eventFromData } from '../../events';
+import { EventDoc, eventFromData, eventEndsAt } from '../../events';
 import { formatTime, LOCALE_MAP } from '../../utils/eventTime';
-import { MapPin } from 'lucide-react-native';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
@@ -37,8 +35,6 @@ export default function MyProfileScreen({ navigation }: any) {
   const [avatarURL, setAvatarURL] = useState<string | null>(null);
   const [age, setAge] = useState<number | null>(null);
   const [lastSeen, setLastSeen] = useState<number | null>(null);
-  const [distanceModeValue, setDistanceModeValue] = useState<string | null>(null);
-  const [locationGranted, setLocationGranted] = useState(true);
   const [testAccount, setTestAccount] = useState(false);
   // Pivot 2.0: egne aktuelle aktiviteter vises hvor galleriet før lå
   const [activeEvents, setActiveEvents] = useState<EventDoc[]>([]);
@@ -81,16 +77,14 @@ export default function MyProfileScreen({ navigation }: any) {
         const now = Date.now();
         const list = snap.docs
           .map(d => eventFromData(d.id, d.data()))
-          .filter(ev => ev.expiresAt.getTime() > now)
+          // Sluttid, IKKE expiresAt — afsluttede aktiviteter i grace-perioden
+          // skal ikke stå som "Aktiv i" (spejler ProfileViewScreen)
+          .filter(ev => eventEndsAt(ev).getTime() > now)
           .sort((a, b) => a.time.getTime() - b.time.getTime());
         setActiveEvents(list);
       }, err => console.warn('Active events subscription error:', err));
     return () => unsub();
   }, []));
-
-  useEffect(() => {
-    LocationService.checkCurrentPrecision().then(p => setLocationGranted(p !== 'denied'));
-  }, []);
 
   const formatLastSeen = (lastSeenMs: number): string => {
     const diff = Date.now() - lastSeenMs;
@@ -144,7 +138,6 @@ export default function MyProfileScreen({ navigation }: any) {
               setAge(null);
             }
             setLastSeen(data.lastSeen?.toMillis?.() ?? null);
-            setDistanceModeValue(data.distanceMode ?? null);
             setTestAccount(data.testAccount ?? false);
           }
         });
@@ -298,12 +291,6 @@ export default function MyProfileScreen({ navigation }: any) {
           const hasAge = age != null;
           const lastSeenText = lastSeen !== null ? formatLastSeen(lastSeen) : '';
           const hasLastSeen = !!lastSeenText;
-          const distanceVisible = locationGranted && distanceModeValue && distanceModeValue !== 'hidden';
-          const distancePreview = distanceModeValue === 'fuzzy'
-            ? (distanceUnit === 'mi' ? t.distanceUnder100ft : t.distanceUnder30)
-            : (distanceUnit === 'mi' ? t.distanceFeet(0) : t.distanceMeters(0));
-          const hasDistance = !!distanceVisible;
-          const hasIdentityFooter = hasName || hasAge || hasDistance || hasLastSeen;
           const isEmpty = !hasStatus && !hasTag && !hasBio && !hasActivities;
           const initials = (() => {
             if (!hasName) return '';

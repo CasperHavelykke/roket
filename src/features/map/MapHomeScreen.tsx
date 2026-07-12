@@ -2,11 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
+  TouchableOpacity,
   StyleSheet,
   Platform,
+  AppState,
+  Linking,
 } from 'react-native';
 import MapView, { Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
-import Geolocation from 'react-native-geolocation-service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MapPin as MapPinIcon, MapPinOff } from 'lucide-react-native';
+import LocationService from '../../services/LocationService';
+import DisclosureModal from '../../components/DisclosureModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import GradientView from '../../components/GradientView';
 import RoketLogo from '../../assets/roket-logo-2.svg';
@@ -83,28 +89,102 @@ export default function MapHomeScreen({ navigation, route }: any) {
     return activities.filter(ev => overlapsWindow(ev, at));
   }, [activities, timeWindow]);
 
-  // Centrér på brugerens position (permission er allerede givet via grid-flowet;
-  // fejler den, falder vi bare tilbage til default-regionen)
+  // Prominent disclosure-modal (Play-krav, samme mønster som notifikationer
+  // i App.tsx) — vises FØR den native permission-prompt, kun første gang
+  const [showLocDisclosure, setShowLocDisclosure] = useState(false);
+  const locDisclosureResolve = useRef<(() => void) | null>(null);
+
+  // Centrér på brugerens position. LocationService ANMODER selv om
+  // permission — kortet er nu appens første skærm (grid-flowet, der før
+  // stod for prompten, er slettet), så prompten skal ske her. Gælder også
+  // gæster: deres position bruges kun on-device (centrering + afstande).
+  // Afvises den, falder vi tilbage til default-regionen.
   useEffect(() => {
-    Geolocation.getCurrentPosition(
-      pos => {
+    const init = async () => {
+      // Disclosure kun når permission ikke allerede er givet — eksisterende
+      // brugere skal ikke se den efter en app-opdatering. Teksten er ens for
+      // gæst og bruger ("kun på din enhed") — serverdeling sker først ved
+      // aktivt tilvalg af nærved-notifikationer, med egen bekræft-modal dér.
+      const precision = await LocationService.checkCurrentPrecision();
+      if (precision === 'denied') {
+        const disclosed = await AsyncStorage.getItem('@roket_loc_disclosure_shown');
+        if (!disclosed) {
+          await new Promise<void>(resolve => {
+            locDisclosureResolve.current = resolve;
+            setShowLocDisclosure(true);
+          });
+          await AsyncStorage.setItem('@roket_loc_disclosure_shown', 'true');
+        }
+      }
+      const pos = await LocationService.getCurrentPosition();
+      if (pos) {
         const r = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
+          latitude: pos.latitude,
+          longitude: pos.longitude,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
         };
         setInitialRegion(r);
         setRegion(r);
-        setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-      },
-      () => {
+        setUserLocation({ latitude: pos.latitude, longitude: pos.longitude });
+      } else {
         setInitialRegion(DEFAULT_REGION);
         setRegion(DEFAULT_REGION);
-      },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
-    );
+      }
+    };
+    init().catch(() => {
+      setInitialRegion(DEFAULT_REGION);
+      setRegion(DEFAULT_REGION);
+    });
   }, []);
+
+  // Sen aktivering af placering (fortrudt afvisning): flyv kortet hjem
+  const applyLatePosition = (pos: { latitude: number; longitude: number }) => {
+    const r = {
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+      latitudeDelta: 0.05,
+      longitudeDelta: 0.05,
+    };
+    setUserLocation({ latitude: pos.latitude, longitude: pos.longitude });
+    setRegion(r);
+    mapRef.current?.animateToRegion(r, 600);
+  };
+
+  // "Aktivér placering"-pillen: prøv system-prompten igen — men Android
+  // auto-afviser stille efter ét aktivt nej (Android 11+), og iOS
+  // genviser aldrig prompten; i de tilfælde er systemindstillinger
+  // eneste vej, så dér sender vi brugeren hen.
+  const retryLocation = async () => {
+    const precision = await LocationService.requestLocationPermission();
+    if (precision === 'fine' || precision === 'coarse') {
+      const pos = await LocationService.getCurrentPosition();
+      if (pos) applyLatePosition(pos);
+      return;
+    }
+    if (precision === 'denied' && Platform.OS === 'android') {
+      // Dialogen blev faktisk vist og aktivt afvist lige nu — respektér det
+      return;
+    }
+    Linking.openSettings();
+  };
+
+  // Kommer brugeren tilbage fra systemindstillinger med permission givet,
+  // samler vi positionen op uden at kræve endnu et tryk
+  useEffect(() => {
+    if (userLocation) return;
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      LocationService.checkCurrentPrecision().then(p => {
+        if (p === 'denied') return;
+        LocationService.getCurrentPosition().then(pos => {
+          if (pos) applyLatePosition(pos);
+        });
+      });
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation]);
 
   // Opret-signal fra tab-barens midterknap: + på en anden fane hopper til
   // Kort-fanen med et createRequest-param, som åbner pin-pickeren her
@@ -132,8 +212,28 @@ export default function MapHomeScreen({ navigation, route }: any) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route?.params?.openEventNonce]);
 
+  // Modalen skal kunne vises i BEGGE returns — init-flowet venter på den,
+  // før initialRegion sættes, så uden den her deadlocker venteskærmen
+  const locDisclosureModal = (
+    <DisclosureModal
+      visible={showLocDisclosure}
+      icon={<MapPinIcon size={64} color={isDark ? '#fff' : colors.textPrimary} />}
+      title={t.disclosureLocationTitle}
+      message={t.disclosureLocationMessage}
+      acceptLabel={t.disclosureLocationAccept}
+      onAccept={() => {
+        setShowLocDisclosure(false);
+        locDisclosureResolve.current?.();
+      }}
+    />
+  );
+
   if (!initialRegion) {
-    return <View style={[styles.container, { backgroundColor: colors.background }]} />;
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {locDisclosureModal}
+      </View>
+    );
   }
 
   return (
@@ -184,6 +284,28 @@ export default function MapHomeScreen({ navigation, route }: any) {
         <Text style={[styles.logoText, { color: colors.textPrimary }]}>Røket</Text>
       </View>
 
+      {/* Placering mangler (afvist eller GPS-fejl): synlig vej tilbage —
+          uden den er brugeren strandet på fallback-regionen for altid */}
+      {!userLocation && (
+        <TouchableOpacity
+          style={[
+            styles.locationPill,
+            {
+              top: insets.top + 22,
+              backgroundColor: isDark ? 'rgba(22,22,25,0.8)' : 'rgba(255,255,255,0.85)',
+              borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)',
+            },
+          ]}
+          onPress={retryLocation}
+          activeOpacity={0.8}
+        >
+          <MapPinOff size={15} color={colors.textMuted} strokeWidth={2.2} />
+          <Text style={[styles.locationPillText, { color: colors.textPrimary }]}>
+            {t.mapEnableLocation}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       <ActivityDrawer
         activities={visibleActivities}
         allActivities={activities}
@@ -230,6 +352,8 @@ export default function MapHomeScreen({ navigation, route }: any) {
         initialLocation={pendingLocation}
       />
 
+      {locDisclosureModal}
+
     </View>
   );
 }
@@ -237,6 +361,26 @@ export default function MapHomeScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  locationPill: {
+    position: 'absolute',
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 42,
+    paddingHorizontal: 13,
+    borderRadius: 21,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  locationPillText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   logoPill: {
     position: 'absolute',

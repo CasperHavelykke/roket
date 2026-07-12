@@ -25,10 +25,9 @@ import { useTheme } from '../../theme';
 import { STATUS_TAGS, StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import TagIcon from '../../components/TagIcon';
-import { LocateFixed, Locate, EyeOff } from 'lucide-react-native';
 
 export default function EditProfileScreen({ navigation }: any) {
-  const { colors, isDark, t, distanceMode, setDistanceMode, distanceUnit, setDistanceUnit } = useTheme();
+  const { colors, isDark, t } = useTheme();
   const insets = useSafeAreaInsets();
   const [displayName, setDisplayName] = useState('');
   const [status, setStatus] = useState('');
@@ -358,35 +357,6 @@ export default function EditProfileScreen({ navigation }: any) {
             </View>
           )}
 
-          <View style={styles.toggleSection}>
-            <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 8, marginTop: 0 }]}>{t.settingsDistance}</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {([
-                { value: 'exact', label: t.settingsDistanceExact, Icon: LocateFixed },
-                { value: 'fuzzy', label: distanceUnit === 'mi' ? t.settingsDistanceFuzzyMi : t.settingsDistanceFuzzy, Icon: Locate },
-                { value: 'hidden', label: t.settingsDistanceHidden, Icon: EyeOff },
-              ] as const).map(opt => {
-                const selected = distanceMode === opt.value;
-                const fg = selected ? colors.textPrimary : colors.textMuted;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.distanceOption, { backgroundColor: selected ? colors.cardBackground : colors.card }]}
-                    onPress={() => setDistanceMode(opt.value)}
-                    activeOpacity={0.85}
-                  >
-                    <opt.Icon size={18} color={fg} strokeWidth={2} />
-                    <Text style={[styles.distanceOptionText, { color: fg }]}>{opt.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Text style={[styles.settingDesc, { color: colors.textMuted }]}>
-              {distanceMode === 'exact' ? t.settingsDistanceDescExact : distanceMode === 'fuzzy' ? (distanceUnit === 'mi' ? t.settingsDistanceDescFuzzyMi : t.settingsDistanceDescFuzzy) : t.settingsDistanceDescHidden}
-            </Text>
-
-          </View>
-
           <TouchableOpacity
             onPress={handleSave}
             disabled={saving}
@@ -590,26 +560,6 @@ const styles = StyleSheet.create({
   toggleValueLabel: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  distanceOption: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    overflow: 'hidden',
-  },
-  distanceOptionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
-  settingDesc: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 8,
   },
   saveButton: {
     paddingVertical: 16,

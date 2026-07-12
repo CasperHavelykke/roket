@@ -157,7 +157,6 @@ export default function SignupScreen({ navigation }: any) {
         email: cred.user.email,
         createdAt: firestore.FieldValue.serverTimestamp(),
         lastSeen: firestore.FieldValue.serverTimestamp(),
-        distanceMode: 'exact',
         birthday: { day, month, year },
         showAge: true,
         setupComplete: true,
