@@ -59,9 +59,10 @@ function formatMinutes(totalMinutes: number, use24h: boolean): string {
  * fortiden markeret som låst, og synligheds-vinduet som en gradient-kapsel
  * man trækker langs aksen. Readouten ("Nu → 13:24") følger med live.
  *
- * Under drag opdateres kun kapsel + readout (Reanimated, UI-tråden).
- * Først ved slip committes vinduet via onChange — dét re-filtrerer
- * kortets pins og drawer-listen.
+ * Kapsel + readout følger fingeren pr. frame (Reanimated, UI-tråden).
+ * Vinduet committes LIVE under trækket, men kun når det kvarter-rundede
+ * vindue faktisk ændrer sig (bucket-vagten) — så kortets pins og
+ * drawer-listen re-filtreres en håndfuld gange pr. træk, ikke 60/s.
  */
 export default function TimeScrubber({ activities, value, onChange }: TimeScrubberProps) {
   const { colors, t, timeFormat } = useTheme();
@@ -83,9 +84,15 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
   const nowReadout = `${nowLabel} → ${formatMinutes(now.getHours() * 60 + now.getMinutes() + VISIBLE_WINDOW_MINUTES, use24h)}`;
 
   const fraction = useSharedValue(fractionForWindow(value, now));
+  const isScrubbing = useSharedValue(false);
+  // Sidst committede kvarter-bucket — live-commits fyrer kun på bucket-skift
+  const committedBucket = useSharedValue<number | null>(null);
 
-  // Hold kapslen i sync hvis vinduet sættes udefra (fx nulstilles til NU)
+  // Hold kapslen i sync hvis vinduet sættes udefra (fx nulstilles til NU) —
+  // men IKKE under drag: dér er live-commits selv årsag til prop-ændringen,
+  // og en withTiming ville rykke kapslen væk fra fingeren
   useEffect(() => {
+    if (isScrubbing.value) return;
     fraction.value = withTiming(fractionForWindow(value, new Date()), { duration: 180 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
@@ -98,29 +105,50 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
   // kapslen hopper væk fra grebet
   const halfWindowFraction = windowFraction / 2;
 
+  // Flyt kapslen til finger-x og live-commit hvis det kvarter-rundede
+  // vindue har flyttet sig. Bucket-vagten spejler commit'ens egen runding
+  // (inkl. NU-snap-zonen), så vi aldrig committer to ens vinduer i træk.
+  const scrubTo = (x: number) => {
+    'worklet';
+    if (trackWidth <= 0) return;
+    fraction.value = Math.min(Math.max(x / trackWidth - halfWindowFraction, nowFraction), maxFraction);
+    const bucket =
+      fraction.value <= nowSnapFraction
+        ? -1
+        : Math.round((fraction.value * AXIS_MINUTES) / 15);
+    if (bucket !== committedBucket.value) {
+      committedBucket.value = bucket;
+      runOnJS(commit)(fraction.value);
+    }
+  };
+
   // Pan'en claimer kun VANDRETTE træk og opgiver lodrette — dem skal
   // drawerens sheet-pan have (hele draweren er træk-flade). Kapslen
   // placeres først ved aktivering (onStart), ikke ved touch-down, så et
-  // lodret træk hen over scrubberen ikke flytter vinduet. Commit i onEnd,
-  // ikke onFinalize — en fejlet (lodret) gesture må ikke committe.
+  // lodret træk hen over scrubberen ikke flytter vinduet. Ingen commit i
+  // onFinalize — en fejlet (lodret) gesture må ikke committe.
   const pan = Gesture.Pan()
     .activeOffsetX([-8, 8])
     .failOffsetY([-14, 14])
     .onStart(e => {
       'worklet';
-      if (trackWidth > 0) {
-        fraction.value = Math.min(Math.max(e.x / trackWidth - halfWindowFraction, nowFraction), maxFraction);
-      }
+      isScrubbing.value = true;
+      committedBucket.value = null;
+      scrubTo(e.x);
     })
     .onUpdate(e => {
       'worklet';
-      if (trackWidth > 0) {
-        fraction.value = Math.min(Math.max(e.x / trackWidth - halfWindowFraction, nowFraction), maxFraction);
-      }
+      scrubTo(e.x);
     })
     .onEnd(() => {
       'worklet';
       runOnJS(commit)(fraction.value);
+    })
+    .onFinalize(() => {
+      'worklet';
+      // Altid — også når gesturen fejler/annulleres, ellers forbliver
+      // sync-effekten slukket
+      isScrubbing.value = false;
     });
 
   // Tap-til-placering (før: onBegin-hoppet) — nu en separat tap-gesture,

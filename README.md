@@ -11,7 +11,7 @@ An anti-loneliness app for doing things with people nearby. See what's happening
 ## Features
 
 - **Activity map** — The front page is a map of what people nearby are doing right now: every activity is a marker you can tap, with a swipeable drawer listing the same activities as rich cards sorted by distance.
-- **Time scrubber** — Drag a 3-hour window along a rolling 24-hour axis to see what's happening later tonight or tomorrow morning. The scrub animation runs on the UI thread (Reanimated) at 60 fps; map pins and the list re-filter on release.
+- **Time scrubber** — Drag a 3-hour window along a rolling 24-hour axis to see what's happening later tonight or tomorrow morning. The scrub runs on the UI thread (Reanimated) at 60 fps, and map pins and the list re-filter live as the window crosses each quarter-hour.
 - **Events / open invitations** — Post an activity you want to do (coffee, run, study, drinks) and let people nearby join. Every event gets its own group chat, and expired events clean themselves up server-side.
 - **Keep in touch** — After doing an activity together, either participant can request to stay connected, opening a private 1-on-1 chat. Breaking a connection has an undo path: the other person gets one chance to re-request before the break becomes a block — a small state machine enforced across client, security rules, and Cloud Functions.
 - **Group & 1-on-1 chat** — Talk around an event with the participants, or message your connections. Unread counters, push notifications, and photos that auto-expire after 12 hours and are scanned for safety on upload.
