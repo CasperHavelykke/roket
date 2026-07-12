@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
@@ -11,7 +10,10 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedReaction,
+  useAnimatedScrollHandler,
   withSpring,
+  runOnJS,
 } from 'react-native-reanimated';
 import { ArrowLeft } from 'lucide-react-native';
 import { useTheme } from '../../theme';
@@ -52,9 +54,13 @@ interface ActivityDrawerProps {
 /**
  * Pull-up liste over aktiviteter — egen bottom-sheet på Reanimated + RNGH.
  * Bevidst IKKE @gorhom/bottom-sheet (silent fail på RN 0.83 + Reanimated 4
- * + Fabric). Gesture-koordinering holdt simpel: kun håndtags-/header-området
- * trækker i sheetet; listen scroller frit selv. Det undgår hele
- * simultaneousHandlers-problemfeltet.
+ * + Fabric).
+ *
+ * Gesture-koordinering: HELE drawerens flade trækker i sheetet. Listen
+ * scroller kun selv når sheetet er helt åbent; er den scrollet ned, ruller
+ * et nedad-træk den først til toppen, hvorefter sheetet overtager glat
+ * (re-anker-teknikken i pan.onUpdate). Scrubberen claimer kun vandrette
+ * træk (activeOffsetX/failOffsetY), så lodrette træk på den går til sheetet.
  */
 export default function ActivityDrawer({
   activities,
@@ -98,17 +104,45 @@ export default function ActivityDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
+  // Listen må kun selv scrolle når sheetet er helt åbent — ellers er et
+  // lodret træk på listen et træk i sheetet
+  const [listScrollable, setListScrollable] = useState(false);
+  const scrollOffset = useSharedValue(0);
+  useAnimatedReaction(
+    () => translateY.value < 1,
+    (fullyOpen, prev) => {
+      if (fullyOpen !== prev) runOnJS(setListScrollable)(fullyOpen);
+    },
+  );
+  const onListScroll = useAnimatedScrollHandler(e => {
+    scrollOffset.value = e.contentOffset.y;
+  });
+  const listNative = Gesture.Native();
+
   const pan = Gesture.Pan()
+    // Kun lodrette træk — taps på kort og vandrette scrub-træk går igennem
+    .activeOffsetY([-12, 12])
+    .simultaneousWithExternalGesture(listNative)
     .onBegin(() => {
       'worklet';
       startY.value = translateY.value;
     })
     .onUpdate(e => {
       'worklet';
+      // Helt åben og listen har bolden (opad-træk, eller nedad-træk mens
+      // listen stadig er scrollet): re-anker løbende, så sheetet overtager
+      // uden hop i det øjeblik listen rammer toppen
+      if (translateY.value < 1 && (e.translationY < 0 || scrollOffset.value > 0)) {
+        startY.value = -e.translationY;
+        return;
+      }
       translateY.value = Math.min(Math.max(startY.value + e.translationY, 0), collapsedY);
     })
     .onEnd(e => {
       'worklet';
+      // Slip mens listen stadig er scrollet: gesturen var et liste-scroll,
+      // ikke et sheet-træk — lad være at fling-snappe sheetet i gulvet
+      if (translateY.value < 1 && scrollOffset.value > 0) return;
       // Projicér positionen lidt frem ad velociteten og snap til nærmeste punkt
       const projected = translateY.value + e.velocityY * 0.15;
       const snaps = [0, halfY, collapsedY];
@@ -153,20 +187,22 @@ export default function ActivityDrawer({
         sheetStyle,
       ]}
     >
-      <GestureDetector gesture={pan}>
-        <View style={styles.handleArea}>
-          <View style={[styles.handle, { backgroundColor: colors.textMuted }]} />
-        </View>
-      </GestureDetector>
-
       {selected ? (
         <>
           {/* Detalje-tilstand: draweren "bladrer videre" — tilbage-pil til
-              listen, scrubberen er skjult imens */}
-          <TouchableOpacity style={styles.backRow} onPress={onCloseDetail} activeOpacity={0.7}>
-            <ArrowLeft size={20} color={colors.textMuted} strokeWidth={2.2} />
-            <Text style={[styles.backText, { color: colors.textMuted }]}>{t.drawerBackToList}</Text>
-          </TouchableOpacity>
+              listen, scrubberen er skjult imens. Kun toppen trækker her;
+              detaljens egen ScrollView skal have lodrette træk i fred */}
+          <GestureDetector gesture={pan}>
+            <View>
+              <View style={styles.handleArea}>
+                <View style={[styles.handle, { backgroundColor: colors.textMuted }]} />
+              </View>
+              <TouchableOpacity style={styles.backRow} onPress={onCloseDetail} activeOpacity={0.7}>
+                <ArrowLeft size={20} color={colors.textMuted} strokeWidth={2.2} />
+                <Text style={[styles.backText, { color: colors.textMuted }]}>{t.drawerBackToList}</Text>
+              </TouchableOpacity>
+            </View>
+          </GestureDetector>
           <View style={styles.detailWrap}>
             <EventDetailContent
               event={selected}
@@ -177,25 +213,40 @@ export default function ActivityDrawer({
           </View>
         </>
       ) : (
-        <>
-          {/* Tidsvinduet bor i drawerens top (redesign 2026-07) — vandret drag
-              på scrubberen og lodret drag på håndtaget generer ikke hinanden */}
-          <TimeScrubber activities={allActivities} value={timeWindow} onChange={onChangeWindow} />
+        <GestureDetector gesture={pan}>
+          <View style={styles.grabSurface}>
+            <View style={styles.handleArea}>
+              <View style={[styles.handle, { backgroundColor: colors.textMuted }]} />
+            </View>
 
-          <View style={[styles.countRow, { borderTopColor: colors.borderLight }]}>
-            <Text style={[styles.headerText, { color: colors.textPrimary }]}>{headerText}</Text>
+            {/* Tidsvinduet bor i drawerens top (redesign 2026-07) — scrubberen
+                claimer kun vandrette træk, lodrette går til sheetet */}
+            <TimeScrubber activities={allActivities} value={timeWindow} onChange={onChangeWindow} />
+
+            <View style={[styles.countRow, { borderTopColor: colors.borderLight }]}>
+              <Text style={[styles.headerText, { color: colors.textPrimary }]}>{headerText}</Text>
+            </View>
+
+            <GestureDetector gesture={listNative}>
+              <Animated.FlatList
+                data={sorted}
+                keyExtractor={item => item.id}
+                renderItem={renderRow}
+                scrollEnabled={listScrollable}
+                onScroll={onListScroll}
+                scrollEventThrottle={16}
+                // Ingen bounce/overscroll i toppen — nedad-træk ved offset 0
+                // skal gå rent videre til sheetet
+                bounces={false}
+                overScrollMode="never"
+                contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: 16 }}
+                ListEmptyComponent={
+                  <Text style={[styles.empty, { color: colors.textMuted }]}>{t.mapDrawerEmpty}</Text>
+                }
+              />
+            </GestureDetector>
           </View>
-
-          <FlatList
-            data={sorted}
-            keyExtractor={item => item.id}
-            renderItem={renderRow}
-            contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: 16 }}
-            ListEmptyComponent={
-              <Text style={[styles.empty, { color: colors.textMuted }]}>{t.mapDrawerEmpty}</Text>
-            }
-          />
-        </>
+        </GestureDetector>
       )}
     </Animated.View>
   );
@@ -214,6 +265,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: -3 },
+  },
+  grabSurface: {
+    flex: 1,
   },
   handleArea: {
     alignItems: 'center',

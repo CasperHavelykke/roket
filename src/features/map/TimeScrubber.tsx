@@ -98,8 +98,15 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
   // kapslen hopper væk fra grebet
   const halfWindowFraction = windowFraction / 2;
 
+  // Pan'en claimer kun VANDRETTE træk og opgiver lodrette — dem skal
+  // drawerens sheet-pan have (hele draweren er træk-flade). Kapslen
+  // placeres først ved aktivering (onStart), ikke ved touch-down, så et
+  // lodret træk hen over scrubberen ikke flytter vinduet. Commit i onEnd,
+  // ikke onFinalize — en fejlet (lodret) gesture må ikke committe.
   const pan = Gesture.Pan()
-    .onBegin(e => {
+    .activeOffsetX([-8, 8])
+    .failOffsetY([-14, 14])
+    .onStart(e => {
       'worklet';
       if (trackWidth > 0) {
         fraction.value = Math.min(Math.max(e.x / trackWidth - halfWindowFraction, nowFraction), maxFraction);
@@ -111,10 +118,22 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
         fraction.value = Math.min(Math.max(e.x / trackWidth - halfWindowFraction, nowFraction), maxFraction);
       }
     })
-    .onFinalize(() => {
+    .onEnd(() => {
       'worklet';
       runOnJS(commit)(fraction.value);
     });
+
+  // Tap-til-placering (før: onBegin-hoppet) — nu en separat tap-gesture,
+  // så den ikke kolliderer med sheet-trækket
+  const tap = Gesture.Tap().onEnd(e => {
+    'worklet';
+    if (trackWidth > 0) {
+      fraction.value = Math.min(Math.max(e.x / trackWidth - halfWindowFraction, nowFraction), maxFraction);
+      runOnJS(commit)(fraction.value);
+    }
+  });
+
+  const scrubGesture = Gesture.Race(pan, tap);
 
   // Readout formatteres som et slip ville committe (kvarter-rundet)
   const readout = useDerivedValue(() => {
@@ -174,7 +193,7 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
         />
       </View>
 
-      <GestureDetector gesture={pan}>
+      <GestureDetector gesture={scrubGesture}>
         <View
           style={styles.trackArea}
           onLayout={e => setTrackWidth(e.nativeEvent.layout.width)}
