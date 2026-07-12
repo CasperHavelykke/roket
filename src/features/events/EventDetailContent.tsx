@@ -21,7 +21,7 @@ import GradientView from '../../components/GradientView';
 import useUserProfiles from '../../hooks/useUserProfiles';
 import useContactRequests from '../../hooks/useContactRequests';
 import { contactPairId, statusForRequest, requestOrAcceptContact, withdrawContactRequest, ContactStatus } from '../../contacts';
-import { Clock, MapPin, Users, MessagesSquare } from 'lucide-react-native';
+import { Clock, MapPin, Users, MessagesSquare, CalendarClock } from 'lucide-react-native';
 import { EventDoc, isEventFull, eventEndsAt } from '../../events';
 
 // Cap på renderede deltager-rækker — store events må ikke koste en lang
@@ -315,7 +315,12 @@ export default function EventDetailContent({
             end={{ x: 1, y: 1 }}
             style={styles.headerIcon}
           >
-            {tag && <TagIcon tag={tag.id} size={24} color="#fff" strokeWidth={2.2} />}
+            {/* Tag-løse events: samme CalendarClock-fallback som kort-markøren */}
+            {tag ? (
+              <TagIcon tag={tag.id} size={24} color="#fff" strokeWidth={2.2} />
+            ) : (
+              <CalendarClock size={24} color="#fff" strokeWidth={2.2} />
+            )}
           </GradientView>
           <View style={styles.headerText}>
             <Text style={[styles.title, { color: colors.textPrimary }]}>{ev.title}</Text>

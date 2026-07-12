@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, CalendarClock } from 'lucide-react-native';
 import { distanceBetween } from 'geofire-common';
 import GradientView from './GradientView';
 import TagIcon from './TagIcon';
@@ -127,7 +127,12 @@ export default function ActivityCard({ event, profiles, userLocation, onPress, d
             end={{ x: 1, y: 1 }}
             style={styles.cardIcon}
           >
-            {event.tag && <TagIcon tag={event.tag} size={19} color="#fff" strokeWidth={2.2} />}
+            {/* Tag-løse events: samme CalendarClock-fallback som kort-markøren */}
+            {event.tag ? (
+              <TagIcon tag={event.tag} size={19} color="#fff" strokeWidth={2.2} />
+            ) : (
+              <CalendarClock size={19} color="#fff" strokeWidth={2.2} />
+            )}
           </GradientView>
           <View style={styles.cardText}>
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={1}>
