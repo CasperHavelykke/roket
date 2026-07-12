@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,12 +21,13 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
 import LocationService from '../../services/LocationService';
-import { MapPin } from 'lucide-react-native';
+import { ArrowLeft, MoreVertical } from 'lucide-react-native';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
 import { EventDoc, eventFromData } from '../../events';
-import { formatTime, LOCALE_MAP } from '../../utils/eventTime';
 import RoketLogo from '../../assets/roket-logo-2.svg';
+import useUserProfiles from '../../hooks/useUserProfiles';
+import ActivityCard, { ACTIVITY_CARD_AVATARS } from '../../components/ActivityCard';
 
 interface RouteParams {
   user: {
@@ -68,6 +69,13 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   // Pivot 2.0: profilen viser personens AKTUELLE aktiviteter i stedet for
   // billedgalleri — en bro tilbage til aktiviteterne, ikke et katalog
   const [activeEvents, setActiveEvents] = useState<EventDoc[]>([]);
+
+  // Avatar-stakke til aktivitetskortene — batched via session-cachen
+  const activityAvatarUids = useMemo(
+    () => [...new Set(activeEvents.flatMap(ev => ev.participantIds.slice(0, ACTIVITY_CARD_AVATARS)))],
+    [activeEvents],
+  );
+  const { profiles } = useUserProfiles(activityAvatarUids);
 
   useEffect(() => {
     const unsub = firestore()
@@ -167,11 +175,12 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   return (
     <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backButtonText, { color: isDark ? colors.textWhite : colors.primaryBlue }]}>{t.profileBack}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backRow} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <ArrowLeft size={21} color={colors.textPrimary} strokeWidth={2.2} />
+          <Text style={[styles.backRowText, { color: colors.textPrimary }]}>{t.profileBack}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleBlockReport} style={styles.moreButton}>
-          <Text style={[styles.moreButtonText, { color: colors.textMuted }]}>⋮</Text>
+        <TouchableOpacity onPress={handleBlockReport} style={styles.moreButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <MoreVertical size={20} color={colors.textMuted} strokeWidth={2.2} />
         </TouchableOpacity>
       </View>
 
@@ -216,102 +225,84 @@ export default function ProfileViewScreen({ route, navigation }: any) {
 
           return (
             <>
-              {hasTag && (
-                <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
-                  <TagIcon tag={user.statusTag!} size={14} color="#fff" />
-                  <Text style={styles.tagPillText}>
-                    {String((t as any)[`tag${user.statusTag!.charAt(0).toUpperCase() + user.statusTag!.slice(1)}`] ?? user.statusTag)}
-                  </Text>
-                </View>
-              )}
-
-              {hasStatus && (
-                <View style={styles.statusQuoteWrap}>
-                  <View style={styles.statusAccent}>
+              {/* Brugerinfo samlet i én blok (profil-redesign 2026-07) —
+                  lastSeen/afstand vises som diskret meta under navnet */}
+              <View style={[styles.infoBlock, { backgroundColor: colors.white, borderColor: colors.borderLight }]}>
+                <View style={styles.infoTopRow}>
+                  {user.avatarURL ? (
+                    <Image source={{ uri: user.avatarURL }} style={styles.infoAvatar} />
+                  ) : (
                     <GradientView
                       colors={[colors.primaryBlue, colors.primaryRed]}
-                      start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-                      style={styles.statusAccentFill}
-                    />
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                      style={[styles.infoAvatar, styles.infoAvatarFallback]}
+                    >
+                      {initials ? (
+                        <Text style={styles.infoAvatarInitial}>{initials}</Text>
+                      ) : (
+                        <RoketLogo width={14} height={14} fill="#fff" />
+                      )}
+                    </GradientView>
+                  )}
+                  <View style={styles.infoNameWrap}>
+                    <Text style={[styles.infoName, { color: colors.textPrimary }]} numberOfLines={1}>
+                      {user.displayName || ''}{user.displayName && hasAge ? `, ${user.age}` : hasAge ? `${user.age}` : ''}
+                    </Text>
+                    {(hasLastSeen || hasDistance) && (
+                      <Text style={[styles.infoMeta, { color: colors.textMuted }]} numberOfLines={1}>
+                        {[lastSeenText, distanceText].filter(Boolean).join(' · ')}
+                      </Text>
+                    )}
                   </View>
-                  <Text style={[styles.statusQuote, { color: colors.textPrimary }]}>
-                    {'“'}{user.status}{'”'}
-                  </Text>
+                  {hasTag && (
+                    <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue, marginBottom: 0 }]}>
+                      <TagIcon tag={user.statusTag!} size={12} color="#fff" />
+                      <Text style={styles.tagPillText}>
+                        {String((t as any)[`tag${user.statusTag!.charAt(0).toUpperCase() + user.statusTag!.slice(1)}`] ?? user.statusTag)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              )}
 
-              {/* Pivot 2.0: billedgalleriet er erstattet af personens
-                  aktuelle aktiviteter — profilen peger tilbage mod at
-                  LAVE noget sammen, ikke mod at kigge på billeder */}
+                {hasStatus && (
+                  <View style={[styles.statusQuoteWrap, { marginTop: 14, marginBottom: 0 }]}>
+                    <View style={styles.statusAccent}>
+                      <GradientView
+                        colors={[colors.primaryBlue, colors.primaryRed]}
+                        start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                        style={styles.statusAccentFill}
+                      />
+                    </View>
+                    <Text style={[styles.statusQuote, { color: colors.textPrimary }]}>
+                      {'“'}{user.status}{'”'}
+                    </Text>
+                  </View>
+                )}
+
+                {hasBio && (
+                  <Text style={[styles.infoBio, { color: colors.textSecondary }]}>{user.bio}</Text>
+                )}
+              </View>
+
+              {/* Aktivitetskortene fra kortets drawer — tap åbner aktivitetens
+                  detalje på Kort-fanen */}
               {hasActivities && (
                 <View style={styles.aboutSection}>
                   <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{t.profileActiveIn}</Text>
                   {activeEvents.map(ev => (
-                    <View key={ev.id} style={styles.activityRow}>
-                      <GradientView
-                        colors={[colors.primaryBlue, colors.primaryRed]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.activityIcon}
-                      >
-                        {ev.tag && <TagIcon tag={ev.tag} size={14} color="#fff" strokeWidth={2.2} />}
-                      </GradientView>
-                      <View style={styles.activityText}>
-                        <Text style={[styles.activityTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-                          {ev.title}
-                        </Text>
-                        <Text style={[styles.activityMeta, { color: colors.textMuted }]} numberOfLines={1}>
-                          {formatTime(ev.time, t, LOCALE_MAP[language] ?? 'en-GB', timeFormat === '12h')}
-                        </Text>
-                      </View>
-                    </View>
+                    <ActivityCard
+                      key={ev.id}
+                      event={ev}
+                      profiles={profiles}
+                      userLocation={null}
+                      onPress={() =>
+                        (navigation as any).navigate('Tabs', {
+                          screen: 'MapHome',
+                          params: { openEventId: ev.id, openEventNonce: Date.now() },
+                        })
+                      }
+                    />
                   ))}
-                </View>
-              )}
-
-              {hasBio && (
-                <View style={styles.aboutSection}>
-                  <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{(t as any).descriptionLabel ?? t.editProfileBioLabel ?? 'OM'}</Text>
-                  <Text style={[styles.bioText, { color: colors.textPrimary }]}>{user.bio}</Text>
-                </View>
-              )}
-
-              {hasIdentityFooter && (
-                <View style={[styles.identityFooter, { borderTopColor: colors.borderLight }]}>
-                  <View style={styles.identityLeft}>
-                    {user.avatarURL ? (
-                      <Image source={{ uri: user.avatarURL }} style={styles.identityAvatar} />
-                    ) : initials ? (
-                      <GradientView
-                        colors={[colors.primaryBlue, colors.primaryRed]}
-                        start={{ x: -20 / 32, y: 0 }}
-                        end={{ x: (Dimensions.get('window').width - 20) / 32, y: 0 }}
-                        style={styles.identityAvatar}
-                      >
-                        <Text style={styles.identityAvatarText}>{initials}</Text>
-                      </GradientView>
-                    ) : (
-                      <View style={[styles.identityAvatar, { backgroundColor: colors.cardBackground }]}>
-                        <RoketLogo width={14} height={14} fill={colors.cardBackgroundIcon} />
-                      </View>
-                    )}
-                    <View style={styles.identityText}>
-                      {(hasName || hasAge) && (
-                        <Text style={[styles.identityName, { color: colors.textPrimary }]}>
-                          {user.displayName || ''}{user.displayName && hasAge ? `, ${user.age}` : hasAge ? `${user.age}` : ''}
-                        </Text>
-                      )}
-                      {hasLastSeen && (
-                        <Text style={[styles.identityMeta, { color: colors.textMuted }]}>{lastSeenText}</Text>
-                      )}
-                    </View>
-                  </View>
-                  {hasDistance && (
-                    <View style={styles.identityDistance}>
-                      <MapPin size={13} color={colors.textMuted} />
-                      <Text style={[styles.identityDistanceText, { color: colors.textMuted }]}>{distanceText}</Text>
-                    </View>
-                  )}
                 </View>
               )}
 
@@ -426,16 +417,59 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 8,
   },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  backRowText: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   moreButton: {
     padding: 4,
   },
-  moreButtonText: {
-    fontSize: 26,
-    lineHeight: 28,
+  infoBlock: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+  },
+  infoTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  infoAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  infoAvatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoAvatarInitial: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  infoNameWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  infoName: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  infoMeta: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  infoBio: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 14,
   },
   scrollContent: {
     paddingHorizontal: 20,

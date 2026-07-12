@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,9 @@ import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
 import RoketHeaderLogo from '../../assets/roket-logo-simpel.svg';
+import useUserProfiles from '../../hooks/useUserProfiles';
+import ActivityCard, { ACTIVITY_CARD_AVATARS, dimOverlayColor } from '../../components/ActivityCard';
+import { requireAccount } from '../../utils/guestGate';
 
 export default function MyProfileScreen({ navigation }: any) {
   const { colors, isDark, t, distanceUnit, showTestBadges, language, timeFormat } = useTheme();
@@ -40,6 +43,13 @@ export default function MyProfileScreen({ navigation }: any) {
   // Pivot 2.0: egne aktuelle aktiviteter vises hvor galleriet før lå
   const [activeEvents, setActiveEvents] = useState<EventDoc[]>([]);
   const currentUser = auth().currentUser;
+
+  // Avatar-stakke til aktivitetskortene — batched via session-cachen
+  const activityAvatarUids = useMemo(
+    () => [...new Set(activeEvents.flatMap(ev => ev.participantIds.slice(0, ACTIVITY_CARD_AVATARS)))],
+    [activeEvents],
+  );
+  const { profiles } = useUserProfiles(activityAvatarUids);
 
   // Gæste-status som state — always-mounted tab re-renderer ikke selv ved
   // login/logout, så fokus opdaterer den (samme mønster som Settings)
@@ -146,62 +156,110 @@ export default function MyProfileScreen({ navigation }: any) {
   // Gæst: eksempel-profil i stedet for gate — man må gerne SE hvad en
   // profil er, kontoen kræves først når man vil lave sin egen
   if (isGuest) {
+    // Mock-aktiviteter i rigtige ActivityCard-klæder: én i gang, én snart
+    const sampleNow = Date.now();
+    const sampleBase = {
+      creatorId: 'sample-a',
+      description: '',
+      meetingPlace: '',
+      location: { latitude: 0, longitude: 0 },
+      durationMinutes: 120,
+      maxParticipants: null,
+      chatId: '',
+      createdAt: new Date(sampleNow),
+      expiresAt: new Date(sampleNow + 6 * 3_600_000),
+    };
+    const sampleEvents: EventDoc[] = [
+      {
+        ...sampleBase,
+        id: 'sample-1',
+        title: t.guestSampleActivity1,
+        tag: 'gaming',
+        time: new Date(sampleNow - 15 * 60_000),
+        participantIds: ['sample-a', 'sample-b', 'sample-c', 'sample-d'],
+      },
+      {
+        ...sampleBase,
+        id: 'sample-2',
+        title: t.guestSampleActivity2,
+        tag: 'walk',
+        time: new Date(sampleNow + 40 * 60_000),
+        participantIds: ['sample-b', 'sample-e', 'sample-f'],
+      },
+    ];
+    const sampleProfiles = {
+      'sample-a': { id: 'sample-a', displayName: 'Sofie', avatarURL: null },
+      'sample-b': { id: 'sample-b', displayName: 'Mads', avatarURL: null },
+      'sample-e': { id: 'sample-e', displayName: 'Ida', avatarURL: null },
+    };
+
     return (
       <SafeAreaView edges={[]} style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.largeTitleRow, { paddingTop: insets.top + 26 }]}>
           <Text style={[styles.largeTitle, { color: colors.textPrimary }]}>{t.navProfile}</Text>
+          <TouchableOpacity
+            onPress={() => { if (requireAccount(navigation, t)) navigation.navigate('Feedback', { category: 'bug' }); }}
+            style={{ marginLeft: 'auto' }}
+          >
+            <RoketHeaderLogo width={24} height={24} fill={colors.textPrimary} fillRule="evenodd" />
+          </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}>
           <View style={styles.content}>
+            {/* Mock-indholdet dæmpes pr. element — overlays følger hver
+                forms hjørner (blok 20, kort 16) i stedet for én stor firkant */}
             <View style={[styles.guestExampleBadge, { backgroundColor: colors.borderLight }]}>
               <Text style={[styles.guestExampleBadgeText, { color: colors.textMuted }]}>{t.guestProfileExample}</Text>
             </View>
-            <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
-              <TagIcon tag="coffee" size={14} color="#fff" />
-              <Text style={styles.tagPillText}>{String((t as any).tagCoffee ?? 'Kaffe')}</Text>
-            </View>
-            <View style={styles.statusQuoteWrap}>
-              <View style={styles.statusAccent}>
-                <GradientView
-                  colors={[colors.primaryBlue, colors.primaryRed]}
-                  start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-                  style={styles.statusAccentFill}
-                />
-              </View>
-              <Text style={[styles.statusQuote, { color: colors.textPrimary }]}>
-                {'“'}{t.guestProfileSampleStatus}{'”'}
-              </Text>
-            </View>
-            {/* Mockede aktiviteter — viser hvad "Aktiv i" betyder */}
-            <View style={styles.aboutSection}>
-              <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{t.profileActiveIn}</Text>
-              {([
-                { tag: 'gaming', title: t.guestSampleActivity1, meta: t.guestSampleActivityMeta1 },
-                { tag: 'walk', title: t.guestSampleActivity2, meta: t.guestSampleActivityMeta2 },
-              ] as const).map(item => (
-                <View key={item.tag} style={styles.activityRow}>
+            <View style={styles.mockBlockWrap}>
+              <View style={[styles.infoBlock, { backgroundColor: colors.white, borderColor: colors.borderLight }]}>
+                <View style={styles.infoTopRow}>
                   <GradientView
                     colors={[colors.primaryBlue, colors.primaryRed]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.activityIcon}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                    style={[styles.infoAvatar, styles.infoAvatarFallback]}
                   >
-                    <TagIcon tag={item.tag} size={14} color="#fff" strokeWidth={2.2} />
+                    <Text style={styles.infoAvatarInitial}>A</Text>
                   </GradientView>
-                  <View style={styles.activityText}>
-                    <Text style={[styles.activityTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-                      {item.title}
-                    </Text>
-                    <Text style={[styles.activityMeta, { color: colors.textMuted }]} numberOfLines={1}>
-                      {item.meta}
-                    </Text>
+                  <Text style={[styles.infoName, { color: colors.textPrimary }]}>{t.guestSampleName}</Text>
+                  <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue, marginBottom: 0 }]}>
+                    <TagIcon tag="coffee" size={12} color="#fff" />
+                    <Text style={styles.tagPillText}>{String((t as any).tagCoffee ?? 'Kaffe')}</Text>
                   </View>
                 </View>
+                <View style={[styles.statusQuoteWrap, { marginTop: 14, marginBottom: 0 }]}>
+                  <View style={styles.statusAccent}>
+                    <GradientView
+                      colors={[colors.primaryBlue, colors.primaryRed]}
+                      start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                      style={styles.statusAccentFill}
+                    />
+                  </View>
+                  <Text style={[styles.statusQuote, { color: colors.textPrimary }]}>
+                    {'“'}{t.guestProfileSampleStatus}{'”'}
+                  </Text>
+                </View>
+              </View>
+              <View
+                style={[styles.mockBlockOverlay, { backgroundColor: dimOverlayColor(isDark) }]}
+              />
+            </View>
+            {/* Mockede aktiviteter i de rigtige kort — viser hvad "Aktiv i" betyder */}
+            <View style={styles.aboutSection}>
+              <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{t.profileActiveIn}</Text>
+              {sampleEvents.map(ev => (
+                <ActivityCard
+                  key={ev.id}
+                  event={ev}
+                  profiles={sampleProfiles}
+                  userLocation={null}
+                  onPress={() => {}}
+                  dimmed
+                />
               ))}
             </View>
 
-            <Text style={[styles.guestHint, { color: colors.textMuted }]}>{t.guestProfileHint}</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Signup')} activeOpacity={0.85} style={styles.guestCtaWrap}>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')} activeOpacity={0.85} style={[styles.guestCtaWrap, { marginTop: 24 }]}>
               <GradientView
                 colors={[colors.primaryBlue, colors.primaryRed]}
                 start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -274,100 +332,77 @@ export default function MyProfileScreen({ navigation }: any) {
 
           return (
             <View style={styles.content}>
-              {hasTag && (
-                <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue }]}>
-                  <TagIcon tag={statusTag!} size={14} color="#fff" />
-                  <Text style={styles.tagPillText}>
-                    {String((t as any)[`tag${statusTag!.charAt(0).toUpperCase() + statusTag!.slice(1)}`] ?? statusTag)}
-                  </Text>
-                </View>
-              )}
-
-              {hasStatus && (
-                <View style={styles.statusQuoteWrap}>
-                  <View style={styles.statusAccent}>
+              {/* Brugerinfo samlet i én blok (profil-redesign 2026-07):
+                  avatar + navn/alder + tag-pill, statuscitat og bio */}
+              <View style={[styles.infoBlock, { backgroundColor: colors.white, borderColor: colors.borderLight }]}>
+                <View style={styles.infoTopRow}>
+                  {avatarURL ? (
+                    <Image source={{ uri: avatarURL }} style={styles.infoAvatar} />
+                  ) : (
                     <GradientView
                       colors={[colors.primaryBlue, colors.primaryRed]}
-                      start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-                      style={styles.statusAccentFill}
-                    />
-                  </View>
-                  <Text style={[styles.statusQuote, { color: colors.textPrimary }]}>
-                    {'“'}{status}{'”'}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                      style={[styles.infoAvatar, styles.infoAvatarFallback]}
+                    >
+                      {initials ? (
+                        <Text style={styles.infoAvatarInitial}>{initials}</Text>
+                      ) : (
+                        <RoketLogo width={14} height={14} fill="#fff" />
+                      )}
+                    </GradientView>
+                  )}
+                  <Text style={[styles.infoName, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {displayName || ''}{displayName && hasAge ? `, ${age}` : ''}
                   </Text>
+                  {hasTag && (
+                    <View style={[styles.tagPill, { backgroundColor: colors.primaryBlue, marginBottom: 0 }]}>
+                      <TagIcon tag={statusTag!} size={12} color="#fff" />
+                      <Text style={styles.tagPillText}>
+                        {String((t as any)[`tag${statusTag!.charAt(0).toUpperCase() + statusTag!.slice(1)}`] ?? statusTag)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-              )}
 
-              {/* Pivot 2.0: galleriet er erstattet af mine aktuelle aktiviteter */}
+                {hasStatus && (
+                  <View style={[styles.statusQuoteWrap, { marginTop: 14, marginBottom: 0 }]}>
+                    <View style={styles.statusAccent}>
+                      <GradientView
+                        colors={[colors.primaryBlue, colors.primaryRed]}
+                        start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                        style={styles.statusAccentFill}
+                      />
+                    </View>
+                    <Text style={[styles.statusQuote, { color: colors.textPrimary }]}>
+                      {'“'}{status}{'”'}
+                    </Text>
+                  </View>
+                )}
+
+                {hasBio && (
+                  <Text style={[styles.infoBio, { color: colors.textSecondary }]}>{bio}</Text>
+                )}
+              </View>
+
+              {/* Aktivitetskortene fra kortets drawer — tap hopper til
+                  aktivitetens detalje på Kort-fanen */}
               {hasActivities && (
                 <View style={styles.aboutSection}>
                   <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{t.profileActiveIn}</Text>
                   {activeEvents.map(ev => (
-                    <View key={ev.id} style={styles.activityRow}>
-                      <GradientView
-                        colors={[colors.primaryBlue, colors.primaryRed]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.activityIcon}
-                      >
-                        {ev.tag && <TagIcon tag={ev.tag} size={14} color="#fff" strokeWidth={2.2} />}
-                      </GradientView>
-                      <View style={styles.activityText}>
-                        <Text style={[styles.activityTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-                          {ev.title}
-                        </Text>
-                        <Text style={[styles.activityMeta, { color: colors.textMuted }]} numberOfLines={1}>
-                          {formatTime(ev.time, t, LOCALE_MAP[language] ?? 'en-GB', timeFormat === '12h')}
-                        </Text>
-                      </View>
-                    </View>
+                    <ActivityCard
+                      key={ev.id}
+                      event={ev}
+                      profiles={profiles}
+                      userLocation={null}
+                      onPress={() =>
+                        (navigation as any).navigate('MapHome', {
+                          openEventId: ev.id,
+                          openEventNonce: Date.now(),
+                        })
+                      }
+                    />
                   ))}
-                </View>
-              )}
-
-              {hasBio && (
-                <View style={styles.aboutSection}>
-                  <Text style={[styles.aboutLabel, { color: colors.textMuted }]}>{(t as any).descriptionLabel ?? 'OM'}</Text>
-                  <Text style={[styles.bioText, { color: colors.textPrimary }]}>{bio}</Text>
-                </View>
-              )}
-
-              {hasIdentityFooter && (
-                <View style={[styles.identityFooter, { borderTopColor: colors.borderLight }]}>
-                  <View style={styles.identityLeft}>
-                    {avatarURL ? (
-                      <Image source={{ uri: avatarURL }} style={styles.identityAvatar} />
-                    ) : initials ? (
-                      <GradientView
-                        colors={[colors.primaryBlue, colors.primaryRed]}
-                        start={{ x: -20 / 32, y: 0 }}
-                        end={{ x: (Dimensions.get('window').width - 20) / 32, y: 0 }}
-                        style={styles.identityAvatar}
-                      >
-                        <Text style={styles.identityAvatarText}>{initials}</Text>
-                      </GradientView>
-                    ) : (
-                      <View style={[styles.identityAvatar, { backgroundColor: colors.cardBackground }]}>
-                        <RoketLogo width={14} height={14} fill={colors.cardBackgroundIcon} />
-                      </View>
-                    )}
-                    <View style={styles.identityText}>
-                      {(hasName || hasAge) && (
-                        <Text style={[styles.identityName, { color: colors.textPrimary }]}>
-                          {displayName || ''}{displayName && hasAge ? `, ${age}` : hasAge ? `${age}` : ''}
-                        </Text>
-                      )}
-                      {hasLastSeen && (
-                        <Text style={[styles.identityMeta, { color: colors.textMuted }]}>{lastSeenText}</Text>
-                      )}
-                    </View>
-                  </View>
-                  {hasDistance && (
-                    <View style={styles.identityDistance}>
-                      <MapPin size={13} color={colors.textMuted} />
-                      <Text style={[styles.identityDistanceText, { color: colors.textMuted }]}>{distancePreview}</Text>
-                    </View>
-                  )}
                 </View>
               )}
 
@@ -387,6 +422,48 @@ export default function MyProfileScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  infoBlock: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+  },
+  infoTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  infoAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  infoAvatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoAvatarInitial: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  infoName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  infoBio: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 14,
+  },
+  mockBlockWrap: {
+    position: 'relative',
+  },
+  mockBlockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 20,
   },
   guestExampleBadge: {
     alignSelf: 'flex-start',

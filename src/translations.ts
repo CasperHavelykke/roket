@@ -103,6 +103,7 @@ const da = {
   chatReconnectIncoming: (name: string) => `${name} vil gerne holde kontakten igen`,
   chatYouDisconnected: 'Du har slettet samtalen',
   guestProfileExample: 'Eksempel',
+  guestSampleName: 'Alex, 24',
   guestProfileSampleStatus: 'Frisk på en kaffe og en god snak',
   guestProfileHint: 'Sådan kan din profil se ud — opret en konto for at lave din egen',
   guestCreateAccount: 'Opret konto',
@@ -114,6 +115,7 @@ const da = {
   eventsStatusNow: 'I gang',
   eventsStartsIn: (m: number) => `Starter om ${m} min`,
   eventsParticipantsLabel: 'Deltagere',
+  timeInMinutes: (m: number) => `Om ${m} min`,
   mapZoomIn: 'Zoom ind for at se aktiviteter',
   mapScrubNow: 'Nu',
   mapDrawerEmpty: 'Ingen aktiviteter i dette tidsrum',
@@ -175,7 +177,7 @@ const da = {
   homeLocationHowIOS: 'iPhone/iPad: Åbn Indstillinger → Safari → Placering → Tillad. Genindlæs derefter siden.',
 
   // ProfileViewScreen
-  profileBack: '← Tilbage',
+  profileBack: 'Tilbage',
   profileOnlineNow: 'Online nu',
   profileLastSeenMinutes: (mins: number) => `Sidst set ${mins} min siden`,
   profileLastSeenHours: (hours: number) => `Sidst set ${hours} timer siden`,
@@ -570,6 +572,7 @@ const en: typeof da = {
   chatReconnectIncoming: (name: string) => `${name} would like to keep in touch again`,
   chatYouDisconnected: 'You deleted the conversation',
   guestProfileExample: 'Example',
+  guestSampleName: 'Alex, 24',
   guestProfileSampleStatus: 'Up for a coffee and a good chat',
   guestProfileHint: 'This is what your profile could look like — create an account to make your own',
   guestCreateAccount: 'Create account',
@@ -581,6 +584,7 @@ const en: typeof da = {
   eventsStatusNow: 'Happening now',
   eventsStartsIn: (m: number) => `Starts in ${m} min`,
   eventsParticipantsLabel: 'Participants',
+  timeInMinutes: (m: number) => `In ${m} min`,
   mapZoomIn: 'Zoom in to see activities',
   mapScrubNow: 'Now',
   mapDrawerEmpty: 'No activities in this time window',
@@ -642,7 +646,7 @@ const en: typeof da = {
   homeLocationHowIOS: 'iPhone/iPad: Open Settings → Safari → Location → Allow. Then reload the page.',
 
   // ProfileViewScreen
-  profileBack: '← Back',
+  profileBack: 'Back',
   profileOnlineNow: 'Online now',
   profileLastSeenMinutes: (mins: number) => `Last seen ${mins} min ago`,
   profileLastSeenHours: (hours: number) => `Last seen ${hours} hours ago`,
@@ -1037,6 +1041,7 @@ const es: typeof da = {
   chatReconnectIncoming: (name: string) => `A ${name} le gustaría seguir en contacto de nuevo`,
   chatYouDisconnected: 'Eliminaste la conversación',
   guestProfileExample: 'Ejemplo',
+  guestSampleName: 'Alex, 24',
   guestProfileSampleStatus: 'Me apetece un café y una buena charla',
   guestProfileHint: 'Así podría verse tu perfil — crea una cuenta para hacer el tuyo',
   guestCreateAccount: 'Crear cuenta',
@@ -1048,6 +1053,7 @@ const es: typeof da = {
   eventsStatusNow: 'En curso',
   eventsStartsIn: (m: number) => `Empieza en ${m} min`,
   eventsParticipantsLabel: 'Participantes',
+  timeInMinutes: (m: number) => `En ${m} min`,
   mapZoomIn: 'Acerca el mapa para ver actividades',
   mapScrubNow: 'Ahora',
   mapDrawerEmpty: 'No hay actividades en este horario',
@@ -1109,7 +1115,7 @@ const es: typeof da = {
   homeLocationHowIOS: 'iPhone/iPad: Abre Ajustes → Safari → Ubicación → Permitir. Luego recarga la página.',
 
   // ProfileViewScreen
-  profileBack: '← Volver',
+  profileBack: 'Volver',
   profileOnlineNow: 'En línea ahora',
   profileLastSeenMinutes: (mins: number) => `Visto hace ${mins} min`,
   profileLastSeenHours: (hours: number) => `Visto hace ${hours} horas`,
@@ -1504,6 +1510,7 @@ const de: typeof da = {
   chatReconnectIncoming: (name: string) => `${name} möchte wieder in Kontakt bleiben`,
   chatYouDisconnected: 'Du hast die Unterhaltung gelöscht',
   guestProfileExample: 'Beispiel',
+  guestSampleName: 'Alex, 24',
   guestProfileSampleStatus: 'Lust auf einen Kaffee und ein gutes Gespräch',
   guestProfileHint: 'So könnte dein Profil aussehen — erstelle ein Konto für dein eigenes',
   guestCreateAccount: 'Konto erstellen',
@@ -1515,6 +1522,7 @@ const de: typeof da = {
   eventsStatusNow: 'Läuft gerade',
   eventsStartsIn: (m: number) => `Beginnt in ${m} Min.`,
   eventsParticipantsLabel: 'Teilnehmer',
+  timeInMinutes: (m: number) => `In ${m} Min.`,
   mapZoomIn: 'Hineinzoomen, um Aktivitäten zu sehen',
   mapScrubNow: 'Jetzt',
   mapDrawerEmpty: 'Keine Aktivitäten in diesem Zeitraum',
@@ -1576,7 +1584,7 @@ const de: typeof da = {
   homeLocationHowIOS: 'iPhone/iPad: Öffne Einstellungen → Safari → Standort → Zulassen. Lade dann die Seite neu.',
 
   // ProfileViewScreen
-  profileBack: '← Zurück',
+  profileBack: 'Zurück',
   profileOnlineNow: 'Jetzt online',
   profileLastSeenMinutes: (mins: number) => `Zuletzt vor ${mins} Min. gesehen`,
   profileLastSeenHours: (hours: number) => `Zuletzt vor ${hours} Std. gesehen`,
@@ -1971,6 +1979,7 @@ const fr: typeof da = {
   chatReconnectIncoming: (name: string) => `${name} aimerait rester en contact à nouveau`,
   chatYouDisconnected: 'Vous avez supprimé la conversation',
   guestProfileExample: 'Exemple',
+  guestSampleName: 'Alex, 24',
   guestProfileSampleStatus: 'Partant pour un café et une bonne discussion',
   guestProfileHint: 'Voici à quoi pourrait ressembler votre profil — créez un compte pour faire le vôtre',
   guestCreateAccount: 'Créer un compte',
@@ -1982,6 +1991,7 @@ const fr: typeof da = {
   eventsStatusNow: 'En cours',
   eventsStartsIn: (m: number) => `Commence dans ${m} min`,
   eventsParticipantsLabel: 'Participants',
+  timeInMinutes: (m: number) => `Dans ${m} min`,
   mapZoomIn: 'Zoomez pour voir les activités',
   mapScrubNow: 'Maintenant',
   mapDrawerEmpty: 'Aucune activité sur ce créneau',
@@ -2043,7 +2053,7 @@ const fr: typeof da = {
   homeLocationHowIOS: 'iPhone/iPad : Ouvrez Réglages → Safari → Position → Autoriser. Puis rechargez la page.',
 
   // ProfileViewScreen
-  profileBack: '← Retour',
+  profileBack: 'Retour',
   profileOnlineNow: 'En ligne',
   profileLastSeenMinutes: (mins: number) => `Vu il y a ${mins} min`,
   profileLastSeenHours: (hours: number) => `Vu il y a ${hours} heures`,
@@ -2438,6 +2448,7 @@ const pt: typeof da = {
   chatReconnectIncoming: (name: string) => `${name} gostaria de manter o contacto de novo`,
   chatYouDisconnected: 'Eliminaste a conversa',
   guestProfileExample: 'Exemplo',
+  guestSampleName: 'Alex, 24',
   guestProfileSampleStatus: 'A fim de um café e uma boa conversa',
   guestProfileHint: 'É assim que o teu perfil pode ficar — cria uma conta para fazer o teu',
   guestCreateAccount: 'Criar conta',
@@ -2449,6 +2460,7 @@ const pt: typeof da = {
   eventsStatusNow: 'A decorrer',
   eventsStartsIn: (m: number) => `Começa em ${m} min`,
   eventsParticipantsLabel: 'Participantes',
+  timeInMinutes: (m: number) => `Em ${m} min`,
   mapZoomIn: 'Aproxime o mapa para ver atividades',
   mapScrubNow: 'Agora',
   mapDrawerEmpty: 'Nenhuma atividade neste horário',
@@ -2510,7 +2522,7 @@ const pt: typeof da = {
   homeLocationHowIOS: 'iPhone/iPad: Abre Definições → Safari → Localização → Permitir. Depois recarrega a página.',
 
   // ProfileViewScreen
-  profileBack: '← Voltar',
+  profileBack: 'Voltar',
   profileOnlineNow: 'Online agora',
   profileLastSeenMinutes: (mins: number) => `Visto há ${mins} min`,
   profileLastSeenHours: (hours: number) => `Visto há ${hours} horas`,
