@@ -101,6 +101,9 @@ export default function ActivityDrawer({
       translateY.value = withSpring(halfY, SNAP_SPRING);
     }
     prevSelected.current = selected;
+    // Ny scroll-flade (liste↔detalje) starter altid i toppen — en hængende
+    // offset fra den forrige ville blokere nedad-handoff'et
+    scrollOffset.value = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
@@ -118,11 +121,14 @@ export default function ActivityDrawer({
     scrollOffset.value = e.contentOffset.y;
   });
   const listNative = Gesture.Native();
+  // Detaljens ScrollView koordineres med samme mekanik som listen —
+  // liste og detalje er aldrig aktive samtidig, så de deler scrollOffset
+  const detailNative = Gesture.Native();
 
   const pan = Gesture.Pan()
     // Kun lodrette træk — taps på kort og vandrette scrub-træk går igennem
     .activeOffsetY([-12, 12])
-    .simultaneousWithExternalGesture(listNative)
+    .simultaneousWithExternalGesture(listNative, detailNative)
     .onBegin(() => {
       'worklet';
       startY.value = translateY.value;
@@ -188,30 +194,32 @@ export default function ActivityDrawer({
       ]}
     >
       {selected ? (
-        <>
-          {/* Detalje-tilstand: draweren "bladrer videre" — tilbage-pil til
-              listen, scrubberen er skjult imens. Kun toppen trækker her;
-              detaljens egen ScrollView skal have lodrette træk i fred */}
-          <GestureDetector gesture={pan}>
-            <View>
-              <View style={styles.handleArea}>
-                <View style={[styles.handle, { backgroundColor: colors.textMuted }]} />
-              </View>
-              <TouchableOpacity style={styles.backRow} onPress={onCloseDetail} activeOpacity={0.7}>
-                <ArrowLeft size={20} color={colors.textMuted} strokeWidth={2.2} />
-                <Text style={[styles.backText, { color: colors.textMuted }]}>{t.drawerBackToList}</Text>
-              </TouchableOpacity>
+        /* Detalje-tilstand: draweren "bladrer videre" — tilbage-pil til
+            listen, scrubberen er skjult imens. Hele fladen trækker (samme
+            handoff-mekanik som listen: detaljen scroller kun selv når
+            sheetet er helt åbent) */
+        <GestureDetector gesture={pan}>
+          <View style={styles.grabSurface}>
+            <View style={styles.handleArea}>
+              <View style={[styles.handle, { backgroundColor: colors.textMuted }]} />
             </View>
-          </GestureDetector>
-          <View style={styles.detailWrap}>
-            <EventDetailContent
-              event={selected}
-              onClose={onCloseDetail}
-              onOpenChat={onOpenChat}
-              onRequireAccount={onRequireAccount}
-            />
+            <TouchableOpacity style={styles.backRow} onPress={onCloseDetail} activeOpacity={0.7}>
+              <ArrowLeft size={20} color={colors.textMuted} strokeWidth={2.2} />
+              <Text style={[styles.backText, { color: colors.textMuted }]}>{t.drawerBackToList}</Text>
+            </TouchableOpacity>
+            <View style={styles.detailWrap}>
+              <EventDetailContent
+                event={selected}
+                onClose={onCloseDetail}
+                onOpenChat={onOpenChat}
+                onRequireAccount={onRequireAccount}
+                sheetScrollGesture={detailNative}
+                onSheetScroll={onListScroll}
+                sheetScrollEnabled={listScrollable}
+              />
+            </View>
           </View>
-        </>
+        </GestureDetector>
       ) : (
         <GestureDetector gesture={pan}>
           <View style={styles.grabSurface}>

@@ -5,12 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
-  ScrollView,
   Alert,
   ActivityIndicator,
   Image,
   Linking,
 } from 'react-native';
+import { GestureDetector, NativeGesture } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
@@ -44,6 +45,13 @@ interface EventDetailContentProps {
   // Sat (fx 400) i modal-konteksten hvor sheetet er indholds-dimensioneret;
   // udeladt fylder indholdet sin container (drawer-konteksten)
   scrollMaxHeight?: number;
+  // Drawer-koordinering (hele draweren er træk-flade): sheet-pan'en ejer
+  // lodrette træk indtil sheetet er helt åbent. Draweren leverer native-
+  // gesture + scroll-tracking + enabled-flag; modal-konteksten udelader
+  // dem og får en almindelig fri ScrollView.
+  sheetScrollGesture?: NativeGesture;
+  onSheetScroll?: any;
+  sheetScrollEnabled?: boolean;
 }
 
 /**
@@ -58,6 +66,9 @@ export default function EventDetailContent({
   onOpenChat,
   onRequireAccount,
   scrollMaxHeight,
+  sheetScrollGesture,
+  onSheetScroll,
+  sheetScrollEnabled,
 }: EventDetailContentProps) {
   const { colors, t, timeFormat, language } = useTheme();
   const [busy, setBusy] = useState(false);
@@ -283,9 +294,20 @@ export default function EventDetailContent({
     </View>
   ) : null;
 
-  return (
-    <View style={scrollMaxHeight == null && styles.fill}>
-      <ScrollView style={scrollMaxHeight != null ? { maxHeight: scrollMaxHeight } : styles.fill}>
+  // Scroll-delen bygges separat, så draweren kan wrappe den i sin
+  // GestureDetector — modal-konteksten må IKKE wrappes (GestureDetector
+  // inde i en RN Modal kræver egen GestureHandlerRootView)
+  const scrollView = (
+      <Animated.ScrollView
+        style={scrollMaxHeight != null ? { maxHeight: scrollMaxHeight } : styles.fill}
+        onScroll={onSheetScroll}
+        scrollEventThrottle={16}
+        scrollEnabled={sheetScrollGesture ? (sheetScrollEnabled ?? true) : true}
+        // I drawer-kontekst: ingen bounce i toppen — nedad-træk ved offset 0
+        // skal gå rent videre til sheetet
+        bounces={!sheetScrollGesture}
+        overScrollMode={sheetScrollGesture ? 'never' : 'auto'}
+      >
         <View style={styles.headerRow}>
           <GradientView
             colors={[colors.primaryBlue, colors.primaryRed]}
@@ -400,7 +422,16 @@ export default function EventDetailContent({
             )}
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+  );
+
+  return (
+    <View style={scrollMaxHeight == null && styles.fill}>
+      {sheetScrollGesture ? (
+        <GestureDetector gesture={sheetScrollGesture}>{scrollView}</GestureDetector>
+      ) : (
+        scrollView
+      )}
 
       <View style={styles.footer}>
         {isCreator ? (
