@@ -140,9 +140,12 @@ export default function ChatsListScreen({ navigation }: any) {
 
         for (const doc of snapshot.docs) {
           const data = doc.data();
-          // Connection-chats (Hold kontakten) vises fra fødslen — ellers ville
-          // en frisk accepteret forbindelse være usynlig indtil første besked
-          if (!data.lastMessage && data.type !== 'connection') continue;
+          // Connection-chats (Hold kontakten) OG event-gruppechats vises fra
+          // fødslen. Connection: en frisk accepteret forbindelse må ikke være
+          // usynlig indtil første besked. Event: en TAVS gruppechat er efter
+          // sluttid aktivitetens ENESTE indgang (kort/drawer/profil viser den
+          // ikke længere) — uden denne række går Hold kontakten-vinduet tabt.
+          if (!data.lastMessage && data.type !== 'connection' && !data.eventId) continue;
 
           // Slet-for-mig: skjul samtalen medmindre der er kommet en nyere besked siden
           const clearedAt = data.clearedBy?.[currentUser.uid];

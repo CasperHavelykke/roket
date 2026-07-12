@@ -21,7 +21,7 @@ import useUserProfiles from '../../hooks/useUserProfiles';
 import useContactRequests from '../../hooks/useContactRequests';
 import { contactPairId, statusForRequest, requestOrAcceptContact, withdrawContactRequest, ContactStatus } from '../../contacts';
 import { Clock, MapPin, Users, MessagesSquare } from 'lucide-react-native';
-import { EventDoc, isEventFull } from '../../events';
+import { EventDoc, isEventFull, eventEndsAt } from '../../events';
 
 // Cap på renderede deltager-rækker — store events må ikke koste en lang
 // liste af Image-mounts (jf. skalerbarheds-princippet)
@@ -79,7 +79,10 @@ export default function EventDetailContent({
   const full = isEventFull(ev);
 
   const minutesToStart = Math.round((ev.time.getTime() - Date.now()) / 60_000);
-  const inProgress = minutesToStart <= 0;
+  // I grace-perioden (chat-nudgen kan åbne detaljen efter slut) er eventet
+  // AFSLUTTET, ikke "i gang" — start-tjekket alene ville lyve i 4 timer
+  const hasEnded = eventEndsAt(ev).getTime() <= Date.now();
+  const inProgress = minutesToStart <= 0 && !hasEnded;
 
   const handleContactTap = async (otherUid: string) => {
     if (!user || contactBusyUid) return;
@@ -261,7 +264,12 @@ export default function EventDetailContent({
   };
 
   // Status-pillen: grøn "I gang" / blå "Starter om X min" (kun tæt på start)
-  const statusPill = inProgress ? (
+  const statusPill = hasEnded ? (
+    <View style={[styles.statusPill, { backgroundColor: colors.inputBackground }]}>
+      <Clock size={12} color={colors.textMuted} strokeWidth={2.4} />
+      <Text style={[styles.statusPillText, { color: colors.textMuted }]}>{t.eventsStatusEnded}</Text>
+    </View>
+  ) : inProgress ? (
     <View style={[styles.statusPill, { backgroundColor: `${IN_PROGRESS_GREEN}22` }]}>
       <Clock size={12} color={IN_PROGRESS_GREEN} strokeWidth={2.4} />
       <Text style={[styles.statusPillText, { color: IN_PROGRESS_GREEN }]}>{t.eventsStatusNow}</Text>
