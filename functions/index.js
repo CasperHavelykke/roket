@@ -850,6 +850,43 @@ async function handleChatImageModeration(db, bucket, filePath, scores) {
 
 // Scheduled: slet chat-billeder ældre end 24 timer fra Storage + Firestore
 // Bruger collectionGroup query — kræver et collection group index på 'messages' feltet 'imageURL' (Ascending)
+// Ryd forældreløse gæstekonti: hver logout efterlader en anonym auth-bruger
+// uden Firestore-data. Standard Firebase Auth har ikke Identity Platforms
+// auto-delete-toggle, så vi fejer selv. VIGTIGT: deleteUsers (bulk) trigger
+// IKKE onUserDeleted — bevidst, gæster har intet at rydde op efter.
+const ANONYMOUS_MAX_AGE_DAYS = 30;
+
+exports.cleanupAnonymousUsers = onSchedule('every 24 hours', async () => {
+  const authAdmin = getAuth();
+  const cutoff = Date.now() - ANONYMOUS_MAX_AGE_DAYS * 24 * 3600 * 1000;
+
+  const stale = [];
+  let pageToken;
+  do {
+    const page = await authAdmin.listUsers(1000, pageToken);
+    page.users.forEach(user => {
+      const isAnonymous = user.providerData.length === 0;
+      const createdAt = new Date(user.metadata.creationTime).getTime();
+      if (isAnonymous && createdAt < cutoff) stale.push(user.uid);
+    });
+    pageToken = page.pageToken;
+  } while (pageToken);
+
+  if (stale.length === 0) {
+    console.log('Anonymous cleanup: nothing to delete');
+    return;
+  }
+
+  let deleted = 0;
+  let failed = 0;
+  for (let i = 0; i < stale.length; i += 1000) {
+    const result = await authAdmin.deleteUsers(stale.slice(i, i + 1000));
+    deleted += result.successCount;
+    failed += result.failureCount;
+  }
+  console.log(`Anonymous cleanup: ${deleted} deleted, ${failed} failed (older than ${ANONYMOUS_MAX_AGE_DAYS} days)`);
+});
+
 exports.cleanupExpiredChatImages = onSchedule('every 60 minutes', async () => {
   const db = getFirestore();
   const bucket = getStorage().bucket();
