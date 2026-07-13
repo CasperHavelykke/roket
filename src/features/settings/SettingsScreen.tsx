@@ -326,7 +326,7 @@ export default function SettingsScreen({ navigation }: any) {
           )}
         </View>
 
-        <Text style={styles.copyright}>© 2026 Røket · v2.0.0</Text>
+        <Text style={styles.copyright}>© 2026 Røket · v2.1.0</Text>
       </ScrollView>
 
       <DisclosureModal
