@@ -310,7 +310,8 @@ const styles = StyleSheet.create({
   detailWrap: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingBottom: 14,
+    // Luft mellem CTA-rækken (Join/Chat) og nav-baren
+    paddingBottom: 26,
   },
   headerText: {
     fontSize: 16,
