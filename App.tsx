@@ -12,6 +12,7 @@ import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from './src/services/NotificationService';
 import LocationService from './src/services/LocationService';
+import { subscribeToNearbyCell, unsubscribeFromNearby } from './src/services/NearbyTopics';
 import NotificationBanner, { NotificationBannerRef, NotificationData } from './src/components/NotificationBanner';
 import DisclosureModal from './src/components/DisclosureModal';
 import { Bell as BellIcon } from 'lucide-react-native';
@@ -216,13 +217,13 @@ function App() {
     if (authState !== true) return;
 
     // Fælles routing for notifikations-taps: event-gruppechat hvis payload'en
-    // har eventChatId, ellers 1:1/connection — og ingenting for payloads uden
-    // navigations-mål (fx Hold kontakten-anmodninger, der bare åbner appen)
+    // har eventChatId, ellers 1:1/connection
     const navigateFromNotification = (data: any) => {
       if (!navigationRef.isReady() || !data) return;
-      // Hold kontakten-anmodning: åbn aktivitetens detalje på kortet, så
-      // modtageren kan acceptere direkte fra deltagerlisten
-      if (data.type === 'contactRequest' && data.eventId) {
+      // Hold kontakten-anmodning OG nærved-push: åbn aktivitetens detalje
+      // på kortet (openEventId henter selv eventet, så viewporten er
+      // ligegyldig)
+      if ((data.type === 'contactRequest' || data.type === 'nearbyEvent') && data.eventId) {
         (navigationRef as any).navigate('Tabs', {
           screen: 'MapHome',
           params: { openEventId: data.eventId, openEventNonce: Date.now() },
@@ -250,16 +251,22 @@ function App() {
 
       // Push uden afsender-felter (nærheds-events og Hold kontakten-
       // anmodninger): vis banner med notifikationens egen titel/tekst og
-      // en type-specifik label. Anmodnings-tap åbner aktiviteten.
+      // en type-specifik label. Tap åbner aktivitetens detalje for begge.
       if (data?.type === 'nearbyEvent' || data?.type === 'contactRequest') {
         const isContactRequest = data.type === 'contactRequest';
+        // Topic-model: publicering pr. celle kan ikke ekskludere skaberen
+        // server-side — men skaberen ER i forgrunden i oprettelsesøjeblikket,
+        // så selv-pushen fanges og droppes her
+        if (data.type === 'nearbyEvent' && data.creatorId === auth().currentUser?.uid) {
+          return;
+        }
         bannerRef.current?.show({
           senderName: remoteMessage.notification?.title ?? '',
           senderId: '',
           message: remoteMessage.notification?.body ?? '',
           senderPhoto: null,
           label: isContactRequest ? theme.t.bannerContactRequest : theme.t.bannerNearby,
-          contactEventId: isContactRequest ? ((data.eventId as string) || undefined) : undefined,
+          contactEventId: (data.eventId as string) || undefined,
         });
         return;
       }
@@ -311,70 +318,46 @@ function App() {
     return () => unsubForeground();
   }, [authState]);
 
-  // Global location watch — kører KUN når brugeren aktivt har slået
-  // nærved-notifikationer til (eneste forbruger af serverlokation efter at
-  // bruger-til-bruger-afstand blev fjernet 2026-07). Uden opt-in uploades
-  // intet, og et evt. gammelt userLocations-doc ryddes op.
+  // Nærved-notifikationer via FCM geohash-topics (privacy-model 2026-07):
+  // ved opt-in abonnerer ENHEDEN på topic'et for sin egen geohash-celle —
+  // positionen bruges kun lokalt til at vælge cellen, intet uploades, og
+  // Røkets database indeholder ingen brugerlokationer.
   useEffect(() => {
-    if (authState !== true) return;
-
-    if (!nearbyOptIn) {
+    // Defensiv oprydning fra den tidligere model, hvor opt-in skrev en
+    // kvantiseret position til userLocations — INTET læser collectionen
+    // længere, så et evt. gammelt doc er rent residu uanset opt-in-status
+    if (authState === true) {
       const user = auth().currentUser;
       if (user) {
         firestore().collection('userLocations').doc(user.uid).delete().catch(() => {});
       }
+    }
+
+    if (authState !== true || !nearbyOptIn) {
+      // Afmeld ved opt-out OG logout/gæst: topic-abonnementer følger
+      // enheden (FCM-tokenet), ikke kontoen — uden dette ville enheden
+      // blive ved med at få pushes for en udlogget brugers tilvalg.
+      // (No-op hvis der aldrig var abonneret.)
+      unsubscribeFromNearby().catch(() => {});
       return;
     }
 
-    let watchId: number | null = null;
-
-    const startWatch = async () => {
+    const refreshCell = async () => {
       const precision = await LocationService.checkCurrentPrecision();
-      if (precision === 'denied') {
-        // Fjern gammel lokation fra Firestore
-        const user = auth().currentUser;
-        if (user) {
-          firestore().collection('userLocations').doc(user.uid).delete().catch(() => {});
-        }
-        return;
-      }
-      const id = await LocationService.watchPosition(
-        async (latitude, longitude) => {
-          const user = auth().currentUser;
-          if (!user) return;
-          // Kvantiseret til ~1 km-grid (2 decimaler): rå GPS forlader aldrig
-          // enheden, og 10 km-radius-matchningen er ligeglad med præcisionen
-          await firestore().collection('userLocations').doc(user.uid).set({
-            location: new firestore.GeoPoint(
-              Math.round(latitude * 100) / 100,
-              Math.round(longitude * 100) / 100,
-            ),
-            updatedAt: firestore.FieldValue.serverTimestamp(),
-          });
-        },
-      );
-      watchId = id;
+      if (precision === 'denied') return;
+      const pos = await LocationService.getCurrentPosition();
+      if (pos) await subscribeToNearbyCell(pos.latitude, pos.longitude);
     };
+    refreshCell().catch(() => {});
 
-    startWatch();
-
-    // Stop watch når appen går i baggrunden (forhindrer crash hvis bruger ændrer permission)
-    // Genstart når appen kommer i forgrunden
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'background' || nextState === 'inactive') {
-        if (watchId !== null) {
-          LocationService.clearWatch(watchId);
-          watchId = null;
-        }
-      } else if (nextState === 'active') {
-        startWatch();
-      }
+    // Cellen er 3-5 km bred — genberegn ved foreground i stedet for et
+    // kontinuerligt GPS-watch (mindre batteri; flytter man sig, sker det
+    // alligevel typisk med lukket app). Gen-abonnement på samme celle er
+    // gratis, og kaldet self-healer efter geninstallation/token-rotation.
+    const subscription = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') refreshCell().catch(() => {});
     });
-
-    return () => {
-      if (watchId !== null) LocationService.clearWatch(watchId);
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [authState, nearbyOptIn]);
 
   const handleBannerPress = useCallback((data: NotificationData) => {

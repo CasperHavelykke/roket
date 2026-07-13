@@ -973,7 +973,25 @@ exports.cleanupExpiredEvents = onSchedule('every 15 minutes', async () => {
 // Pivot 2.0: opt-in "notificér mig om aktiviteter i nærheden".
 // Pull-model med opt-in push (bevidst IKKE auto-invitering — uopfordret
 // kontakt i skala blev fravalgt i designet).
+//
+// TOPIC-MODEL (privacy 2026-07): serveren gemmer INGEN brugerlokationer.
+// Klienter abonnerer selv på FCM-topic'et for deres geohash-celle
+// (nearby-<celle>, niveau 5 — SKAL matche NearbyTopics.ts), og her
+// publiceres til alle celler, der skærer 10 km-cirklen om aktiviteten.
+// Konsekvenser: præcisionen er celle-granulær (garanteret dækning inden
+// for 10 km, frynse op til ~13-15 km), skaberens selv-push filtreres
+// client-side i foreground (skaberen er i appen ved oprettelse), og
+// blokerede brugere kan ikke ekskluderes i background. Teksten er
+// engelsk for alle (topic-beskeder kan ikke variere pr. modtager).
 const NEARBY_RADIUS_KM = 10;
+const NEARBY_CELL_PRECISION = 5;
+// Celle-dimensioner ved niveau 5 (25 bits: 13 lng + 12 lat)
+const CELL_LAT_DEG = 180 / Math.pow(2, 12);
+const CELL_LNG_DEG = 360 / Math.pow(2, 13);
+// Halv celle-diagonal med margen (km) — niveau 5 er maks ~4,9×4,9 km
+const CELL_HALF_DIAG_KM = 3.5;
+
+const { geohashForLocation } = require('geofire-common');
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -985,81 +1003,75 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+// Alle geohash-celler (niveau 5) hvis areal kan skære cirklen: gennemløb
+// celle-GITTERET i cirklens bounding box og medtag celler hvis centrum
+// ligger inden for radius + halv celle-diagonal. Ingen inden for radius
+// misses; frynsen uden for er celle-granulær.
+function cellsCoveringCircle(lat, lng, radiusKm) {
+  const latRadiusDeg = radiusKm / 111.32 + CELL_LAT_DEG;
+  const lngRadiusDeg =
+    radiusKm / (111.32 * Math.cos((lat * Math.PI) / 180)) + CELL_LNG_DEG;
+  // Snap startpunktet til celle-gitteret og gå i hele celle-skridt
+  const startLat =
+    Math.floor((lat - latRadiusDeg) / CELL_LAT_DEG) * CELL_LAT_DEG + CELL_LAT_DEG / 2;
+  const startLng =
+    Math.floor((lng - lngRadiusDeg) / CELL_LNG_DEG) * CELL_LNG_DEG + CELL_LNG_DEG / 2;
+  const cells = new Set();
+  for (let cLat = startLat; cLat <= lat + latRadiusDeg; cLat += CELL_LAT_DEG) {
+    for (let cLng = startLng; cLng <= lng + lngRadiusDeg; cLng += CELL_LNG_DEG) {
+      if (haversineKm(lat, lng, cLat, cLng) <= radiusKm + CELL_HALF_DIAG_KM) {
+        cells.add(geohashForLocation([cLat, cLng], NEARBY_CELL_PRECISION));
+      }
+    }
+  }
+  return [...cells];
+}
+
 exports.onEventCreatedNotifyNearby = onDocumentCreated(
   'events/{eventId}',
   async event => {
     const data = event.data.data();
     if (!data?.location) return;
 
-    const db = getFirestore();
-
-    // SKALERINGS-NOTE: henter userLocations med cap. Ved +1000 brugere skal
-    // userLocations have geohash og queryes med prefix-ranges i stedet.
-    const locSnapshot = await db.collection('userLocations').limit(500).get();
-
-    const participantSet = new Set(data.participantIds ?? []);
-    const nearbyUids = locSnapshot.docs
-      .filter(doc => {
-        if (participantSet.has(doc.id)) return false; // creator + deltagere
-        const loc = doc.data()?.location;
-        if (!loc) return false;
-        return haversineKm(
-          data.location.latitude, data.location.longitude,
-          loc.latitude, loc.longitude,
-        ) <= NEARBY_RADIUS_KM;
-      })
-      .map(doc => doc.id);
-
-    // Diagnostik: gør de stille filtre synlige i loggen
-    console.log(
-      `Nearby check for event ${event.params.eventId}: ` +
-      `${locSnapshot.size} locations, ${participantSet.size} participants excluded, ` +
-      `${nearbyUids.length} within ${NEARBY_RADIUS_KM} km`,
+    const cells = cellsCoveringCircle(
+      data.location.latitude,
+      data.location.longitude,
+      NEARBY_RADIUS_KM,
     );
 
-    if (nearbyUids.length === 0) return;
-
-    const userDocs = await Promise.all(
-      nearbyUids.map(uid => db.collection('users').doc(uid).get()),
-    );
-
-    let sent = 0;
-    let skippedOptIn = 0;
-    let skippedToken = 0;
-
-    await Promise.all(userDocs.map(async userDoc => {
-      const u = userDoc.data();
-      // Opt-in: kun brugere der aktivt har slået det til
-      if (!u || u.notifyNearbyActivities !== true) { skippedOptIn++; return; }
-      const token = u.fcmToken;
-      if (!token) { skippedToken++; return; }
-      if ((u.blockedUsers ?? []).includes(data.creatorId)) return;
-
-      try {
-        await getMessaging().send({
-          token,
-          notification: {
-            title: 'Ny aktivitet i nærheden',
-            body: data.title,
-          },
-          // Ingen navigations-felter — tap åbner appen, og aktiviteten
-          // ligger lige der på kortet
-          data: { type: 'nearbyEvent', eventId: event.params.eventId },
-          android: {
-            priority: 'high',
-            notification: { channelId: 'chat_messages', sound: 'default' },
-          },
-          apns: { payload: { aps: { sound: 'default' } } },
-        });
-        sent++;
-      } catch (err) {
-        console.error('Nearby push failed for', userDoc.id, err);
-      }
+    const messages = cells.map(cell => ({
+      topic: `nearby-${cell}`,
+      notification: {
+        title: 'New activity nearby',
+        body: data.title,
+      },
+      // creatorId: så klienten kan droppe skaberens egen push i foreground.
+      // Ingen navigations-felter — tap åbner appen, og aktiviteten ligger
+      // lige der på kortet.
+      data: {
+        type: 'nearbyEvent',
+        eventId: event.params.eventId,
+        creatorId: data.creatorId ?? '',
+      },
+      android: {
+        priority: 'high',
+        notification: { channelId: 'chat_messages', sound: 'default' },
+      },
+      apns: { payload: { aps: { sound: 'default' } } },
     }));
 
+    const result = await getMessaging().sendEach(messages);
+    // Diagnostik (F6-lektien): sends til tomme topics lykkes også — tallet
+    // her siger kun "publiceret", ikke "modtaget af N brugere"
     console.log(
-      `Nearby pushes: ${sent} sent, ${skippedOptIn} skipped (no opt-in), ${skippedToken} skipped (no token)`,
+      `Nearby topic publish for event ${event.params.eventId}: ` +
+      `${cells.length} cells, ${result.successCount} ok, ${result.failureCount} failed`,
     );
+    if (result.failureCount > 0) {
+      result.responses.forEach((r, i) => {
+        if (!r.success) console.error(`Publish failed for ${messages[i].topic}:`, r.error);
+      });
+    }
   }
 );
 

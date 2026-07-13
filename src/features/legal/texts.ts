@@ -34,7 +34,7 @@ Placeringsdata bruges på følgende måder:
 
 \u2022 Nærhedsvisning: Din placering bruges til at vise dig aktiviteter i nærheden og beregne din omtrentlige afstand til dem.
 \u2022 Valgfrie notifikationer: Hvis du slår det til, bruges din placering til at give dig besked om nye aktiviteter i nærheden.
-\u2022 Placeringsdata gemmes kun på Google Firebase Firestore, hvis du aktivt slår notifikationer om aktiviteter i nærheden til — og da kun som en omtrentlig position (ca. 1 km nøjagtighed), som opdateres mens du bruger Applikationen og slettes igen, hvis du slår funktionen fra.
+\u2022 Din placering gemmes aldrig på Applikationens servere. Slår du notifikationer om aktiviteter i nærheden til, tilmelder din enhed sig anonymt et notifikationsemne for dit lokalområde (et område på nogle kilometer) via Google Firebase Cloud Messaging — din position sendes ikke til Tjenesteudbyderen. Tilmeldingen fjernes igen, hvis du slår funktionen fra.
 
 Tjenesteudbyderen kan bruge de oplysninger, du har givet, til at kontakte dig fra tid til anden for at give dig vigtige oplysninger, påkrævede meddelelser og markedsføringsmateriale.
 
@@ -79,7 +79,7 @@ Tjenesteudbyderen er optaget af at beskytte fortroligheden af dine oplysninger. 
 
 Denne privatlivspolitik kan opdateres fra tid til anden af enhver grund. Tjenesteudbyderen vil informere dig om eventuelle ændringer i privatlivspolitikken ved at opdatere denne side med den nye privatlivspolitik. Du rådes til at konsultere denne privatlivspolitik regelmæssigt for eventuelle ændringer, da fortsat brug anses som godkendelse af alle ændringer.
 
-Denne privatlivspolitik er gældende fra 2026-07-12.
+Denne privatlivspolitik er gældende fra 2026-07-13.
 
 # Dit samtykke
 
@@ -120,7 +120,7 @@ Location data is used in the following ways:
 
 \u2022 Proximity display: Your location is used to show you nearby activities and calculate your approximate distance to them.
 \u2022 Optional notifications: If you enable it, your location is used to notify you about new activities nearby.
-\u2022 Location data is only stored on Google Firebase Firestore if you actively turn on notifications about nearby activities — and then only as an approximate position (about 1 km accuracy), which is updated while you are using the Application and deleted again if you turn the feature off.
+\u2022 Your location is never stored on the Application's servers. If you turn on notifications about nearby activities, your device anonymously subscribes to a notification topic for your local area (a zone of a few kilometres) via Google Firebase Cloud Messaging — your position is not sent to the Service Provider. The subscription is removed again if you turn the feature off.
 
 The Service Provider may use the information you provided to contact you from time to time to provide you with important information, required notices and marketing promotions.
 
@@ -165,7 +165,7 @@ The Service Provider is concerned about safeguarding the confidentiality of your
 
 This Privacy Policy may be updated from time to time for any reason. The Service Provider will notify you of any changes to the Privacy Policy by updating this page with the new Privacy Policy. You are advised to consult this Privacy Policy regularly for any changes, as continued use is deemed approval of all changes.
 
-This privacy policy is effective as of 2026-07-12.
+This privacy policy is effective as of 2026-07-13.
 
 # Your Consent
 
@@ -206,7 +206,7 @@ Los datos de ubicación se utilizan de las siguientes maneras:
 
 \u2022 Visualización de proximidad: Tu ubicación se utiliza para mostrarte actividades cercanas y calcular tu distancia aproximada a ellas.
 \u2022 Notificaciones opcionales: Si lo activas, tu ubicación se utiliza para avisarte de nuevas actividades cercanas.
-\u2022 Los datos de ubicación solo se almacenan en Google Firebase Firestore si activas las notificaciones de actividades cercanas — y únicamente como una posición aproximada (precisión de aprox. 1 km), que se actualiza mientras utilizas la Aplicación y se elimina de nuevo si desactivas la función.
+\u2022 Tu ubicación nunca se almacena en los servidores de la Aplicación. Si activas las notificaciones de actividades cercanas, tu dispositivo se suscribe de forma anónima a un tema de notificaciones de tu zona local (un área de unos kilómetros) a través de Google Firebase Cloud Messaging — tu posición no se envía al Proveedor del Servicio. La suscripción se elimina de nuevo si desactivas la función.
 
 El Proveedor del Servicio puede utilizar la información que proporcionaste para contactarte de vez en cuando para proporcionarte información importante, avisos requeridos y promociones de marketing.
 
@@ -251,7 +251,7 @@ El Proveedor del Servicio se preocupa por proteger la confidencialidad de tu inf
 
 Esta Política de Privacidad puede actualizarse de vez en cuando por cualquier motivo. El Proveedor del Servicio te notificará cualquier cambio en la Política de Privacidad actualizando esta página con la nueva Política de Privacidad. Se te recomienda consultar esta Política de Privacidad regularmente para cualquier cambio, ya que el uso continuado se considera aprobación de todos los cambios.
 
-Esta política de privacidad es efectiva a partir del 2026-07-12.
+Esta política de privacidad es efectiva a partir del 2026-07-13.
 
 # Tu consentimiento
 
@@ -292,7 +292,7 @@ Standortdaten werden folgendermaßen verwendet:
 
 \u2022 Nähe-Anzeige: Ihr Standort wird verwendet, um Ihnen Aktivitäten in der Nähe anzuzeigen und Ihre ungefähre Entfernung zu ihnen zu berechnen.
 \u2022 Optionale Benachrichtigungen: Wenn Sie dies aktivieren, wird Ihr Standort verwendet, um Sie über neue Aktivitäten in der Nähe zu informieren.
-\u2022 Standortdaten werden nur dann auf Google Firebase Firestore gespeichert, wenn Sie Benachrichtigungen über Aktivitäten in der Nähe aktiv einschalten — und dann nur als ungefähre Position (ca. 1 km Genauigkeit), die während der Nutzung der Anwendung aktualisiert und wieder gelöscht wird, wenn Sie die Funktion deaktivieren.
+\u2022 Ihr Standort wird niemals auf den Servern der Anwendung gespeichert. Wenn Sie Benachrichtigungen über Aktivitäten in der Nähe einschalten, abonniert Ihr Gerät anonym ein Benachrichtigungsthema für Ihre Umgebung (ein Gebiet von einigen Kilometern) über Google Firebase Cloud Messaging — Ihre Position wird nicht an den Dienstanbieter gesendet. Das Abonnement wird wieder entfernt, wenn Sie die Funktion deaktivieren.
 
 Der Dienstanbieter kann die von Ihnen bereitgestellten Informationen verwenden, um Sie gelegentlich zu kontaktieren, um Ihnen wichtige Informationen, erforderliche Mitteilungen und Marketingaktionen zukommen zu lassen.
 
@@ -337,7 +337,7 @@ Der Dienstanbieter ist um den Schutz der Vertraulichkeit Ihrer Informationen bem
 
 Diese Datenschutzrichtlinie kann jederzeit und aus jedem Grund aktualisiert werden. Der Dienstanbieter wird Sie über Änderungen der Datenschutzrichtlinie informieren, indem er diese Seite mit der neuen Datenschutzrichtlinie aktualisiert. Es wird empfohlen, diese Datenschutzrichtlinie regelmäßig auf Änderungen zu überprüfen, da die fortgesetzte Nutzung als Zustimmung zu allen Änderungen gilt.
 
-Diese Datenschutzrichtlinie gilt ab dem 12.07.2026.
+Diese Datenschutzrichtlinie gilt ab dem 13.07.2026.
 
 # Ihre Einwilligung
 
@@ -378,7 +378,7 @@ Les données de localisation sont utilisées de la manière suivante :
 
 \u2022 Affichage de proximité : Votre localisation est utilisée pour vous montrer les activités à proximité et calculer votre distance approximative par rapport à elles.
 \u2022 Notifications optionnelles : Si vous les activez, votre localisation est utilisée pour vous informer des nouvelles activités à proximité.
-\u2022 Les données de localisation ne sont stockées sur Google Firebase Firestore que si vous activez les notifications d'activités à proximité — et uniquement sous forme de position approximative (précision d'environ 1 km), mise à jour pendant que vous utilisez l'Application et supprimée si vous désactivez la fonction.
+\u2022 Votre localisation n'est jamais stockée sur les serveurs de l'Application. Si vous activez les notifications d'activités à proximité, votre appareil s'abonne de façon anonyme à un sujet de notifications pour votre zone locale (une zone de quelques kilomètres) via Google Firebase Cloud Messaging — votre position n'est pas envoyée au Prestataire de services. L'abonnement est supprimé si vous désactivez la fonction.
 
 Le Fournisseur de services peut utiliser les informations que vous avez fournies pour vous contacter de temps à autre afin de vous fournir des informations importantes, des avis requis et des promotions marketing.
 
@@ -423,7 +423,7 @@ Le Fournisseur de services se soucie de la protection de la confidentialité de 
 
 Cette Politique de confidentialité peut être mise à jour de temps à autre pour quelque raison que ce soit. Le Fournisseur de services vous informera de tout changement de la Politique de confidentialité en mettant à jour cette page avec la nouvelle Politique de confidentialité. Il vous est conseillé de consulter régulièrement cette Politique de confidentialité pour tout changement, car l'utilisation continue est considérée comme une approbation de tous les changements.
 
-Cette politique de confidentialité est en vigueur à compter du 12/07/2026.
+Cette politique de confidentialité est en vigueur à compter du 13/07/2026.
 
 # Votre consentement
 
@@ -464,7 +464,7 @@ Os dados de localização são utilizados das seguintes formas:
 
 \u2022 Exibição de proximidade: A tua localização é utilizada para te mostrar atividades próximas e calcular a tua distância aproximada até elas.
 \u2022 Notificações opcionais: Se ativares, a tua localização é utilizada para te avisar sobre novas atividades próximas.
-\u2022 Os dados de localização só são armazenados no Google Firebase Firestore se ativares as notificações de atividades próximas — e apenas como uma posição aproximada (precisão de cerca de 1 km), que é atualizada enquanto utilizas a Aplicação e eliminada novamente se desativares a função.
+\u2022 A tua localização nunca é armazenada nos servidores da Aplicação. Se ativares as notificações de atividades próximas, o teu dispositivo subscreve anonimamente um tópico de notificações para a tua zona local (uma área de alguns quilómetros) através do Google Firebase Cloud Messaging — a tua posição não é enviada ao Fornecedor do Serviço. A subscrição é removida novamente se desativares a função.
 
 O Prestador de Serviços pode utilizar as informações que forneceste para te contactar ocasionalmente para te fornecer informações importantes, avisos obrigatórios e promoções de marketing.
 
@@ -509,7 +509,7 @@ O Prestador de Serviços preocupa-se com a proteção da confidencialidade das t
 
 Esta Política de Privacidade pode ser atualizada ocasionalmente por qualquer motivo. O Prestador de Serviços notificar-te-á de quaisquer alterações à Política de Privacidade atualizando esta página com a nova Política de Privacidade. Aconselhamos-te a consultar regularmente esta Política de Privacidade para quaisquer alterações, uma vez que o uso continuado é considerado aprovação de todas as alterações.
 
-Esta política de privacidade é efetiva a partir de 12/07/2026.
+Esta política de privacidade é efetiva a partir de 13/07/2026.
 
 # O teu consentimento
 
