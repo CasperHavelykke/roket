@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from './src/services/NotificationService';
 import LocationService from './src/services/LocationService';
 import { subscribeToNearbyCell, unsubscribeFromNearby } from './src/services/NearbyTopics';
+import { enqueueModal } from './src/utils/modalQueue';
 import NotificationBanner, { NotificationBannerRef, NotificationData } from './src/components/NotificationBanner';
 import DisclosureModal from './src/components/DisclosureModal';
 import { Bell as BellIcon } from 'lucide-react-native';
@@ -169,8 +170,12 @@ function App() {
               setAuthState(true);
               setNearbyOptIn(data?.notifyNearbyActivities === true);
 
-              // Vis disclosure-modal før notification-permission (kun første gang)
-              const initNotifications = async () => {
+              // Vis disclosure-modal før notification-permission (kun første
+              // gang). HELE sekvensen ligger i modal-køen: på frisk iOS-
+              // installation overlever login i keychain, så denne OG
+              // lokations-disclosuren (MapHome) fyrer samtidig — to
+              // samtidige modals fryser appen (usynlig touch-æder).
+              const initNotifications = () => enqueueModal(async () => {
                 const disclosed = await AsyncStorage.getItem('@roket_notif_disclosure_shown');
                 if (!disclosed) {
                   await new Promise<void>(resolve => {
@@ -180,7 +185,7 @@ function App() {
                   await AsyncStorage.setItem('@roket_notif_disclosure_shown', 'true');
                 }
                 await NotificationService.initialize();
-              };
+              });
               initNotifications().catch(console.error);
             } else {
               // Profildokument eksisterer ikke endnu — vent til signup-flow opretter det

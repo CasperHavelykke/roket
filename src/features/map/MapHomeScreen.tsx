@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -11,6 +12,7 @@ import {
 import MapView, { Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MapPin as MapPinIcon, MapPinOff } from 'lucide-react-native';
+import { enqueueModal } from '../../utils/modalQueue';
 import LocationService from '../../services/LocationService';
 import DisclosureModal from '../../components/DisclosureModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,13 +43,21 @@ const DEFAULT_REGION: Region = {
  * bitmap, og på Fabric sker snapshottet før gradient/SVG har tegnet →
  * skæve haler og tomme bobler. Vi holder tracking åben kort efter mount
  * og fryser først når alt er tegnet.
+ *
+ * Warm-up'en gentages ved HVER fokus (useFocusEffect): mounter markøren,
+ * mens kortet ligger skjult bag en pushet skærm (fx chat åbnet fra en
+ * push-notifikation), fryser snapshottet som TOMT, og react-native-maps
+ * falder tilbage til standard-rød-pin. Re-warm ved retur healer den.
  */
 function ActivityMapMarker({ event, onPress }: { event: EventDoc; onPress: () => void }) {
   const [track, setTrack] = useState(true);
-  useEffect(() => {
-    const id = setTimeout(() => setTrack(false), 600);
-    return () => clearTimeout(id);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setTrack(true);
+      const id = setTimeout(() => setTrack(false), 600);
+      return () => clearTimeout(id);
+    }, []),
+  );
   return (
     <Marker
       coordinate={event.location}
@@ -105,8 +115,12 @@ export default function MapHomeScreen({ navigation, route }: any) {
       // brugere skal ikke se den efter en app-opdatering. Teksten er ens for
       // gæst og bruger ("kun på din enhed") — serverdeling sker først ved
       // aktivt tilvalg af nærved-notifikationer, med egen bekræft-modal dér.
-      const precision = await LocationService.checkCurrentPrecision();
-      if (precision === 'denied') {
+      // Modal + native prompt ligger i modal-KØEN: notifikations-disclosuren
+      // (App.tsx) kan fyre samtidig på frisk installation med keychain-login,
+      // og to samtidige iOS-modals fryser appen.
+      await enqueueModal(async () => {
+        const precision = await LocationService.checkCurrentPrecision();
+        if (precision !== 'denied') return;
         const disclosed = await AsyncStorage.getItem('@roket_loc_disclosure_shown');
         if (!disclosed) {
           await new Promise<void>(resolve => {
@@ -115,7 +129,10 @@ export default function MapHomeScreen({ navigation, route }: any) {
           });
           await AsyncStorage.setItem('@roket_loc_disclosure_shown', 'true');
         }
-      }
+        // Den native systemprompt hører også til i køen — GPS-hentningen
+        // nedenfor gør ikke (den kan tage sekunder og skal ikke holde låsen)
+        await LocationService.requestLocationPermission();
+      });
       const pos = await LocationService.getCurrentPosition();
       if (pos) {
         const r = {

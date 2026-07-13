@@ -199,6 +199,9 @@ export default function CreateEventModal({ visible, onClose, userLocation, initi
         participants: [user.uid],
         eventId: eventRef.id,
         eventTitle: title.trim(),
+        // Tag med på chat-doc'et, så Beskeder-listen kan vise tag-ikonet
+        // (admin-panelet skrev det allerede; mobilen manglede det)
+        eventTag: tag ?? null,
         expiresAt: firestore.Timestamp.fromDate(expiresAt),
         createdAt: firestore.FieldValue.serverTimestamp(),
         lastMessage: '',
