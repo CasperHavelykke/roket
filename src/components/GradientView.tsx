@@ -12,9 +12,20 @@ type Props = LinearGradientProps & { children?: React.ReactNode };
  */
 const GradientView: React.FC<Props> = ({ style, children, ...gradientProps }) => {
   if (Platform.OS === 'ios') {
+    // Kopier evt. borderRadius ned på selve LinearGradient. Ellers klippes
+    // gradienten kun af det ydre View — og når react-native-maps rasterizer
+    // markøren, respekteres wrapper-clippet ikke altid → firkantet snapshot.
+    const flat = (StyleSheet.flatten(style) || {}) as any;
+    const radii = {
+      borderRadius: flat.borderRadius,
+      borderTopLeftRadius: flat.borderTopLeftRadius,
+      borderTopRightRadius: flat.borderTopRightRadius,
+      borderBottomLeftRadius: flat.borderBottomLeftRadius,
+      borderBottomRightRadius: flat.borderBottomRightRadius,
+    };
     return (
       <View style={[style, { overflow: 'hidden' }]}>
-        <LinearGradient {...gradientProps} style={StyleSheet.absoluteFillObject} />
+        <LinearGradient {...gradientProps} style={[StyleSheet.absoluteFillObject, radii]} />
         {children}
       </View>
     );
