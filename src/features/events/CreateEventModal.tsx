@@ -173,7 +173,11 @@ export default function CreateEventModal({ visible, onClose, userLocation, initi
       const chatId = `event_${eventRef.id}`;
 
       const eventLoc = (meetingLocation ?? userLocation)!;
-      await eventRef.set({
+      // Event + gruppechat i ÉN batch: to separate writes kunne efterlade
+      // et event, der peger på en ikke-eksisterende chat (join ville
+      // fejle for alle), hvis nr. 2 fejlede
+      const batch = firestore().batch();
+      batch.set(eventRef, {
         creatorId: user.uid,
         title: title.trim(),
         description: description.trim(),
@@ -193,9 +197,7 @@ export default function CreateEventModal({ visible, onClose, userLocation, initi
         createdAt: firestore.FieldValue.serverTimestamp(),
         expiresAt: firestore.Timestamp.fromDate(expiresAt),
       });
-
-      // Opret den tilhørende gruppechat
-      await firestore().collection('chats').doc(chatId).set({
+      batch.set(firestore().collection('chats').doc(chatId), {
         participants: [user.uid],
         eventId: eventRef.id,
         eventTitle: title.trim(),
@@ -207,6 +209,7 @@ export default function CreateEventModal({ visible, onClose, userLocation, initi
         lastMessage: '',
         lastMessageTime: firestore.FieldValue.serverTimestamp(),
       });
+      await batch.commit();
 
       reset();
       onClose();

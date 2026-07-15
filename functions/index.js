@@ -1,4 +1,4 @@
-const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const v1 = require('firebase-functions/v1');
@@ -326,6 +326,50 @@ exports.onConnectionEnded = onDocumentUpdated(
     }
   }
 );
+
+// Slettes et EVENT (aflysning fra skaberen, admin-sletning), kaskaderer
+// serveren til gruppechatten — klienten må (korrekt) ikke selv slette
+// chat-docs, og den gamle klient-flow efterlod chatten forældreløs.
+// onChatDeleted nedenfor tager beskeder + billeder derfra.
+exports.onEventDeleted = onDocumentDeleted('events/{eventId}', async event => {
+  const chatId = event.data?.data()?.chatId;
+  if (!chatId) return;
+  await getFirestore().collection('chats').doc(chatId).delete().catch(() => {});
+});
+
+// Slettes et chat-DOC (aflysning fra klienten, admin-sletning), rydder
+// denne trigger beskederne + chat-billederne i Storage — klienter kan
+// ikke slette subcollections, så uden den lå beskederne forældreløst
+// for evigt (GDPR/omkostning). Flows der allerede sletter beskederne
+// FØR chat-doc'et (cleanupExpiredEvents, onUserDeleted, onConnectionEnded-
+// wipe) gør den til en billig no-op.
+exports.onChatDeleted = onDocumentDeleted('chats/{chatId}', async event => {
+  const db = getFirestore();
+  const chatId = event.params.chatId;
+  const messagesRef = db.collection('chats').doc(chatId).collection('messages');
+
+  let deleted = 0;
+  for (;;) {
+    const snap = await messagesRef.limit(450).get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    deleted += snap.size;
+  }
+
+  const bucket = getStorage().bucket();
+  const [imageFiles] = await bucket
+    .getFiles({ prefix: `chatImages/${chatId}/` })
+    .catch(() => [[]]);
+  for (const file of imageFiles) {
+    await file.delete().catch(() => {});
+  }
+
+  if (deleted > 0 || imageFiles.length > 0) {
+    console.log(`onChatDeleted ${chatId}: ${deleted} beskeder, ${imageFiles.length} billeder ryddet`);
+  }
+});
 
 // Hold kontakten: accept → push til den oprindelige afsender.
 // senderId/senderName i payload → det eksisterende tap-flow åbner

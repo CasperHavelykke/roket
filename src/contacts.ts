@@ -134,17 +134,20 @@ export async function wipeChat(chatId: string, myUid: string): Promise<void> {
  * blocks-doc (admin-panelets moderationskø) — de to skal altid følges ad.
  */
 export async function blockUser(myUid: string, otherUid: string): Promise<void> {
-  await Promise.all([
-    firestore().collection('users').doc(myUid).update({
-      blockedUsers: firestore.FieldValue.arrayUnion(otherUid),
-    }),
-    firestore().collection('blocks').add({
-      blockerId: myUid,
-      blockedUserId: otherUid,
-      createdAt: firestore.FieldValue.serverTimestamp(),
-      status: 'pending',
-    }),
-  ]);
+  // ÉN batch: arrayet (klient-filtrering) og blocks-doc'et (admin-kø)
+  // skal altid følges ad — to uafhængige writes kunne efterlade en
+  // blokering, moderationen aldrig ser
+  const batch = firestore().batch();
+  batch.update(firestore().collection('users').doc(myUid), {
+    blockedUsers: firestore.FieldValue.arrayUnion(otherUid),
+  });
+  batch.set(firestore().collection('blocks').doc(), {
+    blockerId: myUid,
+    blockedUserId: otherUid,
+    createdAt: firestore.FieldValue.serverTimestamp(),
+    status: 'pending',
+  });
+  await batch.commit();
 }
 
 /**

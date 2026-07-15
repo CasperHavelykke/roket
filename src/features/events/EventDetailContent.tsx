@@ -219,7 +219,11 @@ export default function EventDetailContent({
       await batch.commit();
       setEv(prev => ({ ...prev, participantIds: [...prev.participantIds, user.uid] }));
     } catch (e) {
+      // Reglerne håndhæver maxParticipants atomisk (arrayUnion evalueres
+      // mod den resulterende liste) — taber man kapløbet om sidste plads,
+      // lander afvisningen her og skal være synlig, ikke kun i konsollen
       console.error('Join failed:', e);
+      Alert.alert(t.error, t.eventsErrorJoin);
     } finally {
       setBusy(false);
     }
@@ -256,11 +260,16 @@ export default function EventDetailContent({
         onPress: async () => {
           setBusy(true);
           try {
+            // Slet KUN eventet — chat-sletning er (korrekt) forbudt for
+            // klienter i reglerne; serveren kaskaderer via onEventDeleted →
+            // onChatDeleted (chat + beskeder + billeder). Det gamle forsøg
+            // på selv at slette chatten blev altid afvist og blokerede
+            // onClose(), så aflysningen føltes død i UI'et.
             await firestore().collection('events').doc(ev.id).delete();
-            await firestore().collection('chats').doc(ev.chatId).delete();
             onClose();
           } catch (e) {
             console.error('Cancel failed:', e);
+            Alert.alert(t.error, t.eventsErrorCreate);
           } finally {
             setBusy(false);
           }

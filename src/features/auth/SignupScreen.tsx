@@ -138,7 +138,17 @@ export default function SignupScreen({ navigation }: any) {
       // flowet) oprettes en frisk konto som før.
       const anonUser = auth().currentUser;
       let cred;
-      if (anonUser?.isAnonymous) {
+      if (
+        anonUser &&
+        !anonUser.isAnonymous &&
+        anonUser.email?.toLowerCase() === email.trim().toLowerCase()
+      ) {
+        // GENOPTAG halvfærdig signup: auth-kontoen blev oprettet i et
+        // tidligere forsøg, men profil-doc'et fejlede (ikke-atomisk).
+        // Uden dette spor ville et nyt forsøg ramme email-already-in-use
+        // og efterlade brugeren permanent parkeret uden profil.
+        cred = { user: anonUser };
+      } else if (anonUser?.isAnonymous) {
         const emailCred = auth.EmailAuthProvider.credential(email, password);
         cred = await anonUser.linkWithCredential(emailCred);
         // VIGTIGT: linking opdaterer ikke sessionens token — sign_in_provider
