@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import GradientView from '../../components/GradientView';
 import { useTheme } from '../../theme';
+import useNow from '../../hooks/useNow';
 import { EventDoc, VISIBLE_WINDOW_MINUTES, eventEndsAt, overlapsWindow } from '../../events';
 import {
   TimeWindow,
@@ -68,7 +69,10 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
   const { colors, t, timeFormat } = useTheme();
   const [trackWidth, setTrackWidth] = useState(0);
 
-  const now = new Date();
+  // Tikkende nu (30 s): uden det frøs NU-markør, striber, readout og
+  // akse på render-tidspunktet — efter længere tid på skærmen viste
+  // scrubberen en forkert "nutid", og det committede vindue ≠ det viste
+  const now = useNow();
   const axisStartDate = axisStart(now);
   const nowFraction = fractionForTime(now, now);
   const windowFraction = VISIBLE_WINDOW_MINUTES / AXIS_MINUTES;
@@ -90,12 +94,13 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
 
   // Hold kapslen i sync hvis vinduet sættes udefra (fx nulstilles til NU) —
   // men IKKE under drag: dér er live-commits selv årsag til prop-ændringen,
-  // og en withTiming ville rykke kapslen væk fra fingeren
+  // og en withTiming ville rykke kapslen væk fra fingeren. `now` er med i
+  // deps: aksen ruller, så NU-kapslen skal glide med ved hvert tick.
   useEffect(() => {
     if (isScrubbing.value) return;
-    fraction.value = withTiming(fractionForWindow(value, new Date()), { duration: 180 });
+    fraction.value = withTiming(fractionForWindow(value, now), { duration: 180 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, now]);
 
   const commit = (f: number) => {
     onChange(windowForFraction(f, new Date(), VISIBLE_WINDOW_MINUTES));
@@ -183,19 +188,18 @@ export default function TimeScrubber({ activities, value, onChange }: TimeScrubb
   // vindue farves; resten er dæmpede. Grace-periode-events (slut men
   // ikke slettet) og events efter aksens slut udelades.
   const dots = useMemo(() => {
-    const dotNow = new Date();
-    const axisEndMs = axisEnd(dotNow).getTime();
-    const windowStart = value.mode === 'at' ? value.at : dotNow;
+    const axisEndMs = axisEnd(now).getTime();
+    const windowStart = value.mode === 'at' ? value.at : now;
     const buckets = new Map<number, boolean>();
     activities.forEach(ev => {
       if (ev.time.getTime() > axisEndMs) return;
-      if (eventEndsAt(ev).getTime() < dotNow.getTime()) return;
-      const bucket = Math.round(fractionForTime(ev.time, dotNow) * 40) / 40;
+      if (eventEndsAt(ev).getTime() < now.getTime()) return;
+      const bucket = Math.round(fractionForTime(ev.time, now) * 40) / 40;
       const active = overlapsWindow(ev, windowStart);
       buckets.set(bucket, (buckets.get(bucket) ?? false) || active);
     });
     return [...buckets.entries()].map(([f, active]) => ({ f, active }));
-  }, [activities, value]);
+  }, [activities, value, now]);
 
   // Timelabels følger tidsformatet — 06/12/18/00 i 24h, 6 AM/12 PM/… i 12h
   const axisHourText = (hour: number) =>

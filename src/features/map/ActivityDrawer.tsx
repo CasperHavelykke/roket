@@ -93,14 +93,20 @@ export default function ActivityDrawer({
   // Vælges en aktivitet, bladrer draweren til detaljen og åbner op;
   // tilbage til listen efterlader den på halv højde. Ref-vagten sikrer
   // at mount ikke flytter draweren fra sin kollapsede startposition.
-  const prevSelected = useRef<EventDoc | null>(null);
+  // NØGLET PÅ ID, ikke objekt-identitet: selected er nu LIVE data, der
+  // får ny reference ved hvert geo-snapshot — uden id-vagten ville hver
+  // opdatering re-springe draweren og nulstille scroll-trackingen midt
+  // i brugerens læsning.
+  const prevSelectedId = useRef<string | null>(null);
   useEffect(() => {
-    if (selected) {
+    const id = selected?.id ?? null;
+    if (id === prevSelectedId.current) return; // samme detalje, friske data
+    if (id) {
       translateY.value = withSpring(0, SNAP_SPRING);
-    } else if (prevSelected.current) {
+    } else if (prevSelectedId.current) {
       translateY.value = withSpring(halfY, SNAP_SPRING);
     }
-    prevSelected.current = selected;
+    prevSelectedId.current = id;
     // Ny scroll-flade (liste↔detalje) starter altid i toppen — en hængende
     // offset fra den forrige ville blokere nedad-handoff'et
     scrollOffset.value = 0;

@@ -80,6 +80,11 @@ export default function EventDetailContent({
   const [busy, setBusy] = useState(false);
   // Lokal kopi så join kan opdatere optimistisk (Chat/Forlad vises straks)
   const [ev, setEv] = useState<EventDoc>(event);
+  // …men følg prop'en, når den opdaterer (draweren leverer nu det LIVE
+  // event fra geo-lytterne — andres joins/ændringer skal slå igennem)
+  useEffect(() => {
+    setEv(event);
+  }, [event]);
   useEffect(() => setEv(event), [event]);
 
   // Deltagerprofiler (navn + avatar) — batched + session-cachet

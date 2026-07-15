@@ -23,6 +23,7 @@ import { useTheme } from '../../theme';
 import { EventDoc, eventFromData, overlapsWindow } from '../../events';
 import ActivityMarker from './ActivityMarker';
 import useNearbyActivities from './useNearbyActivities';
+import useNow from '../../hooks/useNow';
 import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
 import { TimeWindow } from './scrubberTime';
 import { DARK_MAP_STYLE } from './mapDarkStyle';
@@ -91,13 +92,26 @@ export default function MapHomeScreen({ navigation, route }: any) {
 
   const { activities, zoomedOut } = useNearbyActivities(region);
 
+  // Tikkende nu: uden det fryser filtret på render-tidspunktet — udløbne
+  // aktiviteter blev stående på kortet og nye dukkede ikke op før næste
+  // tilfældige re-render
+  const now = useNow();
+
   // Tidsfiltrering sker i hukommelsen — at trække i scrubberen koster
   // nul netværkskald (geo-filtreringen skete allerede i Firestore).
   // Vinduet kigger 3 timer frem fra scrub-positionen (VISIBLE_WINDOW_MINUTES).
   const visibleActivities = useMemo(() => {
-    const at = timeWindow.mode === 'at' ? timeWindow.at : new Date();
+    const at = timeWindow.mode === 'at' ? timeWindow.at : now;
     return activities.filter(ev => overlapsWindow(ev, at));
-  }, [activities, timeWindow]);
+  }, [activities, timeWindow, now]);
+
+  // Det valgte event skal være LEVENDE, ikke et frossent snapshot fra
+  // tap-øjeblikket — andres joins/ændringer skal ses i detaljen. Fallback
+  // til snapshottet når eventet er uden for viewport (openEventId-flowet).
+  const liveSelected = useMemo(
+    () => (selected ? activities.find(e => e.id === selected.id) ?? selected : null),
+    [selected, activities],
+  );
 
   // Prominent disclosure-modal (Play-krav, samme mønster som notifikationer
   // i App.tsx) — vises FØR den native permission-prompt, kun første gang
@@ -331,7 +345,7 @@ export default function MapHomeScreen({ navigation, route }: any) {
         onSelect={setSelected}
         timeWindow={timeWindow}
         onChangeWindow={setTimeWindow}
-        selected={selected}
+        selected={liveSelected}
         onCloseDetail={() => setSelected(null)}
         onOpenChat={(chatId, eventTitle) => {
           setSelected(null);
