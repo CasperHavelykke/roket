@@ -20,6 +20,7 @@ import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
+import LocationService from '../../services/LocationService';
 import { ArrowLeft, MoreVertical } from 'lucide-react-native';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
@@ -58,9 +59,20 @@ export default function ProfileViewScreen({ route, navigation }: any) {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportText, setReportText] = useState('');
   const [showMenu, setShowMenu] = useState(false);
-  // Pivot 2.0: profilen viser personens AKTUELLE aktiviteter i stedet for
+  // Profilen viser personens AKTUELLE aktiviteter i stedet for
   // billedgalleri — en bro tilbage til aktiviteterne, ikke et katalog
   const [activeEvents, setActiveEvents] = useState<EventDoc[]>([]);
+  // Egen position til afstand på Aktiv i-kortene — promptless (kun hvis
+  // permission allerede er givet; profilskærme skal ikke trigge prompts)
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  useEffect(() => {
+    LocationService.checkCurrentPrecision().then(p => {
+      if (p === 'denied') return;
+      LocationService.getCurrentPosition().then(pos => {
+        if (pos) setUserLocation({ latitude: pos.latitude, longitude: pos.longitude });
+      });
+    });
+  }, []);
 
   // Avatar-stakke til aktivitetskortene — batched via session-cachen
   const activityAvatarUids = useMemo(
@@ -264,7 +276,7 @@ export default function ProfileViewScreen({ route, navigation }: any) {
                       key={ev.id}
                       event={ev}
                       profiles={profiles}
-                      userLocation={null}
+                      userLocation={userLocation}
                       onPress={() =>
                         (navigation as any).navigate('Tabs', {
                           screen: 'MapHome',

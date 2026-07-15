@@ -23,6 +23,8 @@ import useContactRequests from '../../hooks/useContactRequests';
 import { contactPairId, statusForRequest, requestOrAcceptContact, withdrawContactRequest, ContactStatus } from '../../contacts';
 import { Clock, MapPin, Users, MessagesSquare, CalendarClock } from 'lucide-react-native';
 import { EventDoc, isEventFull, eventEndsAt } from '../../events';
+import { distanceBetween } from 'geofire-common';
+import { formatDistance } from '../../utils/distance';
 
 // Cap på renderede deltager-rækker — store events må ikke koste en lang
 // liste af Image-mounts (jf. skalerbarheds-princippet)
@@ -52,6 +54,9 @@ interface EventDetailContentProps {
   sheetScrollGesture?: NativeGesture;
   onSheetScroll?: any;
   sheetScrollEnabled?: boolean;
+  // Brugerens position (on-device) — viser afstand på steds-linjen.
+  // Udeladt (fx chat-nudgens modal) vises ingen afstand.
+  userLocation?: { latitude: number; longitude: number } | null;
 }
 
 /**
@@ -69,8 +74,9 @@ export default function EventDetailContent({
   sheetScrollGesture,
   onSheetScroll,
   sheetScrollEnabled,
+  userLocation,
 }: EventDetailContentProps) {
-  const { colors, t, timeFormat, language } = useTheme();
+  const { colors, t, timeFormat, language, distanceUnit } = useTheme();
   const [busy, setBusy] = useState(false);
   // Lokal kopi så join kan opdatere optimistisk (Chat/Forlad vises straks)
   const [ev, setEv] = useState<EventDoc>(event);
@@ -94,6 +100,19 @@ export default function EventDetailContent({
   // AFSLUTTET, ikke "i gang" — start-tjekket alene ville lyve i 4 timer
   const hasEnded = eventEndsAt(ev).getTime() <= Date.now();
   const inProgress = minutesToStart <= 0 && !hasEnded;
+
+  // Afstand til aktiviteten (on-device beregning, samme som drawer-kortene)
+  const distanceText =
+    userLocation && ev.location
+      ? formatDistance(
+          distanceBetween(
+            [userLocation.latitude, userLocation.longitude],
+            [ev.location.latitude, ev.location.longitude],
+          ),
+          t,
+          distanceUnit,
+        )
+      : null;
 
   const handleContactTap = async (otherUid: string) => {
     if (!user || contactBusyUid) return;
@@ -352,6 +371,9 @@ export default function EventDetailContent({
                   <MapPin size={18} color={colors.textPrimary} />
                   <Text style={[styles.infoLine, { color: colors.primaryBlueText, opacity: pressed ? 0.5 : 1 }]}>
                     {ev.meetingPlace || ((t as any).eventsOpenInMaps ?? 'Vis på kort')}
+                    {distanceText ? (
+                      <Text style={{ color: colors.textMuted }}>{`  ·  ${distanceText}`}</Text>
+                    ) : null}
                   </Text>
                 </>
               )}

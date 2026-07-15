@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme';
 import { EventDoc, eventFromData, eventEndsAt } from '../../events';
 import { formatTime, LOCALE_MAP } from '../../utils/eventTime';
+import LocationService from '../../services/LocationService';
 import TagIcon from '../../components/TagIcon';
 import { StatusTagId } from '../../statusTags';
 import RoketLogo from '../../assets/roket-logo-2.svg';
@@ -36,6 +37,17 @@ export default function MyProfileScreen({ navigation }: any) {
   const [age, setAge] = useState<number | null>(null);
   const [lastSeen, setLastSeen] = useState<number | null>(null);
   const [testAccount, setTestAccount] = useState(false);
+  // Egen position til afstand på Aktiv i-kortene — promptless (kun hvis
+  // permission allerede er givet; profilskærme skal ikke trigge prompts)
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  useEffect(() => {
+    LocationService.checkCurrentPrecision().then(p => {
+      if (p === 'denied') return;
+      LocationService.getCurrentPosition().then(pos => {
+        if (pos) setUserLocation({ latitude: pos.latitude, longitude: pos.longitude });
+      });
+    });
+  }, []);
   // Pivot 2.0: egne aktuelle aktiviteter vises hvor galleriet før lå
   const [activeEvents, setActiveEvents] = useState<EventDoc[]>([]);
   const currentUser = auth().currentUser;
@@ -381,7 +393,7 @@ export default function MyProfileScreen({ navigation }: any) {
                       key={ev.id}
                       event={ev}
                       profiles={profiles}
-                      userLocation={null}
+                      userLocation={userLocation}
                       onPress={() =>
                         (navigation as any).navigate('MapHome', {
                           openEventId: ev.id,

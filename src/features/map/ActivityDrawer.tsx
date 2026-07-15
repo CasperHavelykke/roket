@@ -216,6 +216,7 @@ export default function ActivityDrawer({
                 sheetScrollGesture={detailNative}
                 onSheetScroll={onListScroll}
                 sheetScrollEnabled={listScrollable}
+                userLocation={userLocation}
               />
             </View>
           </View>
