@@ -10,6 +10,7 @@ import {
   Alert,
   Linking,
   Switch,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -18,21 +19,17 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme, ThemeMode, TimeFormat, Language, DistanceUnit } from '../../theme';
 import getFirebaseError from '../../utils/getFirebaseError';
-import DisclosureModal from '../../components/DisclosureModal';
-import { MapPin as MapPinIcon } from 'lucide-react-native';
+import LocationService from '../../services/LocationService';
 import RoketLogo from '../../assets/roket-logo-simpel.svg';
 import RoketStars from '../../assets/roket-logo-stars-only.svg';
 
 
 export default function SettingsScreen({ navigation }: any) {
-  const { colors, isDark, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceUnit, setDistanceUnit, t } = useTheme();
+  const { colors, mode, setMode, timeFormat, setTimeFormat, language, setLanguage, distanceUnit, setDistanceUnit, t } = useTheme();
   const insets = useSafeAreaInsets();
   const currentUser = auth().currentUser;
   // Opt-in nærheds-push: læs nuværende værdi fra bruger-doc'et
   const [notifyNearby, setNotifyNearby] = useState(false);
-  // Prominent disclosure (Play-krav): indsamlingen starter først her, så
-  // bekræft-modalen vises hver gang toggle'n slås TIL
-  const [showNearbyConfirm, setShowNearbyConfirm] = useState(false);
   // Gæste-status som STATE: som always-mounted tab re-renderer skærmen
   // ikke af sig selv ved login/logout — fokus opdaterer den (F4-lektien)
   const [isGuest, setIsGuest] = useState(auth().currentUser?.isAnonymous ?? true);
@@ -86,6 +83,28 @@ export default function SettingsScreen({ navigation }: any) {
           console.warn('Failed to save notifyNearbyActivities:', err);
           setNotifyNearby(!value);
         });
+    }
+  };
+
+  // Cellevalget kræver enhedens position (lokalt, én gang) — uden
+  // permission ville toggle'n stå og lyve: ON men ingen tilmelding.
+  // Prøv prompten; er den OS-låst (Android efter ét nej / iOS altid),
+  // send til systemindstillinger og lad toggle'n blive slukket.
+  const handleNotifyNearbyChange = async (value: boolean) => {
+    if (!value) {
+      saveNotifyNearby(false);
+      return;
+    }
+    const precision = await LocationService.requestLocationPermission();
+    if (precision === 'fine' || precision === 'coarse') {
+      saveNotifyNearby(true);
+      return;
+    }
+    if (precision === 'never_ask_again' || Platform.OS === 'ios') {
+      Alert.alert(t.settingsNotifyNearby, t.settingsNotifyNearbyNeedsLocation, [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.settingsNotificationsOpen, onPress: () => Linking.openSettings() },
+      ]);
     }
   };
 
@@ -204,25 +223,26 @@ export default function SettingsScreen({ navigation }: any) {
 
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{t.settingsNotifications}</Text>
         <View style={[styles.card, { backgroundColor: colors.white }]}>
-          {/* Opt-in nærheds-push (Pivot 2.0) — kun for rigtige konti */}
+          {/* Opt-in nærheds-push — kun for rigtige konti */}
           {!isGuest && (
-            <View style={[styles.row, { borderBottomColor: colors.borderLight }]}>
-              <Text style={[styles.rowText, { color: colors.textPrimary, flex: 1 }]}>{t.settingsNotifyNearby}</Text>
-              <Switch
-                value={notifyNearby}
-                onValueChange={value => {
-                  // TIL kræver bekræftelse (indsamlingen starter her);
-                  // FRA slår bare fra — watch'et stopper og doc'et slettes
-                  if (value) {
-                    setShowNearbyConfirm(true);
-                  } else {
-                    saveNotifyNearby(false);
-                  }
-                }}
-                trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
-                thumbColor="#fff"
-              />
-            </View>
+            <>
+              <View style={styles.row}>
+                <Text style={[styles.rowText, { color: colors.textPrimary, flex: 1 }]}>{t.settingsNotifyNearby}</Text>
+                <Switch
+                  value={notifyNearby}
+                  // Ingen bekræft-modal: efter topic-migreringen indsamles
+                  // INTET ved opt-in (anonym celle-tilmelding, lokalt) — så
+                  // Play's prominent disclosure-krav gælder ikke længere.
+                  // Transparensen bor i forklaringslinjen under toggle'n.
+                  onValueChange={handleNotifyNearbyChange}
+                  trackColor={{ false: colors.inputBorder, true: colors.primaryBlue }}
+                  thumbColor="#fff"
+                />
+              </View>
+              <Text style={[styles.rowDesc, { color: colors.textMuted, borderBottomColor: colors.borderLight }]}>
+                {t.settingsNotifyNearbyDesc}
+              </Text>
+            </>
           )}
           <TouchableOpacity
             style={styles.row}
@@ -328,20 +348,6 @@ export default function SettingsScreen({ navigation }: any) {
 
         <Text style={styles.copyright}>© 2026 Røket · v2.1.0</Text>
       </ScrollView>
-
-      <DisclosureModal
-        visible={showNearbyConfirm}
-        icon={<MapPinIcon size={64} color={isDark ? '#fff' : colors.textPrimary} />}
-        title={t.disclosureLocationTitle}
-        message={t.disclosureNearbyMessage}
-        acceptLabel={t.disclosureNearbyAccept}
-        cancelLabel={t.cancel}
-        onAccept={() => {
-          setShowNearbyConfirm(false);
-          saveNotifyNearby(true);
-        }}
-        onCancel={() => setShowNearbyConfirm(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -419,6 +425,15 @@ const styles = StyleSheet.create({
   rowText: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  // Forklaringslinje under en toggle-række (afløser bekræft-modalen)
+  rowDesc: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    marginTop: -6,
+    borderBottomWidth: 1,
   },
   rowArrow: {
     fontSize: 18,
