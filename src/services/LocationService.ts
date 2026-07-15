@@ -9,26 +9,24 @@ class LocationService {
   async requestLocationPermission(): Promise<LocationPrecision> {
     if (Platform.OS === 'android') {
       try {
-        const granted = await PermissionsAndroid.request(
+        // Android 12+ kræver at FINE og COARSE requestes SAMMEN — en
+        // fine-only-request er per dokumentationen udefineret adfærd
+        // (kan ignoreres). Brugeren kan vælge "Omtrentlig" i dialogen.
+        const results = await PermissionsAndroid.requestMultiple([
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          return 'fine';
-        }
-
-        // Android 12+: brugeren kan vælge "Omtrentlig lokation"
-        // Tjek altid coarse før vi konkluderer denied/never_ask_again
-        const coarse = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
-        );
-        if (coarse) {
-          return 'coarse';
-        }
+        ]);
+        const fine = results[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+        const coarse = results[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION];
 
-        if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+        if (fine === PermissionsAndroid.RESULTS.GRANTED) return 'fine';
+        if (coarse === PermissionsAndroid.RESULTS.GRANTED) return 'coarse';
+        if (
+          fine === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN ||
+          coarse === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
+        ) {
           return 'never_ask_again';
         }
-
         return 'denied';
       } catch (err) {
         console.warn(err);
