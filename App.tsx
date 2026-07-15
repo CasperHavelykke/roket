@@ -69,6 +69,9 @@ function App() {
   // Nærved-opt-in fra brugerens profil-doc — styrer om lokations-watch'et
   // overhovedet kører (lokation uploades KUN ved aktivt tilvalg)
   const [nearbyOptIn, setNearbyOptIn] = useState(false);
+  // Notifikations-init må kun køre én gang pr. konto-session (profil-
+  // snapshottet fyrer ved hver doc-ændring)
+  const notifInitForUid = useRef<string | null>(null);
   const theme = useThemeProvider();
   const bannerRef = useRef<NotificationBannerRef>(null);
 
@@ -186,9 +189,26 @@ function App() {
                 }
                 await NotificationService.initialize();
               });
-              initNotifications().catch(console.error);
+              // Kun én gang pr. konto-session: snapshottet fyrer ved HVER
+              // profil-ændring (toggle, avatar, warningsSeen …), og uden
+              // vagten ville hver ændring re-køre permission/getToken/
+              // token-write
+              if (notifInitForUid.current !== user.uid) {
+                notifInitForUid.current = user.uid;
+                initNotifications().catch(console.error);
+              }
+            } else if (user.isAnonymous) {
+              // GÆST (inkl. gæstesession efter logout): profil-doc findes
+              // aldrig. authState SKAL nulstilles her — efter logout ville
+              // den ellers stå tilbage som true fra den forrige konto, og
+              // gæsten ville køre med fuld-bruger-listeners og forkert UI.
+              setAuthState(null);
+              // Næste login skal re-initialisere notifikationer (logout
+              // blanker fcmToken)
+              notifInitForUid.current = null;
             } else {
-              // Profildokument eksisterer ikke endnu — vent til signup-flow opretter det
+              // Rigtig konto uden profil-doc endnu — vent til signup-flowet
+              // opretter det (authState røres ikke midt i oprettelsen)
             }
             setInitializing(false);
           }, err => {

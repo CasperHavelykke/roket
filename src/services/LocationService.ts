@@ -87,6 +87,12 @@ class LocationService {
           },
           (error) => {
             console.warn('Location error:', error);
+            // iOS: trækkes permission tilbage i Systemindstillinger, ser vi
+            // det først som PERMISSION_DENIED (code 1) her — ryd cache-
+            // flaget så checkCurrentPrecision ikke lyver "fine" for evigt
+            if (Platform.OS === 'ios' && error?.code === 1) {
+              AsyncStorage.removeItem('ios_location_granted').catch(() => {});
+            }
             resolve(null);
           },
           {

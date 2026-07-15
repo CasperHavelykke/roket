@@ -29,11 +29,18 @@ class NotificationService {
 
     await this.saveFCMToken();
 
-    // Opdater token hvis det fornyes
-    messaging().onTokenRefresh(token => {
-      this.saveToken(token);
-    });
+    // Opdater token hvis det fornyes — registrér KUN én refresh-listener,
+    // uanset hvor mange gange initialize() kaldes (den blev før stablet
+    // ved hvert kald og lækkede)
+    if (!this.tokenRefreshRegistered) {
+      this.tokenRefreshRegistered = true;
+      messaging().onTokenRefresh(token => {
+        this.saveToken(token);
+      });
+    }
   }
+
+  private tokenRefreshRegistered = false;
 
   private async saveFCMToken(): Promise<void> {
     try {

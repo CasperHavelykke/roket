@@ -40,17 +40,28 @@ export function statusForRequest(
 // 1:1-chat fra grid-æraen med samme deterministiske id.
 async function createConnectionChat(myUid: string, otherUid: string, eventId: string): Promise<void> {
   const chatId = contactPairId(myUid, otherUid);
-  await firestore().collection('chats').doc(chatId).set(
-    {
+  const ref = firestore().collection('chats').doc(chatId);
+
+  // OBS: chatten må ikke LÆSES for at tjekke eksistens — read-reglen
+  // derefererer participants og fejler på et ikke-eksisterende doc
+  // (rules-fælden). Prøv i stedet oprettelsen: findes chatten allerede
+  // (gen-accept efter et brud), er set() en UPDATE, som whitelisten
+  // korrekt afviser — og så er der intet at gøre, for serverens
+  // accept-trigger klarer genoplivningen.
+  try {
+    await ref.set({
       participants: [myUid, otherUid],
       type: 'connection',
       connectionEventId: eventId,
       createdAt: firestore.FieldValue.serverTimestamp(),
       lastMessage: '',
       lastMessageTime: firestore.FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
+    });
+  } catch (err: any) {
+    const code = String(err?.code ?? '');
+    if (code.includes('permission-denied')) return;
+    throw err;
+  }
 }
 
 /**

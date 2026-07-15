@@ -491,14 +491,17 @@ export default function ChatScreen({ route, navigation }: any) {
     });
   }, [messages, isEventChat]);
 
-  // Lyt på event-data ved event-chat
+  // Lyt på event-data ved event-chat. OBS: unsub skal returneres fra
+  // EFFEKTEN, ikke fra .then()-callbacken — den gamle version lækkede en
+  // permanent events-listener ved hver åbning af en gruppechat.
   useEffect(() => {
     if (!isEventChat) return;
-    const chatRef = firestore().collection('chats').doc(chatId);
-    chatRef.get().then(snap => {
+    let unsub: (() => void) | null = null;
+    let cancelled = false;
+    firestore().collection('chats').doc(chatId).get().then(snap => {
       const eventId = snap.data()?.eventId;
-      if (!eventId) return;
-      const unsub = firestore().collection('events').doc(eventId).onSnapshot(doc => {
+      if (!eventId || cancelled) return;
+      unsub = firestore().collection('events').doc(eventId).onSnapshot(doc => {
         if (!doc.exists()) {
           setEventDoc(null);
           return;
@@ -507,8 +510,11 @@ export default function ChatScreen({ route, navigation }: any) {
         // hvilket ville give forkert sluttid for Hold kontakten-nudgen
         setEventDoc(eventFromData(doc.id, doc.data()!));
       }, err => console.warn('Event subscription error:', err));
-      return () => unsub();
     });
+    return () => {
+      cancelled = true;
+      if (unsub) unsub();
+    };
   }, [isEventChat, chatId]);
 
   if (!currentUser) return null;
