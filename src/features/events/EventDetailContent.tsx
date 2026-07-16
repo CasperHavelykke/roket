@@ -25,6 +25,7 @@ import { Clock, MapPin, Users, MessagesSquare, CalendarClock } from 'lucide-reac
 import { EventDoc, isEventFull, eventEndsAt } from '../../events';
 import { distanceBetween } from 'geofire-common';
 import { formatDistance } from '../../utils/distance';
+import { LOCALE_MAP } from '../../utils/eventTime';
 
 // Cap på renderede deltager-rækker — store events må ikke koste en lang
 // liste af Image-mounts (jf. skalerbarheds-princippet)
@@ -222,7 +223,14 @@ export default function EventDetailContent({
         participants: firestore.FieldValue.arrayUnion(user.uid),
       });
       await batch.commit();
-      setEv(prev => ({ ...prev, participantIds: [...prev.participantIds, user.uid] }));
+      // IDEMPOTENT optimistisk opdatering: latency-kompensationen kan nå
+      // at levere det live event (med os i listen) via prop-syncen FØR
+      // commit() resolver — uden vagten endte man to gange i listen
+      setEv(prev =>
+        prev.participantIds.includes(user.uid)
+          ? prev
+          : { ...prev, participantIds: [...prev.participantIds, user.uid] },
+      );
     } catch (e) {
       // Reglerne håndhæver maxParticipants atomisk (arrayUnion evalueres
       // mod den resulterende liste) — taber man kapløbet om sidste plads,
@@ -283,10 +291,7 @@ export default function EventDetailContent({
     ]);
   };
 
-  const localeMap: Record<string, string> = {
-    da: 'da-DK', en: 'en-GB', es: 'es-ES', de: 'de-DE', fr: 'fr-FR', pt: 'pt-PT',
-  };
-  const locale = localeMap[language] || 'en-GB';
+  const locale = LOCALE_MAP[language] ?? 'en-GB';
 
   const formatDateTime = (d: Date) => {
     const today = new Date();
@@ -485,7 +490,7 @@ export default function EventDetailContent({
                 style={styles.cta}
               >
                 <MessagesSquare size={18} color="#fff" />
-                <Text style={[styles.ctaText, { marginLeft: 8 }]}>Chat</Text>
+                <Text style={[styles.ctaText, { marginLeft: 8 }]}>{t.eventsChatCta}</Text>
               </GradientView>
             </TouchableOpacity>
             <TouchableOpacity
@@ -506,7 +511,7 @@ export default function EventDetailContent({
                 style={styles.cta}
               >
                 <MessagesSquare size={18} color="#fff" />
-                <Text style={[styles.ctaText, { marginLeft: 8 }]}>Chat</Text>
+                <Text style={[styles.ctaText, { marginLeft: 8 }]}>{t.eventsChatCta}</Text>
               </GradientView>
             </TouchableOpacity>
             <TouchableOpacity

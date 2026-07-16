@@ -1039,7 +1039,7 @@ export default function ChatScreen({ route, navigation }: any) {
             </TouchableOpacity>
             <View style={[styles.logoMenuDivider, { backgroundColor: colors.borderLight }]} />
             <TouchableOpacity style={styles.logoMenuItem} onPress={() => { setShowLogoMenu(false); setShowChatInfo(true); }}>
-              <Text style={[styles.logoMenuText, { color: colors.textPrimary }]}>Info</Text>
+              <Text style={[styles.logoMenuText, { color: colors.textPrimary }]}>{t.chatMenuInfo}</Text>
             </TouchableOpacity>
           </View>
         </>

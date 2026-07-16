@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -106,10 +105,7 @@ export default function EditProfileScreen({ navigation }: any) {
 
           // Vis alert hvis et billede blev afvist af moderation
           if (data.photoRejected) {
-            Alert.alert(
-              t.error,
-              'Dit billede blev fjernet fordi det overtræder vores retningslinjer. Upload venligst et passende billede.',
-            );
+            Alert.alert(t.error, t.profilePhotoRejectedBody);
             firestore()
               .collection('users')
               .doc(currentUser.uid)

@@ -13,7 +13,6 @@ import {
   Animated,
 } from 'react-native';
 import KeyboardAvoidingView from '../../components/KeyboardAvoidingView';
-import LinearGradient from 'react-native-linear-gradient';
 import GradientView from '../../components/GradientView';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
