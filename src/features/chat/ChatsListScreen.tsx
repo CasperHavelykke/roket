@@ -96,6 +96,8 @@ export default function ChatsListScreen({ navigation }: any) {
   // mount-bundet listener ville dø ved logout og aldrig gen-binde (F4-lektien).
   // Blur rydder op — baggrundsfaner holder ingen listeners.
   const boundUid = useRef<string | null>(null);
+  // Generations-tæller for chats-snapshottet (async callback-race-vagt)
+  const snapshotGenRef = useRef(0);
   const [isGuest, setIsGuest] = useState(auth().currentUser?.isAnonymous ?? true);
   useFocusEffect(useCallback(() => {
     // Skygger bevidst den ydre currentUser: frisk auth-state pr. fokus
@@ -129,6 +131,9 @@ export default function ChatsListScreen({ navigation }: any) {
       .orderBy('lastMessageTime', 'desc')
       .limit(50)
       .onSnapshot(async snapshot => {
+        // Generations-vagt: callbacken er async, og et hurtigt snapshot
+        // kan overhale et langsomt — kun det NYESTE må sætte state
+        const gen = ++snapshotGenRef.current;
         const chatPreviews: ChatPreview[] = [];
 
         // Hent egen blokerings-liste én gang
@@ -138,6 +143,9 @@ export default function ChatsListScreen({ navigation }: any) {
         const pinnedSet = new Set(pinned);
         setPinnedChatIds(pinnedSet);
 
+        // Pas 1 (synkront): filtrér + byg event-rækker; saml 1:1-rækker
+        // der mangler modpartens profil
+        const pendingOneToOne: { doc: (typeof snapshot.docs)[number]; data: any; otherUserId: string }[] = [];
         for (const doc of snapshot.docs) {
           const data = doc.data();
           // Connection-chats (Hold kontakten) OG event-gruppechats vises fra
@@ -188,37 +196,36 @@ export default function ChatsListScreen({ navigation }: any) {
           // Spring over hvis vi har blokeret dem
           if (myBlockedUsers.includes(otherUserId)) continue;
 
-          // Hent den anden brugers profil
-          const otherUserDoc = await firestore()
-            .collection('users')
-            .doc(otherUserId)
-            .get();
-          const otherUserData = otherUserDoc.data();
-          const otherUserName = otherUserData?.displayName ?? t.chatsUnknown;
-          const otherUserPhoto: string | null = otherUserData?.avatarURL ?? null;
-          const otherUserTestAccount = otherUserData?.testAccount ?? false;
+          pendingOneToOne.push({ doc, data, otherUserId });
+        }
 
+        // Pas 2: modparternes profiler PARALLELT (før: sekventiel N+1 —
+        // op til ~50 serielle reads pr. snapshot)
+        const otherUserDocs = await Promise.all(
+          pendingOneToOne.map(p => firestore().collection('users').doc(p.otherUserId).get()),
+        );
+        if (gen !== snapshotGenRef.current) return; // overhalet af nyere snapshot
+
+        pendingOneToOne.forEach(({ doc, data, otherUserId }, i) => {
+          const otherUserData = otherUserDocs[i].data();
           // Spring over hvis de har blokeret os
           const theirBlockedUsers: string[] = otherUserData?.blockedUsers ?? [];
-          if (theirBlockedUsers.includes(currentUser.uid)) continue;
-
-          // Læs ulæste beskeder fra unreadCount-feltet
-          const unreadCount = data.unreadCount?.[currentUser.uid] ?? 0;
+          if (theirBlockedUsers.includes(currentUser.uid)) return;
 
           chatPreviews.push({
             chatId: doc.id,
             otherUserId,
-            otherUserName,
-            otherUserPhoto,
-            otherUserTestAccount,
+            otherUserName: otherUserData?.displayName ?? t.chatsUnknown,
+            otherUserPhoto: otherUserData?.avatarURL ?? null,
+            otherUserTestAccount: otherUserData?.testAccount ?? false,
             lastMessage: data.lastMessage,
             lastMessageTime: data.lastMessageTime,
-            unreadCount,
+            unreadCount: data.unreadCount?.[currentUser.uid] ?? 0,
             pinned: pinnedSet.has(doc.id),
             isConnection: data.type === 'connection',
             disconnectedBy: data.disconnectedBy ?? null,
           });
-        }
+        });
 
         // Sortér: fastgjorte først, derefter efter seneste besked
         chatPreviews.sort((a, b) => {

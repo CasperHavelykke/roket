@@ -375,6 +375,11 @@ export default function ChatScreen({ route, navigation }: any) {
     const chatRef = firestore().collection('chats').doc(chatId);
     unsubscribeRef.current = chatRef
       .collection('messages')
+      // Server-side sortering + loft: uden dem blev HELE historikken
+      // læst og re-sorteret ved hver ny besked. 200 dækker rigeligt en
+      // 4-timers eventchat; ældre beskeder er uden for skærmen alligevel.
+      .orderBy('timestamp', 'desc')
+      .limit(200)
       .onSnapshot(snapshot => {
         if (!snapshot) {
           setLoading(false);
@@ -525,27 +530,35 @@ export default function ChatScreen({ route, navigation }: any) {
 
     setInputText('');
 
-    await ensureChatExists();
+    try {
+      await ensureChatExists();
 
-    const chatRef = firestore().collection('chats').doc(chatId);
-    const messageRef = chatRef.collection('messages').doc();
+      const chatRef = firestore().collection('chats').doc(chatId);
+      const messageRef = chatRef.collection('messages').doc();
 
-    await messageRef.set({
-      senderId: currentUser.uid,
-      text,
-      timestamp: firestore.FieldValue.serverTimestamp(),
-      ...(chatExpiresAtRef.current ? { expiresAt: chatExpiresAtRef.current } : {}),
-    });
+      await messageRef.set({
+        senderId: currentUser.uid,
+        text,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        ...(chatExpiresAtRef.current ? { expiresAt: chatExpiresAtRef.current } : {}),
+      });
 
-    await chatRef.set(
-      {
-        lastMessage: text.slice(0, 500),
-        lastMessageTime: firestore.FieldValue.serverTimestamp(),
-        lastMessageSenderId: currentUser.uid,
-        ...(isEventChat ? {} : { unreadCount: { [otherUser.id]: firestore.FieldValue.increment(1) } }),
-      },
-      { merge: true }
-    );
+      await chatRef.set(
+        {
+          lastMessage: text.slice(0, 500),
+          lastMessageTime: firestore.FieldValue.serverTimestamp(),
+          lastMessageSenderId: currentUser.uid,
+          ...(isEventChat ? {} : { unreadCount: { [otherUser.id]: firestore.FieldValue.increment(1) } }),
+        },
+        { merge: true }
+      );
+    } catch (err) {
+      // Fejler skrivningen (regler/offline), må beskeden IKKE forsvinde
+      // lydløst — læg teksten tilbage i feltet og sig det højt
+      console.warn('sendMessage failed:', err);
+      setInputText(prev => (prev ? prev : text));
+      Alert.alert(t.error, getFirebaseError(err, t));
+    }
   };
 
   const handlePickImage = async () => {

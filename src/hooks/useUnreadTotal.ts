@@ -28,6 +28,12 @@ export default function useUnreadTotal(): { total: number; hasUnread: boolean } 
       }
 
       const uid = user.uid;
+      // (3) blokerede modparter — hentes én gang pr. auth-bind (en NY
+      // blokering slår først igennem ved næste bind; acceptabel unøjagtighed)
+      let blockedUsers: string[] = [];
+      firestore().collection('users').doc(uid).get()
+        .then(doc => { blockedUsers = doc.data()?.blockedUsers ?? []; })
+        .catch(() => {});
       unsubChats = firestore()
         .collection('chats')
         .where('participants', 'array-contains', uid)
@@ -37,6 +43,22 @@ export default function useUnreadTotal(): { total: number; hasUnread: boolean } 
             snapshot.docs.forEach(doc => {
               const data = doc.data();
               if (!data.lastMessage || data.lastMessageSenderId === uid) return;
+              // Spejl chatlistens skjulninger — ellers kan badgen tælle
+              // chats man ikke kan se og dermed aldrig nulstille:
+              // (1) slet-for-mig uden nyere besked
+              const clearedAt = data.clearedBy?.[uid];
+              if (clearedAt) {
+                const clearedMs = clearedAt.toMillis?.() ?? 0;
+                const lastMs = data.lastMessageTime?.toMillis?.() ?? 0;
+                if (lastMs <= clearedMs) return;
+              }
+              // (2) gruppechats man har forladt
+              if (data.eventId && !(data.participants ?? []).includes(uid)) return;
+              // (3) 1:1 med blokeret modpart
+              if (!data.eventId) {
+                const other = (data.participants ?? []).find((id: string) => id !== uid);
+                if (other && blockedUsers.includes(other)) return;
+              }
               const count = data.unreadCount?.[uid] ?? 0;
               if (count > 0) {
                 sum += count;

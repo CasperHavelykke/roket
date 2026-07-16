@@ -963,9 +963,14 @@ exports.cleanupExpiredChatImages = onSchedule('every 60 minutes', async () => {
   const cutoff = new Date(Date.now() - 12 * 60 * 60 * 1000);
   let cleaned = 0;
 
-  // Hent kun beskeder der har et billede (collectionGroup søger på tværs af alle chats)
+  // Hent kun beskeder der har et billede (collectionGroup søger på tværs af
+  // alle chats). LOFT pr. kørsel: jobbet kører hver time, og uden limit
+  // scannede det ALLE billed-beskeder app-wide hver gang. Udløbne billeder
+  // forlader resultatsættet (imageURL nulstilles), så mængden er selv-
+  // rensende — loftet begrænser kun én kørsel, ikke hvad der nås over tid.
   const snapshot = await db.collectionGroup('messages')
     .where('imageURL', '!=', null)
+    .limit(300)
     .get();
 
   for (const msgDoc of snapshot.docs) {
