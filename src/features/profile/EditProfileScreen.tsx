@@ -85,8 +85,20 @@ export default function EditProfileScreen({ navigation }: any) {
           setBio(data.bio ?? '');
           setAvatarURL(data.avatarURL ?? null);
           setShowAge(data.showAge !== false);
-          setHasBirthday(!!data.birthday);
           setStatusTag(data.statusTag ?? null);
+          // Birthday: legacy-felt (v1.1.9-konti) eller private-subcollection (v2)
+          if (data.birthday) {
+            setHasBirthday(true);
+          } else {
+            firestore()
+              .collection('users')
+              .doc(currentUser.uid)
+              .collection('private')
+              .doc('profile')
+              .get()
+              .then(priv => setHasBirthday(!!priv.data()?.birthday))
+              .catch(() => setHasBirthday(false));
+          }
 
           dataLoaded.current = true;
           nameHighlight.setValue((data.status ?? '').trim() ? 0 : 1);

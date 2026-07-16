@@ -127,32 +127,35 @@ export default function MyProfileScreen({ navigation }: any) {
         setLastSeen(null);
         setTestAccount(false);
       }
-      firestore()
-        .collection('users')
-        .doc(user.uid)
-        .get()
-        .then(doc => {
-          const data = doc.data();
-          if (data) {
-            setDisplayName(data.displayName ?? '');
-            setBio(data.bio ?? '');
-            setStatus(data.status ?? '');
-            setStatusTag(data.statusTag ?? null);
-            setAvatarURL(data.avatarURL ?? null);
-            if (data.birthday && data.showAge !== false) {
-              const today = new Date();
-              const birth = new Date(data.birthday.year, data.birthday.month - 1, data.birthday.day);
-              let a = today.getFullYear() - birth.getFullYear();
-              const m = today.getMonth() - birth.getMonth();
-              if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--;
-              setAge(a);
-            } else {
-              setAge(null);
-            }
-            setLastSeen(data.lastSeen?.toMillis?.() ?? null);
-            setTestAccount(data.testAccount ?? false);
+      // Birthday bor i private-subcollectionen for v2-oprettede konti;
+      // fallback til legacy-feltet på bruger-doc'et (v1.1.9-æraens konti)
+      const userRef = firestore().collection('users').doc(user.uid);
+      Promise.all([
+        userRef.get(),
+        userRef.collection('private').doc('profile').get().catch(() => null),
+      ]).then(([doc, privDoc]) => {
+        const data = doc.data();
+        if (data) {
+          setDisplayName(data.displayName ?? '');
+          setBio(data.bio ?? '');
+          setStatus(data.status ?? '');
+          setStatusTag(data.statusTag ?? null);
+          setAvatarURL(data.avatarURL ?? null);
+          const birthday = data.birthday ?? privDoc?.data()?.birthday;
+          if (birthday && data.showAge !== false) {
+            const today = new Date();
+            const birth = new Date(birthday.year, birthday.month - 1, birthday.day);
+            let a = today.getFullYear() - birth.getFullYear();
+            const m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--;
+            setAge(a);
+          } else {
+            setAge(null);
           }
-        });
+          setLastSeen(data.lastSeen?.toMillis?.() ?? null);
+          setTestAccount(data.testAccount ?? false);
+        }
+      });
     }, [])
   );
 

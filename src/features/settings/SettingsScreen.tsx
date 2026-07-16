@@ -136,11 +136,18 @@ export default function SettingsScreen({ navigation }: any) {
         text: t.settingsLogout,
         style: 'destructive',
         onPress: async () => {
-          // Fjern FCM-token så denne enhed ikke modtager notifikationer for den gamle konto
+          // Fjern FCM-token så denne enhed ikke modtager notifikationer for
+          // den gamle konto — både private/push (v2) og legacy-feltet på
+          // bruger-doc'et (skrevet af v1.1.9-æraens klienter)
           try {
             const uid = auth().currentUser?.uid;
             if (uid) {
-              await firestore().collection('users').doc(uid).update({ fcmToken: '' });
+              const userRef = firestore().collection('users').doc(uid);
+              await Promise.all([
+                userRef.collection('private').doc('push')
+                  .set({ fcmToken: '' }, { merge: true }),
+                userRef.update({ fcmToken: '' }).catch(() => {}),
+              ]);
             }
           } catch (_) {}
           auth().signOut();

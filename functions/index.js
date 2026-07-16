@@ -24,6 +24,26 @@ async function getDownloadURL(bucket, filePath) {
   return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encoded}?alt=media${token ? `&token=${token}` : ''}`;
 }
 
+// Hjælpefunktion: slå en brugers FCM-token op. PII-migreringen 2026-07
+// flyttede tokenet til users/{uid}/private/push (kun ejer+staff kan læse);
+// fallback til legacy-feltet på bruger-doc'et, som v1.1.9-klienter stadig
+// skriver. `userData` kan gives med for at spare doc-læsningen i fallback.
+async function getFcmToken(db, uid, userData = null) {
+  try {
+    const priv = await db.collection('users').doc(uid)
+      .collection('private').doc('push').get();
+    const token = priv.data()?.fcmToken;
+    if (token) return token;
+  } catch (_) {}
+  if (userData !== null) return userData?.fcmToken || null;
+  try {
+    const doc = await db.collection('users').doc(uid).get();
+    return doc.data()?.fcmToken || null;
+  } catch (_) {
+    return null;
+  }
+}
+
 // Hjælpefunktion: send push-notifikation til alle admins
 async function notifyAdmin(title, body) {
   const db = getFirestore();
@@ -33,9 +53,9 @@ async function notifyAdmin(title, body) {
 
   if (snapshot.empty) return;
 
-  const tokens = snapshot.docs
-    .map(doc => doc.data().fcmToken)
-    .filter(Boolean);
+  const tokens = (
+    await Promise.all(snapshot.docs.map(doc => getFcmToken(db, doc.id, doc.data())))
+  ).filter(Boolean);
 
   if (tokens.length === 0) return;
 
@@ -124,7 +144,7 @@ exports.sendChatNotification = onDocumentCreated(
       let blocked = 0;
       await Promise.all(recipientDocs.map(async docSnap => {
         const rData = docSnap.data();
-        const token = rData?.fcmToken;
+        const token = await getFcmToken(db, docSnap.id, rData);
         if (!token) { noToken++; return; }
         if ((rData?.blockedUsers ?? []).includes(senderId)) { blocked++; return; }
         try {
@@ -160,7 +180,7 @@ exports.sendChatNotification = onDocumentCreated(
 
     const recipientDoc = await db.collection('users').doc(recipientId).get();
     const recipientData = recipientDoc.data();
-    const fcmToken = recipientData?.fcmToken;
+    const fcmToken = await getFcmToken(db, recipientId, recipientData);
 
     if (!fcmToken) {
       console.log(`1:1 push ${chatId}: skipped — recipient ${recipientId} has no token`);
@@ -231,7 +251,7 @@ exports.onContactRequestCreated = onDocumentCreated(
       }).catch(err => console.warn('Reconnect lastMessage bump failed:', err));
     }
 
-    const token = toDoc.data()?.fcmToken;
+    const token = await getFcmToken(db, data.to, toDoc.data());
     if (!token) {
       console.log(`Contact request push skipped — recipient ${data.to} has no token`);
       return;
@@ -399,7 +419,7 @@ exports.onContactRequestAccepted = onDocumentUpdated(
       db.collection('users').doc(after.to).get(),
     ]);
 
-    const token = fromDoc.data()?.fcmToken;
+    const token = await getFcmToken(db, after.from, fromDoc.data());
     if (!token) return;
 
     const accepterName = toDoc.data()?.displayName ?? 'Nogen';
@@ -470,8 +490,6 @@ exports.onUserModerated = onDocumentUpdated(
   async event => {
     const before = event.data.before.data();
     const after = event.data.after.data();
-    const fcmToken = after?.fcmToken;
-    if (!fcmToken) return;
 
     const oldWarnings = before?.warnings || 0;
     const newWarnings = after?.warnings || 0;
@@ -497,6 +515,11 @@ exports.onUserModerated = onDocumentUpdated(
     } else {
       return; // Ingen moderation-ændring
     }
+
+    // Token slås først op NÅR vi ved der skal sendes (helperen læser
+    // private/push med fallback til legacy-feltet)
+    const fcmToken = await getFcmToken(getFirestore(), event.params.userId, after);
+    if (!fcmToken) return;
 
     try {
       await getMessaging().send({
@@ -546,7 +569,10 @@ exports.onUserDeleted = auth.user().onDelete(async (user) => {
     }
   };
 
-  // 1. Slet bruger-profil
+  // 1. Slet bruger-profil inkl. PII-privat subcollection (email/birthday/token)
+  await db.collection('users').doc(uid).collection('private').get()
+    .then(snap => Promise.all(snap.docs.map(d => d.ref.delete())))
+    .catch(() => {});
   await db.collection('users').doc(uid).delete().catch(() => {});
 
   // 2. Slet bruger-lokation
@@ -772,7 +798,7 @@ async function handleProfilePhotoModeration(db, bucket, filePath, scores) {
   });
 
   // Send push-notifikation til brugeren
-  const fcmToken = userData.fcmToken;
+  const fcmToken = await getFcmToken(db, uid, userData);
   if (fcmToken) {
     try {
       await getMessaging().send({
@@ -1202,16 +1228,14 @@ exports.adminCreateUser = onCall(async (request) => {
     }
   }
 
-  // 3. Opret Firestore-profil
+  // 3. Opret Firestore-profil — PII (email/birthday) i privat subcollection
+  // ligesom app-signups (2026-07-migreringen)
   await db.collection('users').doc(uid).set({
     displayName,
     bio: bio || '',
-    email,
     createdAt: FieldValue.serverTimestamp(),
     photoURL,
     lastSeen: FieldValue.serverTimestamp(),
-    distanceMode: 'exact',
-    birthday,
     showAge: showAge ?? true,
     gender: gender || null,
     showGender: showGender ?? true,
@@ -1219,6 +1243,11 @@ exports.adminCreateUser = onCall(async (request) => {
     showSexuality: showSexuality ?? true,
     photos,
     testAccount: testAccount ?? true,
+  });
+  await db.collection('users').doc(uid).collection('private').doc('profile').set({
+    email,
+    birthday,
+    createdAt: FieldValue.serverTimestamp(),
   });
 
   // 4. Opret en dummy lokation (København centrum) så de vises på kortet
@@ -1251,7 +1280,10 @@ exports.adminDeleteUser = onCall(async (request) => {
   const bucket = getStorage().bucket();
   const results = [];
 
-  // 1. Slet bruger-profil
+  // 1. Slet bruger-profil inkl. PII-privat subcollection (email/birthday/token)
+  await db.collection('users').doc(uid).collection('private').get()
+    .then(snap => Promise.all(snap.docs.map(d => d.ref.delete())))
+    .catch(() => {});
   await db.collection('users').doc(uid).delete().catch(() => {});
   results.push('profil slettet');
 

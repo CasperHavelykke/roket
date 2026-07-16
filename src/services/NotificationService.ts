@@ -60,9 +60,15 @@ class NotificationService {
     const user = auth().currentUser;
     if (!user) return;
 
-    await firestore().collection('users').doc(user.uid).update({
-      fcmToken: token,
-    });
+    // PII-privat: tokenet bor i private-subcollectionen (kun ejer + staff
+    // kan læse) — ikke på det offentligt læsbare bruger-doc. Functions
+    // læser private/push først med fallback til legacy-feltet (v1.1.9).
+    await firestore()
+      .collection('users')
+      .doc(user.uid)
+      .collection('private')
+      .doc('push')
+      .set({ fcmToken: token, updatedAt: firestore.FieldValue.serverTimestamp() }, { merge: true });
   }
 
   // Lyt til notifikationer mens appen er i forgrunden

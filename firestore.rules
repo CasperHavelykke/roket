@@ -75,11 +75,20 @@ service cloud.firestore {
       // Alle indloggede brugere kan læse profiler (til HomeScreen-grid og profilvisning)
       allow read: if request.auth != null;
 
-      // Oprettelse kræver gyldig fødselsdato med alder >= 13 — og må ikke
-      // medbringe rolle-/moderationsfelter (ellers kunne man fødes som admin)
+      // Oprettelse kræver gyldig fødselsdato med myndig alder — og må ikke
+      // medbringe rolle-/moderationsfelter (ellers kunne man fødes som admin).
+      // To alders-veje (RÆKKEFØLGEN er vigtig — legacy-vejen skal kortslutte
+      // før getAfter, som fejler hvis private-doc'et ikke er med i batchen):
+      //   1) v1.1.9/web: birthday ligger på selve bruger-doc'et
+      //   2) v2 (PII-privat): birthday ligger i users/{uid}/private/profile,
+      //      skrevet i SAMME batch — getAfter ser batchens sluttilstand
       allow create: if isFullUser() && request.auth.uid == userId &&
-                       'birthday' in request.resource.data &&
-                       isOldEnough(request.resource.data.birthday) &&
+                       (
+                         ('birthday' in request.resource.data &&
+                          isOldEnough(request.resource.data.birthday))
+                         ||
+                         isOldEnough(getAfter(/databases/$(database)/documents/users/$(userId)/private/profile).data.birthday)
+                       ) &&
                        !touchesProtectedUserFields(request.resource.data.keys()) &&
                        validUserData(request.resource.data);
 
@@ -95,6 +104,23 @@ service cloud.firestore {
 
       // Ingen sletter profiler via klienten
       allow delete: if false;
+
+      // PII-privat (2026-07): email/birthday/fcmToken bor her i stedet for
+      // på det offentligt læsbare bruger-doc. KUN ejeren (og staff til
+      // moderation/support) kan læse — det lukkede analysens #7, hvor
+      // enhver indlogget kunne høste alle brugeres PII.
+      match /private/{docId} {
+        allow read: if isFullUser() && request.auth.uid == userId;
+        allow read: if isStaff();
+        // Birthday valideres ved oprettelse og er urørlig bagefter
+        allow create: if isFullUser() && request.auth.uid == userId &&
+                         (!('birthday' in request.resource.data) ||
+                          isOldEnough(request.resource.data.birthday));
+        allow update: if isFullUser() && request.auth.uid == userId &&
+                         (!('birthday' in resource.data) ||
+                          request.resource.data.birthday == resource.data.birthday);
+        allow delete: if false;
+      }
     }
 
     // Bruger-lokationer. EFTERLADT LEGACY: efter topic-migreringen 2026-07

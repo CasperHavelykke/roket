@@ -159,18 +159,27 @@ export default function SignupScreen({ navigation }: any) {
       } else {
         cred = await auth().createUserWithEmailAndPassword(email, password);
       }
-      await firestore().collection('users').doc(cred.user.uid).set({
+      // PII (email/birthday) bor i den private subcollection — bruger-doc'et
+      // er læsbart for alle indloggede. SAMME batch: reglernes alders-gate
+      // validerer private-doc'ets birthday via getAfter.
+      const userRef = firestore().collection('users').doc(cred.user.uid);
+      const batch = firestore().batch();
+      batch.set(userRef, {
         displayName: '',
         bio: '',
         status: '',
         statusTag: null,
-        email: cred.user.email,
         createdAt: firestore.FieldValue.serverTimestamp(),
         lastSeen: firestore.FieldValue.serverTimestamp(),
-        birthday: { day, month, year },
         showAge: true,
         setupComplete: true,
       });
+      batch.set(userRef.collection('private').doc('profile'), {
+        email: cred.user.email,
+        birthday: { day, month, year },
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
       // Gæste-flow (Pivot 2.0): Signup er pushet oven på app-stacken —
       // navigér selv tilbage til kortet efter succes (jf. LoginScreen)
       if (navigation.canGoBack()) {
