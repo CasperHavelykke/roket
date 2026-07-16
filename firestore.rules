@@ -119,6 +119,8 @@ service cloud.firestore {
         allow update: if isFullUser() && request.auth.uid == userId &&
                          (!('birthday' in resource.data) ||
                           request.resource.data.birthday == resource.data.birthday);
+        // Staff kan rette PII (support: forkert fødselsdato m.m.)
+        allow create, update: if isStaff();
         allow delete: if false;
       }
     }
