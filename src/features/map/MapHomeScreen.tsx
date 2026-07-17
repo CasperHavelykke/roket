@@ -243,6 +243,26 @@ export default function MapHomeScreen({ navigation, route }: any) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route?.params?.openEventNonce]);
 
+  // Bliver det åbne event aflyst/slettet under åbning, lukker detaljen —
+  // ellers viser liveSelected-fallbacken et frossent snapshot af et dødt
+  // event (hvor "Vær med" så fejler). Direkte doc-lytter dækker BÅDE
+  // viewport- og openEventId-åbnede events (sidstnævnte er ikke i
+  // activities-listen). Stille luk — join-fejlen har sin egen alert.
+  useEffect(() => {
+    const id = selected?.id;
+    if (!id) return;
+    const unsub = firestore()
+      .collection('events')
+      .doc(id)
+      .onSnapshot(
+        doc => {
+          if (!doc.exists()) setSelected(null);
+        },
+        () => {},
+      );
+    return () => unsub();
+  }, [selected?.id]);
+
   // Modalen skal kunne vises i BEGGE returns — init-flowet venter på den,
   // før initialRegion sættes, så uden den her deadlocker venteskærmen
   const locDisclosureModal = (

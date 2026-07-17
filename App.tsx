@@ -330,7 +330,7 @@ function App() {
     });
 
     // Background: user tapped notification while app was in background
-    NotificationService.onNotificationOpenedApp(remoteMessage => {
+    const unsubOpened = NotificationService.onNotificationOpenedApp(remoteMessage => {
       navigateFromNotification(remoteMessage.data);
     });
 
@@ -340,7 +340,10 @@ function App() {
       navigateFromNotification(remoteMessage.data);
     });
 
-    return () => unsubForeground();
+    return () => {
+      unsubForeground();
+      unsubOpened();
+    };
   }, [authState]);
 
   // Nærved-notifikationer via FCM geohash-topics (privacy-model 2026-07):

@@ -99,8 +99,13 @@ service cloud.firestore {
                        !touchesProtectedUserFields(request.resource.data.diff(resource.data).affectedKeys()) &&
                        validUserData(request.resource.data);
 
-      // Admins og moderatorer kan opdatere enhver bruger (ban, suspend, warn)
-      allow update: if isStaff();
+      // Moderatorer kan MODERERE enhver bruger (ban, suspend, warn) — men
+      // IKKE ændre roller. Uden dette kunne en moderator sætte admin:true
+      // på sig selv (isStaff omfatter moderatorer) → fuld eskalering.
+      allow update: if isStaff() &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admin', 'moderator']);
+      // KUN admins kan give/fjerne admin- og moderator-rollen
+      allow update: if isAdmin();
 
       // Ingen sletter profiler via klienten
       allow delete: if false;

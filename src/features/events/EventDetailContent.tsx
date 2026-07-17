@@ -282,7 +282,7 @@ export default function EventDetailContent({
             onClose();
           } catch (e) {
             console.error('Cancel failed:', e);
-            Alert.alert(t.error, t.eventsErrorCreate);
+            Alert.alert(t.error, t.eventsErrorCancel);
           } finally {
             setBusy(false);
           }

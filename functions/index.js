@@ -408,7 +408,20 @@ exports.onContactRequestAccepted = onDocumentUpdated(
     // må røre feltet — ellers kunne en klient låse chatten op udenom accept)
     const chatRef = db.collection('chats').doc(event.params.pairId);
     const chatSnap = await chatRef.get();
-    if (chatSnap.exists && chatSnap.data().disconnectedBy) {
+    if (!chatSnap.exists) {
+      // CREATE-IF-MISSING: klienten opretter normalt connection-chatten, men
+      // fejler dens set() efter accept-updaten (netværksdrop mellem de to
+      // writes), stod parret "forbundet" uden chat og uden reparationssti.
+      // Serveren er nu autoritativ backstop.
+      await chatRef.set({
+        participants: [after.from, after.to],
+        type: 'connection',
+        connectionEventId: after.eventId ?? null,
+        createdAt: FieldValue.serverTimestamp(),
+        lastMessage: '',
+        lastMessageTime: FieldValue.serverTimestamp(),
+      }).catch(err => console.warn('Connection chat create-if-missing failed:', err));
+    } else if (chatSnap.data().disconnectedBy) {
       await chatRef.update({ disconnectedBy: FieldValue.delete() }).catch(err =>
         console.warn('Clear disconnectedBy failed:', err),
       );

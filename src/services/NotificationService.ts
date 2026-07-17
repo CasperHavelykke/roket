@@ -78,9 +78,13 @@ class NotificationService {
     });
   }
 
-  // Hvad sker der når bruger trykker på en notifikation (baggrund)
-  onNotificationOpenedApp(callback: (remoteMessage: any) => void): void {
-    messaging().onNotificationOpenedApp(remoteMessage => {
+  // Hvad sker der når bruger trykker på en notifikation (baggrund).
+  // Returnerer unsubscribe — SKAL ryddes op af kalderen. Effekten i
+  // App.tsx re-kører ved hvert authState-skift (login/logout), så uden
+  // oprydning stabler den én native listener pr. cyklus → tap navigerer
+  // N gange.
+  onNotificationOpenedApp(callback: (remoteMessage: any) => void): () => void {
+    return messaging().onNotificationOpenedApp(remoteMessage => {
       callback(remoteMessage);
     });
   }

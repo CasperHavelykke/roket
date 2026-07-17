@@ -33,12 +33,18 @@ class LocationService {
         return 'denied';
       }
     }
-    // iOS: request authorization explicitly
+    // iOS: request authorization explicitly. iOS har intet check-uden-prompt,
+    // så vi cacher status i AsyncStorage (checkCurrentPrecision læser den).
+    // Ryd flaget når IKKE granted — dette er det reachable sted at opdage
+    // en tilbagetrukket tilladelse: getCurrentPosition kalder denne FØRST
+    // og kortslutter på 'denied', så en cleanup i selve position-callet blev
+    // aldrig nået.
     const auth = await Geolocation.requestAuthorization('whenInUse');
     if (auth === 'granted') {
       await AsyncStorage.setItem('ios_location_granted', 'true');
       return 'fine';
     }
+    await AsyncStorage.removeItem('ios_location_granted').catch(() => {});
     if (auth === 'denied') return 'denied';
     return 'never_ask_again';
   }

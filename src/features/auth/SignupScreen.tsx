@@ -137,6 +137,7 @@ export default function SignupScreen({ navigation }: any) {
       // flowet) oprettes en frisk konto som før.
       const anonUser = auth().currentUser;
       let cred;
+      let isResume = false;
       if (
         anonUser &&
         !anonUser.isAnonymous &&
@@ -147,6 +148,7 @@ export default function SignupScreen({ navigation }: any) {
         // Uden dette spor ville et nyt forsøg ramme email-already-in-use
         // og efterlade brugeren permanent parkeret uden profil.
         cred = { user: anonUser };
+        isResume = true;
       } else if (anonUser?.isAnonymous) {
         const emailCred = auth.EmailAuthProvider.credential(email, password);
         cred = await anonUser.linkWithCredential(emailCred);
@@ -162,6 +164,17 @@ export default function SignupScreen({ navigation }: any) {
       // er læsbart for alle indloggede. SAMME batch: reglernes alders-gate
       // validerer private-doc'ets birthday via getAfter.
       const userRef = firestore().collection('users').doc(cred.user.uid);
+      // Resume-vagt: overskriv ALDRIG en allerede fuldført profil. Uden
+      // det ville en fuldt registreret bruger, der når signup med egen
+      // email, få displayName/avatar/blokeringer/settings nulstillet af
+      // batch.set (ingen merge).
+      if (isResume) {
+        const existing = await userRef.get();
+        if (existing.exists() && existing.data()?.setupComplete) {
+          if (navigation.canGoBack()) navigation.popToTop();
+          return;
+        }
+      }
       const batch = firestore().batch();
       batch.set(userRef, {
         displayName: '',
