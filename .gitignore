@@ -77,9 +77,6 @@ GoogleService-Info.plist
 # Firebase cache
 .firebase/
 
-# Web build output
-web/dist/
-
 # Claude Code
 .claude/
 CLAUDE.md
