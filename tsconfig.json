@@ -4,7 +4,7 @@
     "types": ["jest", "node"],
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  // web/ og admin/ har egne tsconfigs (Vite/DOM) — uden exclude drukner
-  // mobil-typechecket i ~50 falske DOM-fejl og er ubrugeligt som gate
-  "exclude": ["**/node_modules", "**/Pods", "web", "admin"]
+  // admin/ har egen tsconfig (Vite/DOM) — uden exclude drukner
+  // mobil-typechecket i falske DOM-fejl og er ubrugeligt som gate
+  "exclude": ["**/node_modules", "**/Pods", "admin"]
 }

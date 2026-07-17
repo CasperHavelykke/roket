@@ -5,8 +5,7 @@
   "targets": {
     "roket-ac4de": {
       "hosting": {
-        "admin": ["roket-ac4de"],
-        "web": ["roket-web"]
+        "admin": ["roket-ac4de"]
       }
     }
   }
