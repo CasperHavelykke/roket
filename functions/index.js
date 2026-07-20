@@ -1400,6 +1400,123 @@ exports.cleanupResolvedFeedback = onSchedule('every 24 hours', async () => {
 });
 
 // Admin: Opret testbruger med Auth-konto + Firestore-profil
+// Send besked fra admin-panelet. To afsender-tilstande:
+// - senderId = kalderens egen uid: admin OG moderator (moderation — brugeren
+//   skal kunne se hvem der skriver, derfor aldrig maskeret)
+// - senderId = en testkonto: KUN admin (seeds/screenshots — testAccount-
+//   kravet håndhæves server-side, så rigtige brugeres identitet aldrig kan
+//   bruges som afsender)
+// Chat: enten eksisterende chatId, eller targetUid (moderations-1:1 —
+// pair-chatten oprettes hvis den ikke findes; server-skrivninger går uden
+// om rules, og begge parter er deltagere, så brugeren kan svare normalt).
+// Besked- og chat-felter spejler klientens sendMessage 1:1 (inkl.
+// expiresAt-arv og unreadCount på 1:1) — og sendChatNotification-triggeren
+// fyrer som ved enhver anden besked.
+exports.adminSendMessage = onCall(async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('permission-denied', 'Kun staff kan sende beskeder.');
+  }
+  const db = getFirestore();
+  const callerDoc = await db.collection('users').doc(request.auth.uid).get();
+  const caller = callerDoc.exists ? callerDoc.data() : null;
+  const isCallerAdmin = caller?.admin === true;
+  const isCallerStaff = isCallerAdmin || caller?.moderator === true;
+  if (!isCallerStaff) {
+    throw new HttpsError('permission-denied', 'Kun staff kan sende beskeder.');
+  }
+
+  const { chatId, targetUid, senderId, text } = request.data ?? {};
+  const trimmed = typeof text === 'string' ? text.trim() : '';
+  if (!trimmed || typeof senderId !== 'string' || !senderId) {
+    throw new HttpsError('invalid-argument', 'senderId og text er påkrævet.');
+  }
+  if (trimmed.length > 2000) {
+    throw new HttpsError('invalid-argument', 'Beskeden er for lang.');
+  }
+
+  // Afsender-validering
+  if (senderId !== request.auth.uid) {
+    if (!isCallerAdmin) {
+      throw new HttpsError('permission-denied', 'Moderatorer kan kun sende som sig selv.');
+    }
+    const senderDoc = await db.collection('users').doc(senderId).get();
+    if (!senderDoc.exists || senderDoc.data().testAccount !== true) {
+      throw new HttpsError(
+        'permission-denied',
+        'Der kan kun sendes på vegne af testkonti (testAccount: true).',
+      );
+    }
+  }
+
+  // Find eller opret chatten
+  let resolvedChatId = typeof chatId === 'string' && chatId ? chatId : null;
+  let chatData;
+  if (resolvedChatId) {
+    const chatDoc = await db.collection('chats').doc(resolvedChatId).get();
+    if (!chatDoc.exists) {
+      throw new HttpsError('not-found', 'Chatten findes ikke.');
+    }
+    chatData = chatDoc.data();
+  } else if (typeof targetUid === 'string' && targetUid) {
+    // Moderations-1:1: deterministisk pair-id som klientens 1:1-chats
+    if (targetUid === senderId) {
+      throw new HttpsError('invalid-argument', 'Kan ikke sende til afsenderen selv.');
+    }
+    const targetDoc = await db.collection('users').doc(targetUid).get();
+    if (!targetDoc.exists) {
+      throw new HttpsError('not-found', 'Modtageren findes ikke.');
+    }
+    resolvedChatId = [senderId, targetUid].sort().join('_');
+    const chatRef = db.collection('chats').doc(resolvedChatId);
+    const chatDoc = await chatRef.get();
+    if (chatDoc.exists) {
+      chatData = chatDoc.data();
+    } else {
+      chatData = {
+        participants: [senderId, targetUid],
+        createdAt: FieldValue.serverTimestamp(),
+      };
+      await chatRef.set(chatData);
+    }
+  } else {
+    throw new HttpsError('invalid-argument', 'Angiv chatId eller targetUid.');
+  }
+
+  const chatRef = db.collection('chats').doc(resolvedChatId);
+  const isEventChat = !!chatData?.eventId;
+
+  await chatRef.collection('messages').doc().set({
+    senderId,
+    text: trimmed,
+    timestamp: FieldValue.serverTimestamp(),
+    ...(chatData?.expiresAt ? { expiresAt: chatData.expiresAt } : {}),
+  });
+
+  const otherIds = (chatData?.participants ?? []).filter(id => id !== senderId);
+  const unreadUpdate = {};
+  if (!isEventChat) {
+    otherIds.forEach(id => {
+      unreadUpdate[`unreadCount.${id}`] = FieldValue.increment(1);
+    });
+  }
+  await chatRef.set(
+    {
+      lastMessage: trimmed.slice(0, 500),
+      lastMessageTime: FieldValue.serverTimestamp(),
+      lastMessageSenderId: senderId,
+    },
+    { merge: true },
+  );
+  if (Object.keys(unreadUpdate).length > 0) {
+    await chatRef.update(unreadUpdate);
+  }
+
+  console.log(
+    `adminSendMessage: ${request.auth.uid} sendte som ${senderId} i ${resolvedChatId}`,
+  );
+  return { chatId: resolvedChatId };
+});
+
 exports.adminCreateUser = onCall(async (request) => {
   if (!request.auth?.uid) {
     throw new HttpsError('permission-denied', 'Kun admin kan oprette brugere.');
