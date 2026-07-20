@@ -12,6 +12,9 @@ interface ActivityMarkerProps {
 
 const BUBBLE_SIZE = 38;
 const STEM_HEIGHT = 7;
+// Samlet højde (halen overlapper boblen 1 pt) — bruges af MapHomeScreen til
+// iOS' centerOffset, så halens SPIDS står på koordinatet på begge platforme
+export const MARKER_HEIGHT = BUBBLE_SIZE + STEM_HEIGHT - 1;
 // OBS: brug normal flex-flow her — absolut-positionerede børn i markør-views
 // tegnes forkert af react-native-maps' rasterizer på Fabric. Snapshot-racen
 // (halvfærdigt view fryses som bitmap) løses i stedet med en kort

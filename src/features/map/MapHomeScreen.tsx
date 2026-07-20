@@ -21,7 +21,7 @@ import RoketLogo from '../../assets/roket-logo-2.svg';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../../theme';
 import { EventDoc, eventFromData, overlapsWindow } from '../../events';
-import ActivityMarker from './ActivityMarker';
+import ActivityMarker, { MARKER_HEIGHT } from './ActivityMarker';
 import useNearbyActivities from './useNearbyActivities';
 import useNow from '../../hooks/useNow';
 import ActivityDrawer, { DRAWER_COLLAPSED_HEIGHT } from './ActivityDrawer';
@@ -64,7 +64,11 @@ function ActivityMapMarker({ event, onPress }: { event: EventDoc; onPress: () =>
       coordinate={event.location}
       onPress={onPress}
       tracksViewChanges={track}
+      // anchor er Google/Android-only; iOS (Apple Maps) centrerer custom
+      // views på koordinatet og skal have centerOffset i stedet. Begge sat
+      // = halens spids står på punktet på begge platforme.
       anchor={{ x: 0.5, y: 1 }}
+      centerOffset={{ x: 0, y: -MARKER_HEIGHT / 2 }}
     >
       <ActivityMarker tag={event.tag} />
     </Marker>
