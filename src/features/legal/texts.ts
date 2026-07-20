@@ -5,7 +5,7 @@
 export const privacyPolicy: Record<string, string> = {
   da: `Privatlivspolitik
 
-Denne privatlivspolitik gælder for Røket-appen (herefter kaldet "Applikationen") til mobile enheder, som er skabt af Casper Larsen (herefter kaldet "Tjenesteudbyderen") som en annoncestøttet tjeneste. Denne tjeneste er beregnet til brug "SOM DEN ER".
+Denne privatlivspolitik gælder for Røket-appen (herefter kaldet "Applikationen") til mobile enheder, som er skabt af Casper Larsen (herefter kaldet "Tjenesteudbyderen") som en gratis tjeneste. Denne tjeneste er beregnet til brug "SOM DEN ER".
 
 # Indsamling og brug af oplysninger
 
@@ -13,7 +13,6 @@ Applikationen indsamler oplysninger, når du downloader og bruger den. Disse opl
 
 \u2022 Din enheds IP-adresse (registreret af backend-tjenester ved forbindelse)
 \u2022 Enhedstype og operativsystem
-\u2022 Annonceinteraktionsdata (visninger og klik via AdMob)
 \u2022 Tidspunkt for seneste aktivitet (til visning af online-status)
 
 Applikationen indsamler desuden følgende personlige oplysninger:
@@ -45,7 +44,6 @@ Applikationen bruger Google Firebase som sin backend-tjeneste til godkendelse, d
 Applikationen anvender følgende tredjepartstjenester, som har deres egne privatlivspolitikker:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 Tjenesteudbyderen kan videregive brugerleverede og automatisk indsamlede oplysninger:
 
@@ -79,7 +77,7 @@ Tjenesteudbyderen er optaget af at beskytte fortroligheden af dine oplysninger. 
 
 Denne privatlivspolitik kan opdateres fra tid til anden af enhver grund. Tjenesteudbyderen vil informere dig om eventuelle ændringer i privatlivspolitikken ved at opdatere denne side med den nye privatlivspolitik. Du rådes til at konsultere denne privatlivspolitik regelmæssigt for eventuelle ændringer, da fortsat brug anses som godkendelse af alle ændringer.
 
-Denne privatlivspolitik er gældende fra 2026-07-13.
+Denne privatlivspolitik er gældende fra 2026-07-20.
 
 # Dit samtykke
 
@@ -91,7 +89,7 @@ Hvis du har spørgsmål vedrørende privatlivets fred, mens du bruger Applikatio
 
   en: `Privacy Policy
 
-This privacy policy applies to the Røket app (hereby referred to as "Application") for mobile devices that was created by Casper Larsen (hereby referred to as "Service Provider") as an Ad Supported service. This service is intended for use "AS IS".
+This privacy policy applies to the Røket app (hereby referred to as "Application") for mobile devices that was created by Casper Larsen (hereby referred to as "Service Provider") as a free service. This service is intended for use "AS IS".
 
 # Information Collection and Use
 
@@ -99,7 +97,6 @@ The Application collects information when you download and use it. This informat
 
 \u2022 Your device's IP address (logged by backend services upon connection)
 \u2022 Device type and operating system
-\u2022 Ad interaction data (impressions and clicks via AdMob)
 \u2022 Last activity timestamp (for online status display)
 
 The Application also collects the following personal information:
@@ -131,7 +128,6 @@ The Application uses Google Firebase as its backend service for authentication, 
 The Application utilizes the following third-party services that have their own Privacy Policies:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 The Service Provider may disclose User Provided and Automatically Collected Information:
 
@@ -165,7 +161,7 @@ The Service Provider is concerned about safeguarding the confidentiality of your
 
 This Privacy Policy may be updated from time to time for any reason. The Service Provider will notify you of any changes to the Privacy Policy by updating this page with the new Privacy Policy. You are advised to consult this Privacy Policy regularly for any changes, as continued use is deemed approval of all changes.
 
-This privacy policy is effective as of 2026-07-13.
+This privacy policy is effective as of 2026-07-20.
 
 # Your Consent
 
@@ -177,7 +173,7 @@ If you have any questions regarding privacy while using the Application, or have
 
   es: `Política de privacidad
 
-Esta política de privacidad se aplica a la aplicación Røket (en adelante denominada "Aplicación") para dispositivos móviles, creada por Casper Larsen (en adelante denominado "Proveedor del Servicio") como un servicio con publicidad. Este servicio está destinado a ser utilizado "TAL CUAL".
+Esta política de privacidad se aplica a la aplicación Røket (en adelante denominada "Aplicación") para dispositivos móviles, creada por Casper Larsen (en adelante denominado "Proveedor del Servicio") como un servicio gratuito. Este servicio está destinado a ser utilizado "TAL CUAL".
 
 # Recopilación y uso de información
 
@@ -185,7 +181,6 @@ La Aplicación recopila información cuando la descargas y la utilizas. Esta inf
 
 \u2022 La dirección IP de tu dispositivo (registrada por los servicios de backend al conectarse)
 \u2022 Tipo de dispositivo y sistema operativo
-\u2022 Datos de interacción con anuncios (impresiones y clics a través de AdMob)
 \u2022 Marca de tiempo de última actividad (para mostrar el estado en línea)
 
 La Aplicación también recopila la siguiente información personal:
@@ -217,7 +212,6 @@ La Aplicación utiliza Google Firebase como su servicio de backend para autentic
 La Aplicación utiliza los siguientes servicios de terceros que tienen sus propias Políticas de Privacidad:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 El Proveedor del Servicio puede divulgar información proporcionada por el usuario y recopilada automáticamente:
 
@@ -251,7 +245,7 @@ El Proveedor del Servicio se preocupa por proteger la confidencialidad de tu inf
 
 Esta Política de Privacidad puede actualizarse de vez en cuando por cualquier motivo. El Proveedor del Servicio te notificará cualquier cambio en la Política de Privacidad actualizando esta página con la nueva Política de Privacidad. Se te recomienda consultar esta Política de Privacidad regularmente para cualquier cambio, ya que el uso continuado se considera aprobación de todos los cambios.
 
-Esta política de privacidad es efectiva a partir del 2026-07-13.
+Esta política de privacidad es efectiva a partir del 2026-07-20.
 
 # Tu consentimiento
 
@@ -263,7 +257,7 @@ Si tienes alguna pregunta sobre la privacidad mientras utilizas la Aplicación, 
 
   de: `Datenschutzrichtlinie
 
-Diese Datenschutzrichtlinie gilt für die Røket-App (im Folgenden als \u201eAnwendung\u201c bezeichnet) für mobile Geräte, die von Casper Larsen (im Folgenden als \u201eDienstanbieter\u201c bezeichnet) als werbefinanzierter Dienst erstellt wurde. Dieser Dienst ist zur Nutzung \u201eWIE BESEHEN\u201c bestimmt.
+Diese Datenschutzrichtlinie gilt für die Røket-App (im Folgenden als \u201eAnwendung\u201c bezeichnet) für mobile Geräte, die von Casper Larsen (im Folgenden als \u201eDienstanbieter\u201c bezeichnet) als kostenloser Dienst erstellt wurde. Dieser Dienst ist zur Nutzung \u201eWIE BESEHEN\u201c bestimmt.
 
 # Erhebung und Verwendung von Informationen
 
@@ -271,7 +265,6 @@ Die Anwendung erhebt Informationen, wenn Sie sie herunterladen und verwenden. Di
 
 \u2022 Die IP-Adresse Ihres Geräts (von Backend-Diensten bei Verbindung protokolliert)
 \u2022 Gerätetyp und Betriebssystem
-\u2022 Anzeigen-Interaktionsdaten (Impressionen und Klicks über AdMob)
 \u2022 Zeitstempel der letzten Aktivität (zur Anzeige des Online-Status)
 
 Die Anwendung erhebt außerdem folgende personenbezogene Daten:
@@ -303,7 +296,6 @@ Die Anwendung verwendet Google Firebase als Backend-Dienst für Authentifizierun
 Die Anwendung nutzt die folgenden Drittanbieterdienste, die über eigene Datenschutzrichtlinien verfügen:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 Der Dienstanbieter kann vom Nutzer bereitgestellte und automatisch erhobene Informationen offenlegen:
 
@@ -337,7 +329,7 @@ Der Dienstanbieter ist um den Schutz der Vertraulichkeit Ihrer Informationen bem
 
 Diese Datenschutzrichtlinie kann jederzeit und aus jedem Grund aktualisiert werden. Der Dienstanbieter wird Sie über Änderungen der Datenschutzrichtlinie informieren, indem er diese Seite mit der neuen Datenschutzrichtlinie aktualisiert. Es wird empfohlen, diese Datenschutzrichtlinie regelmäßig auf Änderungen zu überprüfen, da die fortgesetzte Nutzung als Zustimmung zu allen Änderungen gilt.
 
-Diese Datenschutzrichtlinie gilt ab dem 13.07.2026.
+Diese Datenschutzrichtlinie gilt ab dem 20.07.2026.
 
 # Ihre Einwilligung
 
@@ -349,7 +341,7 @@ Wenn Sie Fragen zum Datenschutz während der Nutzung der Anwendung haben oder Fr
 
   fr: `Politique de confidentialité
 
-Cette politique de confidentialité s'applique à l'application Røket (ci-après dénommée \u00ab Application \u00bb) pour appareils mobiles, créée par Casper Larsen (ci-après dénommé \u00ab Fournisseur de services \u00bb) en tant que service financé par la publicité. Ce service est destiné à être utilisé \u00ab TEL QUEL \u00bb.
+Cette politique de confidentialité s'applique à l'application Røket (ci-après dénommée \u00ab Application \u00bb) pour appareils mobiles, créée par Casper Larsen (ci-après dénommé \u00ab Fournisseur de services \u00bb) en tant que service gratuit. Ce service est destiné à être utilisé \u00ab TEL QUEL \u00bb.
 
 # Collecte et utilisation des informations
 
@@ -357,7 +349,6 @@ L'Application collecte des informations lorsque vous la téléchargez et l'utili
 
 \u2022 L'adresse IP de votre appareil (enregistrée par les services backend lors de la connexion)
 \u2022 Type d'appareil et système d'exploitation
-\u2022 Données d'interaction publicitaire (impressions et clics via AdMob)
 \u2022 Horodatage de dernière activité (pour l'affichage du statut en ligne)
 
 L'Application collecte également les informations personnelles suivantes :
@@ -389,7 +380,6 @@ L'Application utilise Google Firebase comme service backend pour l'authentificat
 L'Application utilise les services tiers suivants qui disposent de leurs propres politiques de confidentialité :
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 Le Fournisseur de services peut divulguer les informations fournies par l'utilisateur et collectées automatiquement :
 
@@ -423,7 +413,7 @@ Le Fournisseur de services se soucie de la protection de la confidentialité de 
 
 Cette Politique de confidentialité peut être mise à jour de temps à autre pour quelque raison que ce soit. Le Fournisseur de services vous informera de tout changement de la Politique de confidentialité en mettant à jour cette page avec la nouvelle Politique de confidentialité. Il vous est conseillé de consulter régulièrement cette Politique de confidentialité pour tout changement, car l'utilisation continue est considérée comme une approbation de tous les changements.
 
-Cette politique de confidentialité est en vigueur à compter du 13/07/2026.
+Cette politique de confidentialité est en vigueur à compter du 20/07/2026.
 
 # Votre consentement
 
@@ -435,7 +425,7 @@ Si vous avez des questions concernant la confidentialité lors de l'utilisation 
 
   pt: `Política de privacidade
 
-Esta política de privacidade aplica-se à aplicação Røket (doravante designada por "Aplicação") para dispositivos móveis, criada por Casper Larsen (doravante designado por "Prestador de Serviços") como um serviço suportado por publicidade. Este serviço destina-se a ser utilizado "TAL COMO ESTÁ".
+Esta política de privacidade aplica-se à aplicação Røket (doravante designada por "Aplicação") para dispositivos móveis, criada por Casper Larsen (doravante designado por "Prestador de Serviços") como um serviço gratuito. Este serviço destina-se a ser utilizado "TAL COMO ESTÁ".
 
 # Recolha e utilização de informações
 
@@ -443,7 +433,6 @@ A Aplicação recolhe informações quando a descarregas e utilizas. Estas infor
 
 \u2022 O endereço IP do teu dispositivo (registado pelos serviços de backend ao conectar)
 \u2022 Tipo de dispositivo e sistema operativo
-\u2022 Dados de interação com anúncios (impressões e cliques via AdMob)
 \u2022 Marca temporal de última atividade (para exibição do estado online)
 
 A Aplicação também recolhe as seguintes informações pessoais:
@@ -475,7 +464,6 @@ A Aplicação utiliza o Google Firebase como serviço de backend para autentica�
 A Aplicação utiliza os seguintes serviços de terceiros que possuem as suas próprias Políticas de Privacidade:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 O Prestador de Serviços pode divulgar informações fornecidas pelo utilizador e recolhidas automaticamente:
 
@@ -509,7 +497,7 @@ O Prestador de Serviços preocupa-se com a proteção da confidencialidade das t
 
 Esta Política de Privacidade pode ser atualizada ocasionalmente por qualquer motivo. O Prestador de Serviços notificar-te-á de quaisquer alterações à Política de Privacidade atualizando esta página com a nova Política de Privacidade. Aconselhamos-te a consultar regularmente esta Política de Privacidade para quaisquer alterações, uma vez que o uso continuado é considerado aprovação de todas as alterações.
 
-Esta política de privacidade é efetiva a partir de 13/07/2026.
+Esta política de privacidade é efetiva a partir de 20/07/2026.
 
 # O teu consentimento
 
@@ -523,7 +511,7 @@ Se tiveres alguma questão sobre privacidade durante a utilização da Aplicaç�
 export const termsConditions: Record<string, string> = {
   da: `Vilkår og betingelser
 
-Disse vilkår og betingelser gælder for Røket-appen (herefter kaldet "Applikationen") til mobile enheder, som er skabt af Casper Larsen (herefter kaldet "Tjenesteudbyderen") som en annoncestøttet tjeneste.
+Disse vilkår og betingelser gælder for Røket-appen (herefter kaldet "Applikationen") til mobile enheder, som er skabt af Casper Larsen (herefter kaldet "Tjenesteudbyderen") som en gratis tjeneste.
 
 Ved at downloade eller bruge Applikationen accepterer du automatisk følgende vilkår. Det anbefales kraftigt, at du grundigt læser og forstår disse vilkår, før du bruger Applikationen.
 
@@ -548,7 +536,6 @@ Tjenesteudbyderen kan ønske at opdatere applikationen på et tidspunkt. Applika
 Applikationen anvender tredjepartstjenester, som har deres egne vilkår og betingelser:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 Du bør gennemgå disse tredjeparters vilkår og privatlivspolitikker.
 
@@ -569,7 +556,7 @@ Hvis du opdager indhold der involverer udnyttelse af mindreårige, bedes du stra
 
 Tjenesteudbyderen kan periodisk opdatere deres vilkår og betingelser. Derfor anbefales det, at du regelmæssigt gennemgår denne side for eventuelle ændringer. Tjenesteudbyderen vil informere dig om eventuelle ændringer ved at offentliggøre de nye vilkår og betingelser på denne side.
 
-Disse vilkår og betingelser er gældende fra 2026-02-27.
+Disse vilkår og betingelser er gældende fra 2026-07-20.
 
 # Kontakt os
 
@@ -577,7 +564,7 @@ Hvis du har spørgsmål eller forslag vedrørende vilkårene og betingelserne, t
 
   en: `Terms & Conditions
 
-These terms and conditions apply to the Røket app (hereby referred to as "Application") for mobile devices that was created by Casper Larsen (hereby referred to as "Service Provider") as an Ad Supported service.
+These terms and conditions apply to the Røket app (hereby referred to as "Application") for mobile devices that was created by Casper Larsen (hereby referred to as "Service Provider") as a free service.
 
 Upon downloading or utilizing the Application, you are automatically agreeing to the following terms. It is strongly advised that you thoroughly read and understand these terms prior to using the Application.
 
@@ -602,7 +589,6 @@ The Service Provider may wish to update the application at some point. The appli
 The Application utilizes third-party services that have their own terms and conditions:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 You are advised to review the terms and conditions and privacy policies of these third-party service providers.
 
@@ -623,7 +609,7 @@ If you discover content involving the exploitation of minors, please report it i
 
 The Service Provider may periodically update their Terms and Conditions. Therefore, you are advised to review this page regularly for any changes. The Service Provider will notify you of any changes by posting the new Terms and Conditions on this page.
 
-These terms and conditions are effective as of 2026-02-27.
+These terms and conditions are effective as of 2026-07-20.
 
 # Contact Us
 
@@ -631,7 +617,7 @@ If you have any questions or suggestions about the Terms and Conditions, please 
 
   es: `Términos y condiciones
 
-Estos términos y condiciones se aplican a la aplicación Røket (en adelante denominada "Aplicación") para dispositivos móviles, creada por Casper Larsen (en adelante denominado "Proveedor del Servicio") como un servicio con publicidad.
+Estos términos y condiciones se aplican a la aplicación Røket (en adelante denominada "Aplicación") para dispositivos móviles, creada por Casper Larsen (en adelante denominado "Proveedor del Servicio") como un servicio gratuito.
 
 Al descargar o utilizar la Aplicación, aceptas automáticamente los siguientes términos. Se recomienda encarecidamente que leas y comprendas estos términos antes de utilizar la Aplicación.
 
@@ -656,7 +642,6 @@ El Proveedor del Servicio puede desear actualizar la aplicación en algún momen
 La Aplicación utiliza servicios de terceros que tienen sus propios términos y condiciones:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 Se te recomienda revisar los términos y condiciones y las políticas de privacidad de estos proveedores de servicios de terceros.
 
@@ -677,7 +662,7 @@ Si descubres contenido que involucre la explotación de menores, repórtalo inme
 
 El Proveedor del Servicio puede actualizar periódicamente sus Términos y Condiciones. Por lo tanto, se te recomienda revisar esta página regularmente para cualquier cambio. El Proveedor del Servicio te notificará cualquier cambio publicando los nuevos Términos y Condiciones en esta página.
 
-Estos términos y condiciones son efectivos a partir del 2026-02-27.
+Estos términos y condiciones son efectivos a partir del 2026-07-20.
 
 # Contáctanos
 
@@ -685,7 +670,7 @@ Si tienes alguna pregunta o sugerencia sobre los Términos y Condiciones, no dud
 
   de: `Nutzungsbedingungen
 
-Diese Nutzungsbedingungen gelten für die Røket-App (im Folgenden als \u201eAnwendung\u201c bezeichnet) für mobile Geräte, die von Casper Larsen (im Folgenden als \u201eDienstanbieter\u201c bezeichnet) als werbefinanzierter Dienst erstellt wurde.
+Diese Nutzungsbedingungen gelten für die Røket-App (im Folgenden als \u201eAnwendung\u201c bezeichnet) für mobile Geräte, die von Casper Larsen (im Folgenden als \u201eDienstanbieter\u201c bezeichnet) als kostenloser Dienst erstellt wurde.
 
 Durch das Herunterladen oder die Nutzung der Anwendung stimmen Sie automatisch den folgenden Bedingungen zu. Es wird dringend empfohlen, diese Bedingungen vor der Nutzung der Anwendung sorgfältig zu lesen und zu verstehen.
 
@@ -710,7 +695,6 @@ Der Dienstanbieter möchte die Anwendung möglicherweise irgendwann aktualisiere
 Die Anwendung nutzt Drittanbieterdienste, die ihre eigenen Nutzungsbedingungen haben:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 Es wird empfohlen, die Nutzungsbedingungen und Datenschutzrichtlinien dieser Drittanbieter zu lesen.
 
@@ -731,7 +715,7 @@ Wenn Sie Inhalte entdecken, die die Ausbeutung von Minderjährigen betreffen, me
 
 Der Dienstanbieter kann seine Nutzungsbedingungen regelmäßig aktualisieren. Daher wird Ihnen empfohlen, diese Seite regelmäßig auf Änderungen zu überprüfen. Der Dienstanbieter wird Sie über Änderungen informieren, indem er die neuen Nutzungsbedingungen auf dieser Seite veröffentlicht.
 
-Diese Nutzungsbedingungen gelten ab dem 27.02.2026.
+Diese Nutzungsbedingungen gelten ab dem 20.07.2026.
 
 # Kontakt
 
@@ -739,7 +723,7 @@ Wenn Sie Fragen oder Vorschläge zu den Nutzungsbedingungen haben, zögern Sie n
 
   fr: `Conditions générales
 
-Ces conditions générales s'appliquent à l'application Røket (ci-après dénommée \u00ab Application \u00bb) pour appareils mobiles, créée par Casper Larsen (ci-après dénommé \u00ab Fournisseur de services \u00bb) en tant que service financé par la publicité.
+Ces conditions générales s'appliquent à l'application Røket (ci-après dénommée \u00ab Application \u00bb) pour appareils mobiles, créée par Casper Larsen (ci-après dénommé \u00ab Fournisseur de services \u00bb) en tant que service gratuit.
 
 En téléchargeant ou en utilisant l'Application, vous acceptez automatiquement les conditions suivantes. Il est fortement conseillé de lire et de comprendre attentivement ces conditions avant d'utiliser l'Application.
 
@@ -764,7 +748,6 @@ Le Fournisseur de services peut souhaiter mettre à jour l'application à un mom
 L'Application utilise des services tiers qui ont leurs propres conditions générales :
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 Il vous est conseillé de consulter les conditions générales et les politiques de confidentialité de ces fournisseurs de services tiers.
 
@@ -785,7 +768,7 @@ Si vous découvrez du contenu impliquant l'exploitation de mineurs, signalez-le 
 
 Le Fournisseur de services peut mettre à jour périodiquement ses Conditions générales. Par conséquent, il vous est conseillé de consulter régulièrement cette page pour tout changement. Le Fournisseur de services vous informera de tout changement en publiant les nouvelles Conditions générales sur cette page.
 
-Ces conditions générales sont en vigueur à compter du 27/02/2026.
+Ces conditions générales sont en vigueur à compter du 20/07/2026.
 
 # Nous contacter
 
@@ -793,7 +776,7 @@ Si vous avez des questions ou des suggestions concernant les Conditions généra
 
   pt: `Termos e condições
 
-Estes termos e condições aplicam-se à aplicação Røket (doravante designada por "Aplicação") para dispositivos móveis, criada por Casper Larsen (doravante designado por "Prestador de Serviços") como um serviço suportado por publicidade.
+Estes termos e condições aplicam-se à aplicação Røket (doravante designada por "Aplicação") para dispositivos móveis, criada por Casper Larsen (doravante designado por "Prestador de Serviços") como um serviço gratuito.
 
 Ao descarregar ou utilizar a Aplicação, aceitas automaticamente os seguintes termos. É fortemente recomendado que leias e compreendas estes termos antes de utilizar a Aplicação.
 
@@ -818,7 +801,6 @@ O Prestador de Serviços pode desejar atualizar a aplicação em algum momento. 
 A Aplicação utiliza serviços de terceiros que têm os seus próprios termos e condições:
 
 \u2022 Google Play Services
-\u2022 AdMob
 
 Aconselhamos-te a rever os termos e condições e as políticas de privacidade destes prestadores de serviços de terceiros.
 
@@ -839,7 +821,7 @@ Se descobrires conteúdo envolvendo a exploração de menores, reporta-o imediat
 
 O Prestador de Serviços pode atualizar periodicamente os seus Termos e Condições. Portanto, aconselhamos-te a rever esta página regularmente para quaisquer alterações. O Prestador de Serviços notificar-te-á de quaisquer alterações publicando os novos Termos e Condições nesta página.
 
-Estes termos e condições são efetivos a partir de 27/02/2026.
+Estes termos e condições são efetivos a partir de 20/07/2026.
 
 # Contacta-nos
 

@@ -31,9 +31,6 @@ import PrivacyPolicyScreen from './src/features/legal/PrivacyPolicyScreen';
 import TermsConditionsScreen from './src/features/legal/TermsConditionsScreen';
 import CommunityGuidelinesScreen from './src/features/legal/CommunityGuidelinesScreen';
 import ChildSafetyScreen from './src/features/legal/ChildSafetyScreen';
-import mobileAds from 'react-native-google-mobile-ads';
-
-mobileAds().initialize();
 
 type RootStackParamList = {
   Login: undefined;
