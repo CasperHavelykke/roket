@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   useWindowDimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -15,9 +17,10 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Sparkles } from 'lucide-react-native';
 import { useTheme } from '../../theme';
 import { EventDoc } from '../../events';
+import { seedDemoEvents } from '../../services/demoSeed';
 import useUserProfiles from '../../hooks/useUserProfiles';
 import ActivityCard, { ACTIVITY_CARD_AVATARS } from '../../components/ActivityCard';
 import EventDetailContent from '../events/EventDetailContent';
@@ -40,6 +43,9 @@ interface ActivityDrawerProps {
   allActivities: EventDoc[];
   headerText: string;
   userLocation: { latitude: number; longitude: number } | null;
+  // "Prøv appen"-seeding sker her (viewportets centrum) — IKKE ved
+  // userLocation, som kan være langt fra det område brugeren kigger på
+  seedCenter: { latitude: number; longitude: number } | null;
   onSelect: (event: EventDoc) => void;
   timeWindow: TimeWindow;
   onChangeWindow: (window: TimeWindow) => void;
@@ -67,6 +73,7 @@ export default function ActivityDrawer({
   allActivities,
   headerText,
   userLocation,
+  seedCenter,
   onSelect,
   timeWindow,
   onChangeWindow,
@@ -191,6 +198,21 @@ export default function ActivityDrawer({
     />
   );
 
+  // "Prøv appen"-seeding: kun når HELE viewportet er tomt (ikke bare
+  // tidsvinduet). Serveren er den egentlige vagt (tomt område, rate-limit)
+  // — de nye events kommer ind via geo-lytterne af sig selv.
+  const [seeding, setSeeding] = useState(false);
+  const handleSeedDemo = async () => {
+    if (!seedCenter || seeding) return;
+    setSeeding(true);
+    const result = await seedDemoEvents(seedCenter.latitude, seedCenter.longitude);
+    setSeeding(false);
+    if (result === 'not-empty') Alert.alert(t.mapSeedDemoNotEmpty);
+    else if (result === 'rate-limited') Alert.alert(t.mapSeedDemoRateLimited);
+    else if (result === 'error') Alert.alert(t.error, t.mapSeedDemoFailed);
+  };
+  const showSeedButton = allActivities.length === 0 && !!seedCenter;
+
   return (
     <Animated.View
       style={[
@@ -256,7 +278,28 @@ export default function ActivityDrawer({
                 overScrollMode="never"
                 contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: 16 }}
                 ListEmptyComponent={
-                  <Text style={[styles.empty, { color: colors.textMuted }]}>{t.mapDrawerEmpty}</Text>
+                  <View>
+                    <Text style={[styles.empty, { color: colors.textMuted }]}>{t.mapDrawerEmpty}</Text>
+                    {showSeedButton ? (
+                      <TouchableOpacity
+                        style={[styles.seedButton, { borderColor: colors.inputBorder }]}
+                        onPress={handleSeedDemo}
+                        disabled={seeding}
+                        activeOpacity={0.7}
+                      >
+                        {seeding ? (
+                          <ActivityIndicator size="small" color={colors.textMuted} />
+                        ) : (
+                          <>
+                            <Sparkles size={16} color={colors.primaryBlueText} strokeWidth={2.2} />
+                            <Text style={[styles.seedButtonText, { color: colors.primaryBlueText }]}>
+                              {t.mapSeedDemoButton}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                 }
               />
             </GestureDetector>
@@ -328,5 +371,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 13,
     paddingVertical: 28,
+  },
+  seedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    alignSelf: 'center',
+    borderWidth: 1.5,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+  },
+  seedButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

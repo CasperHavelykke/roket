@@ -1,11 +1,11 @@
 const { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require('firebase-functions/v2/firestore');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const v1 = require('firebase-functions/v1');
 const { auth } = v1;
 const { initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
-const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { getMessaging } = require('firebase-admin/messaging');
 const { getStorage } = require('firebase-admin/storage');
 const vision = require('@google-cloud/vision');
@@ -1079,7 +1079,7 @@ const CELL_LNG_DEG = 360 / Math.pow(2, 13);
 // Halv celle-diagonal med margen (km) — niveau 5 er maks ~4,9×4,9 km
 const CELL_HALF_DIAG_KM = 3.5;
 
-const { geohashForLocation } = require('geofire-common');
+const { geohashForLocation, geohashQueryBounds } = require('geofire-common');
 
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -1120,6 +1120,9 @@ exports.onEventCreatedNotifyNearby = onDocumentCreated(
   async event => {
     const data = event.data.data();
     if (!data?.location) return;
+    // Demo-aktiviteter (Prøv appen-seeding) må aldrig pushe til rigtige
+    // brugere i nærheden
+    if (data.isDemo === true) return;
 
     const cells = cellsCoveringCircle(
       data.location.latitude,
@@ -1162,6 +1165,211 @@ exports.onEventCreatedNotifyNearby = onDocumentCreated(
     }
   }
 );
+
+// "Prøv appen"-seeding: knappen i drawerens tomme tilstand opretter 3
+// rigtige, joinbare demo-aktiviteter omkring kalderens position — til
+// App Review (revieweren ser et levende kort uanset lokation) og gæster
+// i stille områder. HTTP i stedet for onCall: mobilen har ikke
+// functions-SDK'et (ville kræve en ny native pod).
+//
+// Værn: (1) afvises hvis der allerede er aktive aktiviteter inden for
+// 10 km — kortet skal aldrig blandes med demo-indhold hvor der er ægte
+// liv; det betyder også at et område højst kan seedes én gang pr.
+// ~8 timer (indtil demo-eventsene selv udløber). (2) Rate-limit pr.
+// uid (nye anonyme konti giver frisk uid, men (1) begrænser skaden).
+// (3) isDemo-flaget skipper nearby-push og giver demo-noten i detaljen.
+const DEMO_HOST_UID = 'roket-demo-host';
+// Kort cooldown: tomt-område-tjekket er den reelle vagt (et seedet område
+// afviser nye seeds i ~8 timer af sig selv) — cooldownen fanger kun hurtig
+// dobbelt-tap/spam
+const DEMO_SEED_COOLDOWN_MS = 10 * 60 * 1000;
+const DEMO_AREA_RADIUS_KM = 10;
+
+// Engelske titler (samme afvejning som nearby-push: ét sprog til alle);
+// demo-noten i detaljen vises i brugerens eget sprog via isDemo-flaget
+const DEMO_EVENT_SPECS = [
+  {
+    tag: 'coffee',
+    title: 'Coffee & a chat',
+    description: 'Grabbing a coffee — come say hi. Anyone welcome!',
+    meetingPlace: 'A café nearby',
+    startOffsetMin: 15,
+    durationMinutes: 90,
+  },
+  {
+    tag: 'walk',
+    title: 'Walk in the park',
+    description: 'Easy stroll and some fresh air. Join whenever.',
+    meetingPlace: 'The nearest park',
+    startOffsetMin: 60,
+    durationMinutes: 60,
+  },
+  {
+    tag: 'gaming',
+    title: 'Board games',
+    description: 'Casual board games — beginners welcome.',
+    meetingPlace: 'Community café',
+    startOffsetMin: 120,
+    durationMinutes: 120,
+  },
+];
+
+exports.seedDemoEvents = onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'method-not-allowed' });
+    return;
+  }
+
+  // Gæster er anonymt auth'et, så alle legitime kaldere har et ID-token
+  const authHeader = req.headers.authorization || '';
+  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!idToken) {
+    res.status(401).json({ error: 'unauthenticated' });
+    return;
+  }
+  let uid;
+  try {
+    uid = (await getAuth().verifyIdToken(idToken)).uid;
+  } catch (_) {
+    res.status(401).json({ error: 'unauthenticated' });
+    return;
+  }
+
+  const lat = Number(req.body?.lat);
+  const lng = Number(req.body?.lng);
+  if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    res.status(400).json({ error: 'bad-location' });
+    return;
+  }
+
+  const db = getFirestore();
+
+  const seedRef = db.collection('demoSeeds').doc(uid);
+  const seedDoc = await seedRef.get();
+  const lastMs = seedDoc.data()?.lastSeededAt?.toMillis?.() ?? 0;
+  if (Date.now() - lastMs < DEMO_SEED_COOLDOWN_MS) {
+    res.status(429).json({ error: 'rate-limited' });
+    return;
+  }
+
+  // Tomt-område-tjek via geohash-ranges (events-collection holder kun
+  // aktive events — cleanup sluger udløbne — så limit(50) pr. bound er
+  // rigeligt; udløbs-filteret dækker vinduet mellem cleanup-kørsler)
+  const bounds = geohashQueryBounds([lat, lng], DEMO_AREA_RADIUS_KM * 1000);
+  const snaps = await Promise.all(
+    bounds.map(([start, end]) =>
+      db.collection('events').orderBy('geohash').startAt(start).endAt(end).limit(50).get(),
+    ),
+  );
+  const nowMs = Date.now();
+  const hasNearby = snaps.some(snap =>
+    snap.docs.some(d => {
+      const data = d.data();
+      if ((data.expiresAt?.toMillis?.() ?? 0) <= nowMs) return false;
+      if (!data.location) return false;
+      return (
+        haversineKm(lat, lng, data.location.latitude, data.location.longitude) <=
+        DEMO_AREA_RADIUS_KM
+      );
+    }),
+  );
+  if (hasNearby) {
+    res.status(409).json({ error: 'not-empty' });
+    return;
+  }
+
+  // Demoværten er et rent Firestore-doc uden auth-konto (serverskrivninger
+  // omgår rules; cleanupAnonymousUsers rører kun auth-brugere)
+  await db.collection('users').doc(DEMO_HOST_UID).set(
+    {
+      displayName: 'Røket-holdet',
+      testAccount: true,
+      isDemo: true,
+    },
+    { merge: true },
+  );
+
+  // Testkontoer som meddeltagere — aktiviteterne skal ligne liv (avatar-
+  // stack på kortene, deltagerliste i detaljen), og en reviewer får en
+  // meddeltager at prøve Hold kontakten på. Blandet rækkefølge + rotation
+  // så de tre events ikke får identiske deltagerlister.
+  const taSnap = await db
+    .collection('users')
+    .where('testAccount', '==', true)
+    .limit(10)
+    .get();
+  const testUids = taSnap.docs.map(d => d.id).filter(id => id !== DEMO_HOST_UID);
+  testUids.sort(() => Math.random() - 0.5);
+  const participantsFor = eventIndex => {
+    const picks = [];
+    for (let k = 0; k < Math.min(2, testUids.length); k++) {
+      const uid = testUids[(eventIndex + k) % testUids.length];
+      if (!picks.includes(uid)) picks.push(uid);
+    }
+    return [DEMO_HOST_UID, ...picks];
+  };
+
+  // Samme event+chat-facon som klientens CreateEventModal, i ÉN batch
+  const batch = db.batch();
+  for (const [specIndex, spec] of DEMO_EVENT_SPECS.entries()) {
+    // Jitter ±~140 m så pins ikke klumper oven i hinanden — og IKKE mere:
+    // klientens viewport-query snapper ned til 500 m-radius med gitter-
+    // snappet centrum, så events længere ude ville filtreres fra på det
+    // zoom-niveau, brugeren står på når de trykker på knappen
+    const dLat = (Math.random() - 0.5) * 0.0025;
+    const dLng = ((Math.random() - 0.5) * 0.0025) / Math.cos((lat * Math.PI) / 180);
+    const eLat = lat + dLat;
+    const eLng = lng + dLng;
+
+    const eventRef = db.collection('events').doc();
+    const chatId = `event_${eventRef.id}`;
+    const time = new Date(nowMs + spec.startOffsetMin * 60_000);
+    const endsAt = new Date(time.getTime() + spec.durationMinutes * 60_000);
+    const expiresAt = new Date(endsAt.getTime() + 4 * 60 * 60_000);
+    const participants = participantsFor(specIndex);
+
+    batch.set(eventRef, {
+      creatorId: DEMO_HOST_UID,
+      title: spec.title,
+      description: spec.description,
+      meetingPlace: spec.meetingPlace,
+      location: { latitude: eLat, longitude: eLng },
+      geohash: geohashForLocation([eLat, eLng]),
+      meetingLocationManual: true,
+      time: Timestamp.fromDate(time),
+      durationMinutes: spec.durationMinutes,
+      maxParticipants: null,
+      participantIds: participants,
+      tag: spec.tag,
+      chatId: chatId,
+      isDemo: true,
+      createdAt: FieldValue.serverTimestamp(),
+      expiresAt: Timestamp.fromDate(expiresAt),
+    });
+    batch.set(db.collection('chats').doc(chatId), {
+      participants: participants,
+      eventId: eventRef.id,
+      eventTitle: spec.title,
+      eventTag: spec.tag,
+      isDemo: true,
+      expiresAt: Timestamp.fromDate(expiresAt),
+      createdAt: FieldValue.serverTimestamp(),
+      lastMessage: '',
+      lastMessageTime: FieldValue.serverTimestamp(),
+    });
+  }
+  batch.set(seedRef, {
+    lastSeededAt: FieldValue.serverTimestamp(),
+    location: { latitude: lat, longitude: lng },
+  });
+  await batch.commit();
+
+  console.log(
+    `Demo seed: ${DEMO_EVENT_SPECS.length} events near ` +
+    `${lat.toFixed(3)},${lng.toFixed(3)} for ${uid}`,
+  );
+  res.json({ created: DEMO_EVENT_SPECS.length });
+});
 
 // Cleanup: Slet resolved feedback ældre end 90 dage (inkl. billeder fra Storage)
 exports.cleanupResolvedFeedback = onSchedule('every 24 hours', async () => {

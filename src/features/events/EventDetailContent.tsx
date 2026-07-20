@@ -86,7 +86,6 @@ export default function EventDetailContent({
   useEffect(() => {
     setEv(event);
   }, [event]);
-  useEffect(() => setEv(event), [event]);
 
   // Deltagerprofiler (navn + avatar) — batched + session-cachet
   const { profiles } = useUserProfiles(ev.participantIds);
@@ -362,7 +361,20 @@ export default function EventDetailContent({
           </GradientView>
           <View style={styles.headerText}>
             <Text style={[styles.title, { color: colors.textPrimary }]}>{ev.title}</Text>
-            {statusPill}
+            {ev.isDemo || statusPill ? (
+              <View style={styles.pillRow}>
+                {/* Demo-mærkning skal ses FØR join — noten længere nede er
+                    ikke nok alene */}
+                {ev.isDemo && (
+                  <View style={[styles.statusPill, { backgroundColor: `${colors.primaryBlue}1c` }]}>
+                    <Text style={[styles.statusPillText, { color: colors.primaryBlueText }]}>
+                      {t.eventsDemoBadge}
+                    </Text>
+                  </View>
+                )}
+                {statusPill}
+              </View>
+            ) : null}
           </View>
         </View>
 
@@ -417,6 +429,12 @@ export default function EventDetailContent({
               {ev.description}
             </Text>
           </>
+        ) : null}
+
+        {/* Diskret demo-mærkning ("Prøv appen"-seeding): rigtige brugere må
+            ikke kunne narres til at møde op til noget, der ikke findes */}
+        {ev.isDemo ? (
+          <Text style={[styles.demoNote, { color: colors.textMuted }]}>{t.eventsDemoNote}</Text>
         ) : null}
 
         {/* Deltagerliste — fundamentet for "Hold kontakten".
@@ -571,6 +589,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 24,
   },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -611,6 +634,12 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 15,
     lineHeight: 22,
+    marginBottom: 16,
+  },
+  demoNote: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: 'italic',
     marginBottom: 16,
   },
   participantsSection: {

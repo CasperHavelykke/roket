@@ -20,6 +20,9 @@ export interface EventDoc {
   createdAt: Date;
   expiresAt: Date;
   distance?: number;
+  // "Prøv appen"-seeding: viser demo-noten i detaljen; serveren skipper
+  // nearby-push for disse
+  isDemo?: boolean;
 }
 
 export const DEFAULT_EVENT_DURATION_MINUTES = 120;
@@ -65,6 +68,7 @@ export function eventFromData(id: string, data: any): EventDoc {
     chatId: data.chatId,
     createdAt: data.createdAt?.toDate?.() ?? new Date(),
     expiresAt: data.expiresAt?.toDate?.() ?? new Date(),
+    isDemo: data.isDemo === true,
   };
 }
 

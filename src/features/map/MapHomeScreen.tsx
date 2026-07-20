@@ -362,6 +362,17 @@ export default function MapHomeScreen({ navigation, route }: any) {
         allActivities={activities}
         headerText={zoomedOut ? t.mapZoomIn : t.mapActivitiesCount(visibleActivities.length)}
         userLocation={userLocation}
+        // Demo-seeding sker ved VIEWPORTETS centrum — det er dét område
+        // brugeren kigger på og synes er tomt (GPS-positionen kan være
+        // 100 km væk, eller helt nægtet). Skjult ved zoomed-out: dér er
+        // geo-queryen slået fra, så resultatet ville ikke kunne ses.
+        seedCenter={
+          zoomedOut
+            ? null
+            : region
+              ? { latitude: region.latitude, longitude: region.longitude }
+              : userLocation
+        }
         onSelect={setSelected}
         timeWindow={timeWindow}
         onChangeWindow={setTimeWindow}

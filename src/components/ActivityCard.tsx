@@ -164,6 +164,16 @@ export default function ActivityCard({ event, profiles, userLocation, onPress, d
           </Text>
         </View>
       </View>
+      {/* Demo-badge i øvre højre hjørne — mærkningen skal ses allerede i
+          listen, ikke først i detaljens note. Kortets overflow:hidden
+          klipper pillen præcist til hjørnet. */}
+      {event.isDemo && (
+        <View style={[styles.demoBadge, { backgroundColor: `${colors.primaryBlue}1c` }]}>
+          <Text style={[styles.demoBadgeText, { color: colors.primaryBlueText }]}>
+            {t.eventsDemoBadge}
+          </Text>
+        </View>
+      )}
       {dimmed && (
         // Kortets overflow:hidden klipper overlayet præcist til hjørnerne
         <View
@@ -245,5 +255,19 @@ const styles = StyleSheet.create({
   },
   goingText: {
     fontSize: 12,
+  },
+  demoBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderBottomLeftRadius: 10,
+  },
+  demoBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
 });
