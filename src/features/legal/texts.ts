@@ -23,7 +23,7 @@ Applikationen indsamler desuden følgende personlige oplysninger:
 \u2022 Profilbillede og chatbilleder (gemt på Google Firebase Storage)
 \u2022 Aktiviteter du opretter eller deltager i: titel, beskrivelse, mødested, tidspunkt og placering (aktiviteter og deres gruppechats slettes automatisk kort efter aktivitetens afslutning)
 \u2022 Chatbeskeder (gemt på Google Firebase Firestore)
-\u2022 Push notification-token (til levering af beskednotifikationer)
+\u2022 Push notification-token (til levering af notifikationer: beskeder, kontaktanmodninger og aktiviteter i nærheden)
 
 # Placeringsdata
 
@@ -107,7 +107,7 @@ The Application also collects the following personal information:
 \u2022 Profile photo and chat images (stored on Google Firebase Storage)
 \u2022 Activities you create or join: title, description, meeting place, time and location (activities and their group chats are automatically deleted shortly after the activity ends)
 \u2022 Chat messages (stored on Google Firebase Firestore)
-\u2022 Push notification token (for delivering message notifications)
+\u2022 Push notification token (for delivering notifications: messages, contact requests and nearby activities)
 
 # Location Data
 
@@ -191,7 +191,7 @@ La Aplicación también recopila la siguiente información personal:
 \u2022 Foto de perfil e imágenes de chat (almacenadas en Google Firebase Storage)
 \u2022 Actividades que creas o a las que te unes: título, descripción, lugar de encuentro, hora y ubicación (las actividades y sus chats de grupo se eliminan automáticamente poco después de que termine la actividad)
 \u2022 Mensajes de chat (almacenados en Google Firebase Firestore)
-\u2022 Token de notificaciones push (para la entrega de notificaciones de mensajes)
+\u2022 Token de notificaciones push (para la entrega de notificaciones: mensajes, solicitudes de contacto y actividades cercanas)
 
 # Datos de ubicación
 
@@ -275,7 +275,7 @@ Die Anwendung erhebt außerdem folgende personenbezogene Daten:
 \u2022 Profilfoto und Chat-Bilder (gespeichert auf Google Firebase Storage)
 \u2022 Aktivitäten, die Sie erstellen oder an denen Sie teilnehmen: Titel, Beschreibung, Treffpunkt, Zeitpunkt und Standort (Aktivitäten und ihre Gruppenchats werden kurz nach Ende der Aktivität automatisch gelöscht)
 \u2022 Chat-Nachrichten (gespeichert auf Google Firebase Firestore)
-\u2022 Push-Benachrichtigungs-Token (für die Zustellung von Nachrichtenbenachrichtigungen)
+\u2022 Push-Benachrichtigungs-Token (für die Zustellung von Benachrichtigungen: Nachrichten, Kontaktanfragen und Aktivitäten in der Nähe)
 
 # Standortdaten
 
@@ -359,7 +359,7 @@ L'Application collecte également les informations personnelles suivantes :
 \u2022 Photo de profil et images de chat (stockées sur Google Firebase Storage)
 \u2022 Activités que vous créez ou rejoignez : titre, description, lieu de rencontre, heure et localisation (les activités et leurs chats de groupe sont automatiquement supprimés peu après la fin de l'activité)
 \u2022 Messages de chat (stockés sur Google Firebase Firestore)
-\u2022 Jeton de notification push (pour la livraison des notifications de messages)
+\u2022 Jeton de notification push (pour la livraison des notifications : messages, demandes de contact et activités à proximité)
 
 # Données de localisation
 
@@ -443,7 +443,7 @@ A Aplicação também recolhe as seguintes informações pessoais:
 \u2022 Foto de perfil e imagens de chat (armazenadas no Google Firebase Storage)
 \u2022 Atividades que crias ou em que participas: título, descrição, local de encontro, hora e localização (as atividades e os seus chats de grupo são automaticamente eliminados pouco depois do fim da atividade)
 \u2022 Mensagens de chat (armazenadas no Google Firebase Firestore)
-\u2022 Token de notificações push (para entrega de notificações de mensagens)
+\u2022 Token de notificações push (para entrega de notificações: mensagens, pedidos de contacto e atividades próximas)
 
 # Dados de localização
 
