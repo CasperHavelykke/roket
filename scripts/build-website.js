@@ -95,12 +95,19 @@ langs.forEach(function(l) {
 });
 </script>`;
 
-  // Replace: from first Firebase SDK script tag to closing </script> before </body>
-  // Pattern: <script src="https://www.gstatic.com/firebasejs/...">...all scripts...</script>
-  html = html.replace(
-    /<script src="https:\/\/www\.gstatic\.com\/firebasejs\/[\s\S]*<\/script>\s*(?=<\/body>)/,
-    newScript + '\n'
-  );
+  // Replace: enten Firebase-skabelonens script-blok (første build) ELLER
+  // den tidligere injicerede blok (genkørsel). Uden genkørsels-grenen var
+  // scriptet et no-op på allerede-byggede filer — og loggede "done" alligevel.
+  const templateRe = /<script src="https:\/\/www\.gstatic\.com\/firebasejs\/[\s\S]*<\/script>\s*(?=<\/body>)/;
+  const rebuiltRe = /<script>\s*var langs[\s\S]*?<\/script>\s*(?=<\/body>)/;
+  if (templateRe.test(html)) {
+    html = html.replace(templateRe, newScript + '\n');
+  } else if (rebuiltRe.test(html)) {
+    html = html.replace(rebuiltRe, newScript + '\n');
+  } else {
+    console.log(`  ${filename}: ADVARSEL — fandt ingen script-blok at erstatte, filen er urørt`);
+    return;
+  }
 
   fs.writeFileSync(filePath, html, 'utf8');
   console.log(`  ${filename}: done`);
