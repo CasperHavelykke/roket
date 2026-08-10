@@ -60,17 +60,13 @@ __tests__/            # Jest unit tests (pure-logic coverage, growing)
 
 ## Screenshots
 
-Screenshots are being refreshed for the 2.0 map-first redesign — coming with the store release.
-
-<!-- TODO(2.0): replace with new map/drawer/profile/chat screenshots + demo.gif after the 7d screenshot session
 <p align="center">
-  <img src="docs/demo.gif" width="150" alt="Røket — browsing the activity map" />&nbsp;
-  <img src="docs/screenshots/play-store/homeScreen.png" width="150" alt="Activity map" />&nbsp;
-  <img src="docs/screenshots/play-store/eventSheet.png" width="150" alt="Event details" />&nbsp;
-  <img src="docs/screenshots/play-store/profileScreen.png" width="150" alt="User profile" />&nbsp;
-  <img src="docs/screenshots/play-store/chatScreen.png" width="150" alt="Group chat" />
+  <img src="docs/demo.gif" width="180" alt="Røket — browsing the activity map and joining an activity" />&nbsp;
+  <img src="docs/screenshots/app-store/homeScreen.png" width="180" alt="Activity map" />&nbsp;
+  <img src="docs/screenshots/app-store/activityDrawer.png" width="180" alt="Activity drawer with time scrubber" />&nbsp;
+  <img src="docs/screenshots/app-store/eventSheet.png" width="180" alt="Activity details" />&nbsp;
+  <img src="docs/screenshots/app-store/chatScreen.png" width="180" alt="Group chat" />
 </p>
--->
 
 ## Setup
 
